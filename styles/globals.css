@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-white text-zinc-950 antialiased;
+    @apply dark:bg-zinc-950 dark:text-zinc-50;
+  }
+
+  /* Visible focus rings for keyboard navigation */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-amber-500;
+    @apply dark:outline-amber-400;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Print styles */
+  @media print {
+    header,
+    nav,
+    footer,
+    .no-print {
+      display: none !important;
+    }
+
+    main {
+      padding: 0 !important;
+    }
+  }
+}
+
+@layer components {
+  /* Zen mode: fullscreen recipe article */
+  article:fullscreen,
+  article:-webkit-full-screen {
+    @apply bg-white dark:bg-zinc-950 p-8 overflow-y-auto;
+    @apply text-zinc-950 dark:text-zinc-50;
+    max-width: 65ch;
+    margin-inline: auto;
+    font-size: 1.125rem;
+    line-height: 1.8;
+  }
+
+  article:fullscreen h1,
+  article:-webkit-full-screen h1 {
+    @apply text-3xl font-bold mb-6;
+  }
+
+  article:fullscreen ol,
+  article:fullscreen ul,
+  article:-webkit-full-screen ol,
+  article:-webkit-full-screen ul {
+    @apply text-lg;
+  }
+
+  /* Zen mode exit button shown only in fullscreen */
+  .zen-exit {
+    display: none;
+  }
+
+  article:fullscreen .zen-exit,
+  article:-webkit-full-screen .zen-exit {
+    display: flex;
+  }
+
+  /* Btn base */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-sm;
+    @apply border border-transparent focus-visible:outline-2 focus-visible:outline-offset-2;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .btn-primary {
+    @apply btn bg-amber-500 text-zinc-950 hover:bg-amber-400;
+    @apply dark:bg-amber-400 dark:hover:bg-amber-300;
+  }
+
+  .btn-secondary {
+    @apply btn border-zinc-300 text-zinc-900 hover:bg-zinc-100;
+    @apply dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-500;
+    @apply dark:bg-red-500 dark:hover:bg-red-400;
+  }
+
+  /* Form elements */
+  .field-label {
+    @apply block text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-1;
+  }
+
+  .field-input {
+    @apply block w-full px-3 py-2.5 text-base bg-white dark:bg-zinc-900;
+    @apply border border-zinc-300 dark:border-zinc-700;
+    @apply text-zinc-950 dark:text-zinc-50;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-amber-500;
+    min-height: 44px;
+  }
+
+  .field-select {
+    @apply field-input appearance-none;
+  }
+
+  /* Tag pill */
+  .tag {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium;
+    @apply bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300;
+    @apply border border-zinc-200 dark:border-zinc-700;
+  }
+
+  /* Card */
+  .card {
+    @apply border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900;
+    @apply hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "pantry-list",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "set -a && source .env.local && set +a && npx @limlabs/rex dev --host 0.0.0.0"],
+      "port": 3000
+    },
+    {
+      "name": "graphql-server",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "set -a && source .env.local && set +a && npx tsx graphql-server.ts"],
+      "port": 4001
+    }
+  ]
+}
