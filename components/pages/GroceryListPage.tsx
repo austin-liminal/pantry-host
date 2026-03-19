@@ -194,7 +194,7 @@ export default function GroceryListPage({ kitchen }: Props) {
               Ingredients
             </h2>
 
-            <div className="space-y-6">
+            <div className="space-y-6 grocery-item">
               {sortedRecipes.map((recipe) => {
                 const items = buildPerRecipeItems(recipe, pantryByName);
                 if (items.length === 0) return null;

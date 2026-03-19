@@ -242,3 +242,23 @@
     @apply hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors;
   }
 }
+
+/* Touch-friendly sizing for coarse-pointer (touchscreen) devices */
+@media (pointer: coarse) {
+  /* Larger tap targets and text for grocery list checkboxes */
+  .grocery-item label {
+    font-size: 1.125rem; /* 18px */
+    gap: 0.875rem;
+    padding: 0.375rem 0;
+  }
+
+  .grocery-item input[type="checkbox"] {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  /* Slightly larger fieldset legends */
+  .grocery-item fieldset legend {
+    font-size: 1rem;
+  }
+}

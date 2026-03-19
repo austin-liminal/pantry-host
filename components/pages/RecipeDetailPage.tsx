@@ -76,6 +76,10 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [isDev, setIsDev] = useState(false);
+  const [ageVerified, setAgeVerified] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('age-verified') === 'true';
+    return false;
+  });
 
   const articleRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -324,6 +328,29 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
 
   if (!recipe) {
     return <main id="stage" className="min-h-screen" aria-busy="true" />;
+  }
+
+  const isAdult = recipe.tags.some((t) => ['420', 'cannabis', 'adult-only'].includes(t.toLowerCase()));
+
+  if (isAdult && !ageVerified) {
+    return (
+      <main id="stage" className="min-h-screen px-4 py-10 flex items-center justify-center">
+        <div className="text-center max-w-sm">
+          <h1 className="text-2xl font-bold mb-3">Age Verification Required</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 mb-6 pretty">This recipe contains adult-only content. You must be 21 or older to view it.</p>
+          <div className="flex gap-3 justify-center">
+            <button
+              type="button"
+              onClick={() => { localStorage.setItem('age-verified', 'true'); setAgeVerified(true); }}
+              className="btn-primary"
+            >
+              I&rsquo;m 21+
+            </button>
+            <a href={`${recipesBase}#stage`} className="btn-secondary">Back to Recipes</a>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0);

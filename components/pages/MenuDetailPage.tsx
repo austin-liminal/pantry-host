@@ -301,10 +301,10 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
         })}
       </div>
 
-      {isDev && <hr className="border-zinc-200 dark:border-zinc-800 mb-10" />}
+      <hr className="border-zinc-200 dark:border-zinc-800 mb-10" />
 
-      {/* Chef's view — full recipe cards */}
-      {isDev && sortedCourses.map((course) => {
+      {/* Full recipe cards */}
+      {sortedCourses.map((course) => {
         const items = byCourse.get(course)!;
         return (
           <section key={course} className="mb-10" aria-labelledby={`course-${course}`}>
