@@ -51,7 +51,7 @@ export default function Nav() {
   }, []);
 
   return (
-    <header className="relative flex flex-col min-h-[100svh] sm:min-h-0 bg-zinc-950 text-zinc-50 px-6 py-8">
+    <header className="relative flex flex-col min-h-[100svh] sm:min-h-0 bg-zinc-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50 px-6 py-8">
       {/* Site identity */}
       <div className="flex items-center justify-between">
         {currentPath === '/' || currentPath === '' ? (
@@ -82,9 +82,10 @@ export default function Nav() {
                     onClick={(e) => handleNavClick(e, href)}
                     aria-current={active ? 'page' : undefined}
                     className={[
-                      'text-sm font-semibold tracking-wide uppercase transition-colors',
-                      active ? 'text-amber-400' : 'text-zinc-300 hover:text-zinc-50',
+                      'text-base font-semibold tracking-wide uppercase transition-colors font-serif',
+                      active ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50',
                     ].join(' ')}
+                    style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
                   >
                     {label}
                   </a>
@@ -97,9 +98,9 @@ export default function Nav() {
 
       {/* Random quote (mobile only — fills dead space in 100svh cover) */}
       {quote && (
-        <blockquote className="my-auto px-2 sm:hidden text-zinc-500 text-lg italic max-w-[36ch] font-serif pretty">
+        <blockquote className="my-auto px-2 sm:hidden text-zinc-400 dark:text-zinc-500 text-lg italic max-w-[36ch] font-serif pretty">
           <p>&ldquo;{quote.text}&rdquo;</p>
-          <footer className="mt-2 text-sm not-italic text-zinc-600 font-sans">— {quote.author}</footer>
+          <footer className="mt-2 text-sm not-italic text-zinc-500 dark:text-zinc-600 font-sans">— {quote.author}</footer>
         </blockquote>
       )}
 
@@ -115,9 +116,10 @@ export default function Nav() {
                   onClick={(e) => handleNavClick(e, href)}
                   aria-current={active ? 'page' : undefined}
                   className={[
-                    'block text-3xl font-bold tracking-tight transition-colors',
-                    active ? 'text-amber-400' : 'text-zinc-300 hover:text-zinc-50',
+                    'block text-3xl font-bold tracking-tight transition-colors font-serif',
+                    active ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50',
                   ].join(' ')}
+                  style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
                 >
                   {label}
                 </a>
@@ -133,7 +135,7 @@ export default function Nav() {
         href="#stage"
         onClick={scrollToStage}
         aria-label="Scroll to content"
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-zinc-500 hover:text-zinc-300 transition-colors sm:hidden"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors sm:hidden"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <polyline points="6 9 12 15 18 9" />

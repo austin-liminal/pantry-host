@@ -18,7 +18,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  // Delete caches from previous app versions (e.g. pantry-list-shell-v5)
+  // Delete caches from previous app versions (e.g. old renamed caches)
   // but keep the current CACHE_NAME intact — it may hold /_rex/ bundles
   // that cached HTML still references.
   event.waitUntil(

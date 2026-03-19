@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { gql } from '@/lib/gql';
-import { Robot, ShoppingCart } from '@phosphor-icons/react';
+import { Robot, ShoppingCart, Leaf } from '@phosphor-icons/react';
 
 interface Recipe {
   id: string;
@@ -28,6 +28,7 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
   const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0);
   const isGlutenFree = recipe.tags.some((t) => t.toLowerCase() === 'gluten-free');
   const isCannabis = recipe.tags.some((t) => ['420', 'cannabis', 'adult-only'].includes(t.toLowerCase()));
+  const isSustainable = recipe.tags.some((t) => ['sustainable', 'local'].includes(t.toLowerCase()));
 
   async function handleToggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -98,6 +99,12 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
             <span className="text-green-600 dark:text-green-400 flex items-center gap-1" title="Contains cannabis">
               <CannabisIcon />
               <span className="sr-only">Contains cannabis</span>
+            </span>
+          )}
+          {isSustainable && (
+            <span className="text-green-600 dark:text-green-400 flex items-center gap-1" title="Locally sourced">
+              <Leaf size={14} aria-hidden />
+              <span className="sr-only">Locally sourced</span>
             </span>
           )}
           {isGlutenFree && (

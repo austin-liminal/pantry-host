@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
 import { cacheGet, cacheSet } from '@/lib/cache';
 import RecipeCard from '@/components/RecipeCard';
-import { Robot } from '@phosphor-icons/react';
+import { Robot, Leaf } from '@phosphor-icons/react';
 
 interface MenuRecipe {
   id: string;
@@ -140,6 +140,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
     { key: 'vegan', label: 'Vegan', tags: ['vegan'] },
     { key: 'vegetarian', label: 'Vegetarian', tags: ['vegetarian', 'vegan'] },
     { key: 'no-cook', label: 'No-Cook', tags: ['no-cook', 'no-bake'] },
+    { key: 'sustainable', label: 'Sustainable', tags: ['sustainable', 'local'] },
   ];
 
   // Only show filters that match at least one recipe on this menu
@@ -167,10 +168,15 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
         });
       });
 
-  // Group recipes by course
+  // Group recipes by course — if assigned "other", infer from recipe tags
   const byCourse = new Map<string, MenuRecipe[]>();
   for (const mr of filtered) {
-    const course = mr.course || 'other';
+    let course = mr.course || 'other';
+    if (course === 'other') {
+      const tags = mr.recipe.tags.map((t) => t.toLowerCase());
+      const inferred = COURSE_ORDER.find((c) => c !== 'other' && tags.includes(c));
+      if (inferred) course = inferred;
+    }
     if (!byCourse.has(course)) byCourse.set(course, []);
     byCourse.get(course)!.push(mr);
   }
@@ -213,7 +219,9 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
       )}
 
       {availableFilters.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-8" role="group" aria-label="Filter recipes">
+        <div className="mb-8">
+          <p id="filter-desc" className="text-xs text-zinc-500 dark:text-zinc-500 mb-2">Filter dishes by dietary preference</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="filter-desc">
           {availableFilters.map((f) => {
             const active = activeFilters.has(f.key);
             return (
@@ -241,6 +249,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
               Clear
             </button>
           )}
+          </div>
         </div>
       )}
 
@@ -259,6 +268,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
                   const isGlutenFree = r.tags.some((t) => t.toLowerCase() === 'gluten-free');
                   const isCannabis = r.tags.some((t) => ['420', 'cannabis', 'adult-only'].includes(t.toLowerCase()));
                   const isAI = r.source === 'ai-generated';
+                  const isSustainable = r.tags.some((t) => ['sustainable', 'local'].includes(t.toLowerCase()));
                   return (
                     <li key={mr.id}>
                       <div className="flex items-baseline gap-2">
@@ -273,6 +283,12 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
                             <span className="text-green-600 dark:text-green-400" title="Contains cannabis">
                               <CannabisIcon />
                               <span className="sr-only">Contains cannabis</span>
+                            </span>
+                          )}
+                          {isSustainable && (
+                            <span className="text-green-600 dark:text-green-400" title="Locally sourced">
+                              <Leaf size={14} aria-hidden />
+                              <span className="sr-only">Locally sourced</span>
                             </span>
                           )}
                           {isGlutenFree && (

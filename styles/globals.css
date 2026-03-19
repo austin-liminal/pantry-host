@@ -14,7 +14,7 @@
   }
 
   body {
-    @apply bg-white text-zinc-950 antialiased;
+    @apply bg-zinc-100 text-zinc-950 antialiased;
     @apply dark:bg-zinc-950 dark:text-zinc-50;
   }
 
