@@ -63,7 +63,7 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
         <div className="flex items-start justify-between gap-2 mb-2">
           <a
             href={`${recipesBase}/${recipe.slug ?? recipe.id}#stage`}
-            className="font-bold text-base leading-snug hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+            className="font-bold text-base leading-snug hover:text-amber-600 dark:hover:text-amber-400 transition-colors min-h-[2.75rem] line-clamp-2"
           >
             {recipe.title}
           </a>

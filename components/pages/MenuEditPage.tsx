@@ -29,14 +29,20 @@ const UPDATE_MENU = `mutation UpdateMenu($id: String!, $title: String, $descript
 }`;
 
 const COURSE_TAGS: Record<string, string[]> = {
-  appetizer: ['appetizer', 'apps', 'starter'],
+  appetizer: ['appetizer', 'apps', 'starter', 'charcuterie'],
+  breakfast: ['breakfast', 'brunch', 'pancakes', 'eggs'],
   'main-course': ['main-course', 'dinner', 'entree', 'lunch'],
+  side: ['side', 'sides'],
+  beverage: ['beverage', 'drink', 'coffee', 'tea', 'chai', 'smoothies', 'shakes', 'milk', 'creamer', 'mixology'],
   dessert: ['dessert', 'sweets', 'baking'],
 };
 
 const COURSE_LABELS: Record<string, string> = {
   appetizer: 'Appetizers',
+  breakfast: 'Breakfast',
   'main-course': 'Main Course',
+  side: 'Sides',
+  beverage: 'Beverages',
   dessert: 'Dessert',
   other: 'Other',
 };
@@ -88,7 +94,7 @@ export default function MenuEditPage({ kitchen, menuId }: Props) {
     }).catch(() => setLoading(false));
   }, [kitchen, menuId]);
 
-  const grouped: Record<string, RecipeOption[]> = { appetizer: [], 'main-course': [], dessert: [], other: [] };
+  const grouped: Record<string, RecipeOption[]> = { appetizer: [], breakfast: [], 'main-course': [], side: [], beverage: [], dessert: [], other: [] };
   for (const r of recipes) {
     const course = classifyRecipe(r);
     grouped[course].push(r);
@@ -180,7 +186,7 @@ export default function MenuEditPage({ kitchen, menuId }: Props) {
 
         <h2 className="text-xl font-bold mb-4">Select Recipes</h2>
 
-        {['appetizer', 'main-course', 'dessert', 'other'].map((course) => {
+        {['appetizer', 'breakfast', 'main-course', 'side', 'beverage', 'dessert', 'other'].map((course) => {
           const items = grouped[course];
           if (items.length === 0) return null;
           return (
