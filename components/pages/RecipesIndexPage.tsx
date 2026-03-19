@@ -28,7 +28,8 @@ interface Props { kitchen: string; }
 const ADULT_TAGS = ['420', 'cannabis', 'adult-only'];
 
 export default function RecipesIndexPage({ kitchen }: Props) {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const cacheKey = `cache:recipes:${kitchen}`;
+  const [recipes, setRecipes] = useState<Recipe[]>(() => cacheGet<Recipe[]>(cacheKey) ?? []);
   const [ageVerified, setAgeVerified] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('age-verified') === 'true';
     return false;
@@ -47,8 +48,6 @@ export default function RecipesIndexPage({ kitchen }: Props) {
     const r = recipes[Math.floor(Math.random() * recipes.length)];
     return r.title;
   }, [recipes]);
-
-  const cacheKey = `cache:recipes:${kitchen}`;
 
   useEffect(() => {
     gql<{ recipes: Recipe[] }>(RECIPES_QUERY, { kitchenSlug: kitchen })

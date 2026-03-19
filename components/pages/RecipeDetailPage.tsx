@@ -73,7 +73,9 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const router = useRouter();
   const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
 
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const cacheKey = `cache:recipe:${recipeId}`;
+  const cachedRecipe = typeof window !== 'undefined' ? cacheGet<Recipe>(cacheKey) : null;
+  const [recipe, setRecipe] = useState<Recipe | null>(cachedRecipe);
   const [notFound, setNotFound] = useState(false);
   const [isDev, setIsDev] = useState(false);
   const [ageVerified, setAgeVerified] = useState(() => {
@@ -84,15 +86,15 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const articleRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
-  const [servings, setServings] = useState(2);
+  const [servings, setServings] = useState(cachedRecipe?.servings ?? 2);
 
   const [subRecipes, setSubRecipes] = useState<SubRecipe[]>([]);
 
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [lastMadeAt, setLastMadeAt] = useState<string | null>(null);
-  const [queued, setQueued] = useState(false);
+  const [lastMadeAt, setLastMadeAt] = useState<string | null>(cachedRecipe?.lastMadeAt ?? null);
+  const [queued, setQueued] = useState(cachedRecipe?.queued ?? false);
   const [togglingQueue, setTogglingQueue] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favoritedRecipes, setFavoritedRecipes] = useState<SubRecipe[]>([]);
@@ -148,7 +150,6 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
 
   useEffect(() => {
     if (!recipeId) return;
-    const cacheKey = `cache:recipe:${recipeId}`;
     gql<{ recipe: Recipe | null; cookware: { name: string; brand: string | null }[] }>(RECIPE_QUERY, { id: recipeId })
       .then((d) => {
         if (!d.recipe) { setNotFound(true); return; }

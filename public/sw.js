@@ -18,10 +18,14 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  // Don't purge old caches aggressively — stale HTML may still reference
-  // old /_rex/ bundle hashes that only exist in the cache. Let entries
-  // get overwritten naturally via network-first fetches.
-  event.waitUntil(self.clients.claim());
+  // Delete caches from previous app versions (e.g. pantry-list-shell-v5)
+  // but keep the current CACHE_NAME intact — it may hold /_rex/ bundles
+  // that cached HTML still references.
+  event.waitUntil(
+    caches.keys().then((names) =>
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
@@ -41,7 +45,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(request)))
     );
     return;
   }
@@ -55,19 +59,25 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match(request).then((cached) => cached ?? caches.match('/')))
+        .catch(() =>
+          caches.open(CACHE_NAME).then((cache) =>
+            cache.match(request).then((cached) => cached ?? cache.match('/'))
+          )
+        )
     );
     return;
   }
 
   // Stale-while-revalidate for other same-origin requests (images, fonts, etc.)
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const networkFetch = fetch(request).then((response) => {
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
-        return response;
-      });
-      return cached ?? networkFetch;
-    })
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(request).then((cached) => {
+        const networkFetch = fetch(request).then((response) => {
+          cache.put(request, response.clone());
+          return response;
+        });
+        return cached ?? networkFetch;
+      })
+    )
   );
 });
