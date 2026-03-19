@@ -45,7 +45,7 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
   }
 
   return (
-    <div className="card group relative overflow-hidden">
+    <div className="card group relative overflow-hidden flex flex-col">
       {recipe.photoUrl && (
         <div className="aspect-[16/9] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
           <a href={`${recipesBase}/${recipe.slug ?? recipe.id}#stage`} className="block w-full h-full" tabIndex={-1} aria-hidden="true">
@@ -59,7 +59,7 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
           </a>
         </div>
       )}
-      <div className="p-4">
+      <div className="p-4 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-2 mb-2">
           <a
             href={`${recipesBase}/${recipe.slug ?? recipe.id}#stage`}
@@ -109,7 +109,7 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
         </div>
 
         {recipe.tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1">
+          <div className="mt-auto pt-3 flex flex-wrap gap-1">
             {recipe.tags.slice(0, 4).map((t) => (
               <span key={t} className="tag">{t}</span>
             ))}

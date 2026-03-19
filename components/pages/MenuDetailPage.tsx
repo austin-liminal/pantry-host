@@ -72,9 +72,10 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
   useEffect(() => {
     if (!menuId) return;
     const cacheKey = `cache:menu:${menuId}`;
+    const dev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     gql<{ menu: Menu | null }>(MENU_QUERY, { id: menuId })
       .then((d) => {
-        if (!d.menu || (!d.menu.active && !isDev)) { setNotFound(true); return; }
+        if (!d.menu || (!d.menu.active && !dev)) { setNotFound(true); return; }
         setMenu(d.menu);
         cacheSet(cacheKey, d.menu);
       })

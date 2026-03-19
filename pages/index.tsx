@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
 import GenerateButton from '@/components/GenerateButton';
 import RecipeCard from '@/components/RecipeCard';
-import quotes from '@/lib/quotes.json';
+import { getDailyQuote } from '@/lib/dailyQuote';
 import { Carrot, BookOpen, Coffee, Package, Leaf, Tag } from '@phosphor-icons/react';
 
 interface HomeRecipe {
@@ -37,7 +37,7 @@ export default function HomePage() {
   const [data, setData] = useState<HomeData | null>(null);
   const [isSecure, setIsSecure] = useState(false);
   const [quote, setQuote] = useState<{ text: string; author: string } | null>(null);
-  useEffect(() => { setQuote(quotes[Math.floor(Math.random() * quotes.length)]); }, []);
+  useEffect(() => { setQuote(getDailyQuote()); }, []);
 
   useEffect(() => {
     gql<HomeData>(HOME_QUERY).then(setData).catch(console.error);

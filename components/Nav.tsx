@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
-import quotes from '@/lib/quotes.json';
+import { getDailyQuote } from '@/lib/dailyQuote';
 
 export default function Nav() {
   const router = useRouter();
@@ -41,7 +41,7 @@ export default function Nav() {
   }
 
   const [quote, setQuote] = useState<{ text: string; author: string } | null>(null);
-  useEffect(() => { setQuote(quotes[Math.floor(Math.random() * quotes.length)]); }, []);
+  useEffect(() => { setQuote(getDailyQuote()); }, []);
 
   const [currentPath, setCurrentPath] = useState('');
   useEffect(() => { setCurrentPath(router.pathname); }, [router.pathname]);
