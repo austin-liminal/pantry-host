@@ -1,4 +1,38 @@
+import { useState, useEffect } from 'react';
+import { Monitor, Sun, Moon } from '@phosphor-icons/react';
+import {
+  getThemePreference,
+  setThemePreference,
+  getHighContrast,
+  setHighContrast,
+  type ThemePreference,
+} from '@/lib/theme';
+
+const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof Monitor }[] = [
+  { value: 'system', label: 'System', Icon: Monitor },
+  { value: 'light', label: 'Light', Icon: Sun },
+  { value: 'dark', label: 'Dark', Icon: Moon },
+];
+
 export default function Footer() {
+  const [theme, setTheme] = useState<ThemePreference>('system');
+  const [hc, setHC] = useState(false);
+
+  useEffect(() => {
+    setTheme(getThemePreference());
+    setHC(getHighContrast());
+  }, []);
+
+  function handleTheme(pref: ThemePreference) {
+    setTheme(pref);
+    setThemePreference(pref);
+  }
+
+  function handleHC(enabled: boolean) {
+    setHC(enabled);
+    setHighContrast(enabled);
+  }
+
   return (
     <footer className="no-print border-t border-zinc-200 dark:border-zinc-800 mt-16 pt-10 pb-8 px-4 sm:px-6 text-xs text-zinc-500 dark:text-zinc-400">
       <div className="max-w-5xl mx-auto">
@@ -53,7 +87,45 @@ export default function Footer() {
           <p className="mt-1.5 legible text-zinc-500 dark:text-zinc-400 pretty">
             Optionally enhanced by <a href="https://claude.ai/download" className="hover:underline text-zinc-600 dark:text-zinc-300">Claude&nbsp;Code</a>&nbsp;&mdash; import recipes from any URL, generate new ones from what you have on hand, and manage your pantry conversationally. AI features require an API key and are entirely&nbsp;opt&#8209;in.
           </p>
-          <div className="mt-6 flex justify-end">
+
+          {/* Theme toggle + GitHub */}
+          <div className="mt-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {/* Theme preference */}
+              <div role="radiogroup" aria-label="Theme" className="flex items-center gap-1">
+                {THEME_OPTIONS.map(({ value, label, Icon }) => {
+                  const active = theme === value;
+                  return (
+                    <button
+                      key={value}
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={`${label} theme`}
+                      onClick={() => handleTheme(value)}
+                      className={`p-1.5 rounded transition-colors ${
+                        active
+                          ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100'
+                          : 'text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400'
+                      }`}
+                    >
+                      <Icon size={16} aria-hidden />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* High contrast toggle */}
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={hc}
+                  onChange={(e) => handleHC(e.target.checked)}
+                  className="w-3.5 h-3.5 accent-amber-500"
+                />
+                <span className="text-xs">High contrast</span>
+              </label>
+            </div>
+
             <a href="https://github.com/jpdevries/pantry-host" className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors" aria-label="Pantry Host on GitHub">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>

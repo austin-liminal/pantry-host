@@ -3,8 +3,61 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Design tokens ── */
   :root {
     color-scheme: light dark;
+
+    --color-bg-body: #f4f4f5;       /* zinc-100 */
+    --color-bg-card: #ffffff;
+    --color-border-card: #e4e4e7;    /* zinc-200 */
+    --color-text-primary: #09090b;   /* zinc-950 */
+    --color-text-secondary: #71717a; /* zinc-500 */
+    --color-accent: #d97706;         /* amber-600 */
+    --color-accent-hover: #f59e0b;   /* amber-500 */
+    --color-bg-nav: #f4f4f5;         /* zinc-100 */
+    --color-ring-focus: #f59e0b;     /* amber-500 */
+    --color-ring-offset: #ffffff;
+  }
+
+  .dark {
+    --color-bg-body: #09090b;        /* zinc-950 */
+    --color-bg-card: #18181b;        /* zinc-900 */
+    --color-border-card: #27272a;    /* zinc-800 */
+    --color-text-primary: #fafafa;   /* zinc-50 */
+    --color-text-secondary: #a1a1aa; /* zinc-400 */
+    --color-accent: #fbbf24;         /* amber-400 */
+    --color-accent-hover: #fcd34d;   /* amber-300 */
+    --color-bg-nav: #09090b;         /* zinc-950 */
+    --color-ring-focus: #fbbf24;     /* amber-400 */
+    --color-ring-offset: #09090b;    /* zinc-950 */
+  }
+
+  /* ── High Contrast: black-on-white ── */
+  .high-contrast {
+    --color-bg-body: #ffffff;
+    --color-bg-card: #ffffff;
+    --color-border-card: #000000;
+    --color-text-primary: #000000;
+    --color-text-secondary: #000000;
+    --color-accent: #000000;
+    --color-accent-hover: #000000;
+    --color-bg-nav: #ffffff;
+    --color-ring-focus: #000000;
+    --color-ring-offset: #ffffff;
+  }
+
+  /* ── High Contrast: white-on-black ── */
+  .high-contrast.dark {
+    --color-bg-body: #000000;
+    --color-bg-card: #000000;
+    --color-border-card: #ffffff;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #ffffff;
+    --color-accent: #ffffff;
+    --color-accent-hover: #ffffff;
+    --color-bg-nav: #000000;
+    --color-ring-focus: #ffffff;
+    --color-ring-offset: #000000;
   }
 
   *,
@@ -14,8 +67,9 @@
   }
 
   body {
-    @apply bg-zinc-100 text-zinc-950 antialiased;
-    @apply dark:bg-zinc-950 dark:text-zinc-50;
+    background-color: var(--color-bg-body);
+    color: var(--color-text-primary);
+    @apply antialiased;
   }
 
   h1 {
@@ -24,8 +78,17 @@
 
   /* Visible focus rings for keyboard navigation */
   :focus-visible {
-    @apply outline-none ring-2 ring-amber-500 ring-offset-2 ring-offset-white;
-    @apply dark:ring-amber-400 dark:ring-offset-zinc-950;
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--color-ring-offset),
+      0 0 0 4px var(--color-ring-focus);
+  }
+
+  /* High contrast: use outline-offset for clearer focus */
+  .high-contrast :focus-visible {
+    box-shadow: none;
+    outline: 3px solid var(--color-text-primary);
+    outline-offset: 3px;
   }
 
   /* Respect reduced motion */
@@ -149,8 +212,9 @@
   /* Zen mode: fullscreen recipe article */
   article:fullscreen,
   article:-webkit-full-screen {
-    @apply bg-white dark:bg-zinc-950 p-8 overflow-y-auto;
-    @apply text-zinc-950 dark:text-zinc-50;
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
+    @apply p-8 overflow-y-auto;
     max-width: 65ch;
     margin-inline: auto;
     font-size: 1.125rem;
@@ -183,13 +247,21 @@
   }
 
   .btn-primary {
-    @apply btn bg-amber-500 text-zinc-950 hover:bg-amber-400;
-    @apply dark:bg-amber-400 dark:hover:bg-amber-300;
+    @apply btn;
+    background-color: var(--color-accent);
+    color: var(--color-bg-body);
+  }
+  .btn-primary:hover {
+    background-color: var(--color-accent-hover);
   }
 
   .btn-secondary {
-    @apply btn border-zinc-300 text-zinc-900 hover:bg-zinc-100;
-    @apply dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800;
+    @apply btn;
+    border-color: var(--color-border-card);
+    color: var(--color-text-primary);
+  }
+  .btn-secondary:hover {
+    background-color: var(--color-bg-card);
   }
 
   .btn-danger {
@@ -199,15 +271,20 @@
 
   /* Form elements */
   .field-label {
-    @apply block text-sm font-semibold text-zinc-800 dark:text-zinc-200 mb-1;
+    @apply block text-sm font-semibold mb-1;
+    color: var(--color-text-primary);
   }
 
   .field-input {
-    @apply block w-full px-3 py-2.5 text-base bg-white dark:bg-zinc-900;
-    @apply border border-zinc-300 dark:border-zinc-700;
-    @apply text-zinc-950 dark:text-zinc-50;
-    @apply focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-amber-500;
+    @apply block w-full px-3 py-2.5 text-base;
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border-card);
+    color: var(--color-text-primary);
     min-height: 44px;
+  }
+  .field-input:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 0;
   }
 
   .field-select {
@@ -217,8 +294,9 @@
   /* Tag pill */
   .tag {
     @apply inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium;
-    @apply bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300;
-    @apply border border-zinc-200 dark:border-zinc-700;
+    background-color: var(--color-bg-body);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border-card);
   }
 
   /* Legible line lengths */
@@ -238,8 +316,19 @@
 
   /* Card */
   .card {
-    @apply border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900;
-    @apply hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors;
+    border: 1px solid var(--color-border-card);
+    background-color: var(--color-bg-card);
+    transition: border-color 0.15s;
+  }
+  .card:hover {
+    border-color: var(--color-text-secondary);
+  }
+
+  /* High contrast: thicker borders */
+  .high-contrast .card,
+  .high-contrast .tag,
+  .high-contrast .field-input {
+    border-width: 2px;
   }
 }
 
@@ -260,5 +349,35 @@
   /* Slightly larger fieldset legends */
   .grocery-item fieldset legend {
     font-size: 1rem;
+  }
+}
+
+/* Windows High Contrast / forced-colors */
+@media (forced-colors: active) {
+  :root {
+    --color-bg-body: Canvas;
+    --color-bg-card: Canvas;
+    --color-text-primary: CanvasText;
+    --color-text-secondary: CanvasText;
+    --color-accent: LinkText;
+    --color-border-card: CanvasText;
+    --color-ring-focus: Highlight;
+    --color-ring-offset: Canvas;
+  }
+
+  :focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  .card, .tag, .field-input, .btn {
+    border: 2px solid CanvasText;
+  }
+
+  .btn-primary {
+    border: 2px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
   }
 }

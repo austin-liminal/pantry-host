@@ -5,6 +5,7 @@ import OfflineBanner from '@/components/OfflineBanner';
 import Footer from '@/components/Footer';
 import { flush } from '@/lib/offlineQueue';
 import { registerFlush } from '@/lib/apiStatus';
+import { initTheme } from '@/lib/theme';
 import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -12,6 +13,7 @@ export default function App({ Component, pageProps }: AppProps) {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(console.error);
     }
+    initTheme();
     // Flush is triggered by API coming back online, not navigator.online —
     // so it works when returning home from the grocery store (5G → home wifi)
     registerFlush(flush);
