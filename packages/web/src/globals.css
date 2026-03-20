@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@source "../src";
+
 @layer base {
   :root {
     color-scheme: light dark;
@@ -142,28 +144,23 @@
     font-family: 'Crimson Pro', Georgia, serif;
   }
 
-  .pretty {
-    text-wrap: pretty;
+  /* Add-to-list CTA: currentColor icon + border, faded by default, full opacity on hover/focus */
+  .add-to-list-cta {
+    color: currentColor;
+    border: 1px solid currentColor;
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
   }
-
-  .theme-claude .tier-card,
-  .theme-claude .feature-card {
-    --color-text-secondary: #a1a1aa;
+  .add-to-list-cta:hover,
+  .add-to-list-cta:focus {
+    opacity: 1;
   }
-}
-
-.tier-card,
-.feature-card {
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.tier-card:focus-within,
-.feature-card:focus-within {
-  border-color: var(--color-text-primary) !important;
-  box-shadow: 0 0 0 1px var(--color-text-primary), 0 0 20px rgba(255, 255, 255, 0.05);
-}
-.dark .tier-card:focus-within,
-.dark .feature-card:focus-within {
-  box-shadow: 0 0 0 1px var(--color-text-primary), 0 0 24px rgba(255, 255, 255, 0.08);
+  .add-to-list-cta.is-active {
+    opacity: 1;
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-bg-body);
+  }
 }
 
 .credits-details {

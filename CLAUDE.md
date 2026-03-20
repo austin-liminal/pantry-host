@@ -4,19 +4,47 @@ Project context for AI agents working on this codebase.
 
 ## What is this?
 
-Pantry Host is a self-hosted, privacy-first PWA for managing a home kitchen — recipes, pantry ingredients, cookware, and grocery lists. Runs on a local machine (Mac Mini) with PostgreSQL. All data stays on the home network.
+Pantry Host is a privacy-first kitchen companion for managing recipes, pantry ingredients, cookware, and grocery lists. It ships three ways: self-hosted with PostgreSQL, browser-native with PGlite, or as a static marketing page. All data stays on your hardware.
 
-## Architecture
+## Monorepo structure
+
+```
+pantry-host/
+├── packages/
+│   ├── app/          # Self-hosted Rex app (Postgres, SSR)
+│   ├── shared/       # Shared types, adapters, constants, theme, components
+│   ├── marketing/    # Static landing page (Vite, Cloudflare Pages)
+│   └── web/          # Browser-native PWA (PGlite + IndexedDB, Vite)
+├── package.json      # npm workspaces root
+├── .env.local        # App env vars (DATABASE_URL, AI_PROVIDER, AI_API_KEY)
+├── .claude/          # Launch configs, settings
+└── CLAUDE.md
+```
+
+### npm workspaces
+
+Root `package.json` has `"workspaces": ["packages/*"]`. Run workspace scripts via:
+```bash
+npm run dev                    # packages/app (Rex @ 3000)
+npm run dev:graphql            # packages/app GraphQL (4001)
+npm run dev:marketing          # packages/marketing (Vite @ 5173)
+npm run dev:web                # packages/web (Vite @ 5174)
+```
+
+Or use `.claude/launch.json` configs: `pantry-host`, `graphql-server`, `marketing`, `web`.
+
+## packages/app — Self-hosted (Rex + Postgres)
 
 ### Rex framework (not Next.js)
 
-This project uses **Rex** (`@limlabs/rex`), a custom React bundler built on rolldown. It mimics the Next.js file-based routing API (`pages/`, `useRouter`, `next/head`) but is NOT Next.js.
+Uses **Rex** (`@limlabs/rex`), a custom React bundler built on rolldown. Mimics Next.js file-based routing but is NOT Next.js.
 
 **Critical Rex behaviors:**
-- Client bundles are served from `/_rex/static/` and `/_rex/router.js`
-- Bundles are hash-named (e.g., `recipes-_slug_-4f24bdbc.js`)
-- After code changes, stale `.rex/build` can cause hydration failures or blank pages. Fix: `rm -rf .rex/build` + restart dev server
-- There is no `<Link>` component — all navigation uses plain `<a>` tags (full page navigations, not SPA)
+- Client bundles served from `/_rex/static/` and `/_rex/router.js`
+- Stale `.rex/build` causes hydration failures. Fix: `rm -rf .rex/build` + restart
+- No `<Link>` component — all `<a>` tags trigger full page loads
+- Rex 0.19.2 has Tailwind v4 built into its Rust binary
+- Rex's bundler doesn't follow Node module resolution up the tree. Requires React symlinks in `packages/app/node_modules/` (handled by `postinstall` script)
 
 ### Dual servers
 
@@ -25,157 +53,193 @@ This project uses **Rex** (`@limlabs/rex`), a custom React bundler built on roll
 | Rex dev server | 3000 | Frontend SSR + static assets |
 | GraphQL server | 4001 | API (graphql-yoga + Pothos) |
 
-Start both via `.claude/launch.json` configs or manually:
-```bash
-# Terminal 1 — frontend
-source .env.local && npx @limlabs/rex dev --host 0.0.0.0
-
-# Terminal 2 — API
-source .env.local && npx tsx graphql-server.ts
-```
-
 ### Database
 
-PostgreSQL 14+. Connection: `DATABASE_URL=postgres://jpdevries@localhost:5432/pantry_host`
+PostgreSQL 14+. `DATABASE_URL=postgres://jpdevries@localhost:5432/pantry_host`
 
-Schema is in `schema.sql` and auto-applied on startup. No migration tool — just edit the file.
+Schema in `packages/app/schema.sql`, auto-applied on startup.
 
-Tables: `kitchens`, `ingredients`, `recipes`, `cookware`, `recipe_ingredients`
+Tables: `kitchens`, `ingredients`, `recipes`, `recipe_ingredients`, `cookware`, `menus`, `menu_recipes`
 
 ### GraphQL schema
 
-**`lib/schema/index.ts` is the REAL schema** used by `graphql-server.ts`. The files `lib/schema/recipe.ts`, `ingredient.ts`, `cookware.ts`, `builder.ts` exist but are NOT imported — they are dead code from an earlier refactor.
+**`packages/app/lib/schema/index.ts` is the REAL schema.** Files `recipe.ts`, `ingredient.ts`, `cookware.ts`, `builder.ts` are dead code.
 
-## File structure
+Uses the postgres.js tagged template API:
+```typescript
+const [row] = await sql`SELECT * FROM recipes WHERE slug = ${slug}`;
+sql.array(tags)           // JS array → Postgres array
+sql(rows, ...columns)     // bulk INSERT
+```
+
+### File structure
 
 ```
-pages/                     # Rex file-based routes
-  _app.tsx                 # App shell (Nav, OfflineBanner, SW registration)
-  index.tsx                # Homepage dashboard with stat cards
-  list.tsx                 # Grocery list (queued recipes)
-  ingredients.tsx          # Pantry management
-  cookware.tsx             # Cookware inventory
-  recipes/
-    index.tsx              # Recipe list with search
-    [slug].tsx             # Recipe detail (takes slug OR uuid)
-    [slug]/edit.tsx         # Edit recipe
-    new.tsx                # Create recipe
-    import.tsx             # Import from URL
-  kitchens/                # Multi-kitchen variants of above
-  api/
-    graphql.ts             # GraphQL endpoint (Next.js-style handler)
-    upload.ts              # Photo upload
-    fetch-recipe.ts        # Fetch recipe metadata from URL
-    lookup-barcode.ts      # Open Food Facts barcode lookup
+packages/app/
+├── pages/               # Rex file-based routes
+│   ├── _app.tsx         # App shell (Nav, OfflineBanner, SW, theme)
+│   ├── _document.tsx    # SSR template (DEFAULT_THEME meta tag)
+│   ├── index.tsx        # Dashboard
+│   ├── list.tsx         # Grocery list
+│   ├── ingredients.tsx  # Pantry
+│   ├── cookware.tsx     # Cookware
+│   ├── recipes/         # Recipe CRUD + import
+│   ├── menus/           # Menu CRUD
+│   └── kitchens/        # Multi-kitchen variants
+├── components/          # React components
+├── lib/
+│   ├── gql.ts           # GraphQL HTTP client (POST to port 4001)
+│   ├── db.ts            # Postgres connection (lazy-init proxy)
+│   ├── schema/index.ts  # Pothos GraphQL schema
+│   ├── cache.ts         # → @pantry-host/shared/cache
+│   ├── claude.ts        # Anthropic SDK (AI recipes)
+│   ├── apiStatus.ts     # API reachability polling
+│   └── offlineQueue.ts  # Offline mutation queue
+├── graphql-server.ts    # Standalone GraphQL server
+├── schema.sql           # Database DDL
+└── public/sw.js         # Service Worker
+```
 
-components/
-  Nav.tsx                  # Left sidebar navigation
-  OfflineBanner.tsx        # Offline status indicator
-  RecipeForm.tsx           # Shared create/edit recipe form
-  IngredientForm.tsx       # Ingredient form (has autoFocus prop)
-  RecipeCard.tsx           # Recipe preview card
-  GenerateButton.tsx       # AI recipe generation (owner-only)
-  BarcodeScanner.tsx       # Camera barcode scanner
-  BatchScanSession.tsx     # Batch scanning workflow
-  pages/                   # Page-level components
-    RecipeDetailPage.tsx
-    RecipesIndexPage.tsx
-    IngredientsPage.tsx
-    GroceryListPage.tsx
-    CookwarePage.tsx
-    CookwareDetailPage.tsx
-    RecipeNewPage.tsx
-    RecipeEditPage.tsx
-    RecipeImportPage.tsx
+## packages/shared — Shared code
 
-lib/
-  gql.ts                   # GraphQL fetch client (POST to port 4001)
-  cache.ts                 # localStorage cache (cacheGet/cacheSet)
-  offlineQueue.ts          # Mutation queue for offline support
-  apiStatus.ts             # API reachability polling (port 4001)
-  db.ts                    # PostgreSQL connection (lazy-init proxy)
-  claude.ts                # Anthropic SDK integration
-  constants.ts             # Categories, units, common items
-  schema/index.ts          # THE schema (Pothos GraphQL builder)
+Exports used by all packages:
 
-graphql-server.ts          # Standalone GraphQL server entry point
-schema.sql                 # Database DDL
-public/sw.js               # Service Worker (PWA caching)
+| Export | Description |
+|--------|-------------|
+| `@pantry-host/shared/constants` | Categories, units, common ingredients |
+| `@pantry-host/shared/theme` | Theme management (system/light/dark, palettes, high contrast) |
+| `@pantry-host/shared/cache` | localStorage cacheGet/cacheSet |
+| `@pantry-host/shared/dailyQuote` | Seasonal daily quotes |
+| `@pantry-host/shared/types` | TypeScript interfaces (Kitchen, Recipe, etc.) |
+| `@pantry-host/shared/components/Footer` | Footer with conversions + theme controls |
+| `@pantry-host/shared/adapters/database` | DatabaseAdapter interface |
+| `@pantry-host/shared/adapters/file-storage` | FileStorageAdapter interface |
+
+### Storage adapter pattern
+
+```typescript
+// DatabaseAdapter — Postgres (app) vs PGlite (web)
+interface DatabaseAdapter {
+  query<T>(sql: string, params?: unknown[]): Promise<T[]>;
+  execute(sql: string, params?: unknown[]): Promise<void>;
+  transaction<T>(fn: (adapter: DatabaseAdapter) => Promise<T>): Promise<T>;
+}
+
+// FileStorageAdapter — filesystem (app) vs OPFS (web)
+interface FileStorageAdapter {
+  getFile(path: string): Promise<Blob>;
+  putFile(path: string, file: Blob): Promise<void>;
+  deleteFile(path: string): Promise<void>;
+  getURL(path: string): string;
+}
+```
+
+## packages/marketing — Static landing page
+
+Vite + React + Tailwind v4. Deploys to Cloudflare Pages via `vite build` → `dist/`.
+
+Sections: Hero, Tiers (Browser/Self-hosted/Claude Code), Features, Philosophy, Footer.
+
+## packages/web — Browser-native PWA
+
+Vite + React Router + PGlite + Tailwind v4. Runs entirely in-browser — no server required.
+
+### Key architecture
+
+- **PGlite** (`lib/db.ts`): Postgres compiled to WASM, persisted in IndexedDB (`idb://pantryhost`). Provides a tagged template wrapper mimicking the postgres.js `sql` API so the GraphQL schema resolvers work unmodified.
+- **Local GraphQL** (`lib/gql.ts`): Executes GraphQL directly in-browser via `graphql()` from `graphql-js`. Same `gql<T>(query, variables)` API as the app's HTTP client.
+- **Schema** (`lib/schema/index.ts`): Copy of app's schema with AI generation removed. Uses the PGlite-backed `sql` tagged template.
+- **OPFS storage** (`lib/storage-opfs.ts`): File storage in Origin Private File System.
+- **Data export** (`lib/export.ts`): SQL dump for backup/migration to self-hosted.
+- **No guest mode** — everything is local, user owns all features.
+- **No AI generation** — no server-side API key available.
+
+### File structure
+
+```
+packages/web/
+├── src/
+│   ├── main.tsx         # Entry point (theme init, PGlite init)
+│   ├── App.tsx          # React Router routes
+│   ├── Layout.tsx       # Nav + Footer shell
+│   ├── globals.css      # Theme tokens + Tailwind v4
+│   └── pages/           # Page components (Home, Recipes, Ingredients, etc.)
+├── lib/
+│   ├── db.ts            # PGlite tagged template wrapper
+│   ├── gql.ts           # Local GraphQL executor
+│   ├── schema/index.ts  # GraphQL schema (no AI)
+│   ├── storage-opfs.ts  # OPFS file storage
+│   ├── export.ts        # Data export
+│   ├── apiStatus.ts     # Stub (always online)
+│   └── offlineQueue.ts  # Stub (no remote server)
+├── public/
+│   ├── manifest.json    # PWA manifest
+│   └── sw.js            # Service worker
+├── index.html           # Vite entry
+└── vite.config.ts       # Vite + React + Tailwind + @/ alias
 ```
 
 ## Conventions
 
 ### Styling
-- **Tailwind CSS** with dark mode via `prefers-color-scheme` media query
-- Accent color: amber (`text-amber-600`, `dark:text-amber-400`)
-- Card pattern: `className="card"` (defined in globals.css)
-- Frosted glass: `bg-white/90 dark:bg-zinc-950/90 backdrop-blur`
+- **Tailwind CSS v4** — `@import "tailwindcss"` + `@source` directives
+- CSS custom properties for theming: `--color-bg-body`, `--color-accent`, etc.
+- Palettes: default, rosé, rebecca purple, claude
+- Dark mode via `.dark` class on `<html>`, managed by `@pantry-host/shared/theme`
+- High contrast mode via `.high-contrast` class
 
 ### Accessibility
-- **`aria-describedby` pattern**: Action buttons (Edit, Delete, Yes, No) use simple `aria-label` + `aria-describedby` pointing to the item's name element. This is preferred over interpolated labels (e.g., "Delete Cinnamon") because it produces fewer strings to translate for localization.
-  ```tsx
-  <span id={`ing-${ing.id}`}>{ing.name}</span>
-  <button aria-label="Edit" aria-describedby={`ing-${ing.id}`}>
-  <button aria-label="Delete" aria-describedby={`ing-${ing.id}`}>
-  ```
-- **Focus management**: Delete confirmation buttons get `autoFocus`. Inline edit forms pass `autoFocus` to the first input.
+- **`aria-describedby` pattern**: Action buttons use `aria-label` + `aria-describedby` pointing to the item name element (better for i18n).
+- **Focus management**: Delete confirmations get `autoFocus`. Inline edit forms pass `autoFocus` to first input.
 - **Scroll targets**: Category headings use `scroll-mt-20` to clear sticky navs.
 
 ### Icons
-Font Awesome Pro 5.15.4 **Light** SVGs, used as inline React components. Source files at `/Users/jpdevries/Downloads/fontawesome-pro-5.15.4-web/svgs/light/`. Do NOT use an icon library — copy the SVG `<path>` into a component:
-```tsx
-const iconProps = { xmlns: 'http://www.w3.org/2000/svg', width: 20, height: 20, fill: 'currentColor', 'aria-hidden': true as const };
-function CarrotIcon() { return <svg viewBox="0 0 512 512" {...iconProps}><path d="M298.2 ... "/></svg>; }
-```
+Font Awesome Pro 5.15.4 **Light** SVGs as inline React components. Source: `/Users/jpdevries/Downloads/fontawesome-pro-5.15.4-web/svgs/light/`. Copy SVG `<path>` into component, don't use an icon library.
 
-### Offline & caching
-- **Cache-seeded initial state**: Components read from `cacheGet()` in `useState` initializer for instant rendering, then fetch fresh data and `cacheSet()` on success.
-- **Skeleton UI**: Show pulsing placeholder blocks while loading on first visit (no cache).
-- **Offline queue**: Failed mutations are stored in localStorage via `enqueue()` and replayed when API comes back online.
-
-### Service Worker (`public/sw.js`)
-- Network-first for `/_rex/` paths and navigation requests
-- Stale-while-revalidate for images, fonts, etc.
-- Cache version must be bumped when changing SW logic (currently `v4`)
-- Navigation fallback chain: network -> cached page -> cached `/` (home shell)
+### Theme defaulting
+`DEFAULT_THEME=claude` env var → `<meta name="default-palette">` in `_document.tsx` → `getThemePalette()` reads it as fallback when no localStorage preference. Set in `.claude/launch.json`.
 
 ### GraphQL patterns
-- Client-side: use `gql()` from `lib/gql.ts` which POSTs to `http://localhost:4001/graphql`
+- App: `gql()` POSTs to `http://localhost:4001/graphql`
+- Web: `gql()` executes GraphQL locally via `graphql-js`
+- Same API signature: `gql<T>(query, variables): Promise<T>`
 - Queries accept `$kitchenSlug: String` for multi-kitchen filtering
-- Recipe detail accepts `$id: String!` which resolves by slug first, then UUID fallback
 
 ## Environment variables
 
 ```bash
-DATABASE_URL=postgres://jpdevries@localhost:5432/pantry_host  # required
-ANTHROPIC_API_KEY=sk-ant-...                                    # optional, for AI recipes
+DATABASE_URL=postgres://jpdevries@localhost:5432/pantry_host  # required for app
+AI_PROVIDER=anthropic                                             # anthropic or openclaw
+AI_API_KEY=sk-ant-...                                             # optional, AI recipes
 GRAPHQL_PORT=4001                                               # default 4001
+DEFAULT_THEME=claude                                            # auto-set by launch.json
 ```
 
 ## Common tasks
 
-### Clear stale build cache
+### Clear stale Rex build cache
 ```bash
 rm -rf .rex/build
 ```
 
-### Query the database directly
+### Install deps after monorepo changes
 ```bash
-psql pantry_host -c "SELECT title, queued FROM recipes;"
+npm install  # from repo root, handles all workspaces
 ```
 
-### Test GraphQL API
+### Build packages
 ```bash
-curl -s -X POST http://localhost:4001/graphql \
-  -H 'Content-Type: application/json' \
-  -d '{"query":"{ recipes { id slug title } }"}'
+cd packages/marketing && npx vite build   # → dist/
+cd packages/web && npx vite build         # → dist/
 ```
 
 ## Gotchas
 
-1. **Blank pages after code changes**: Almost always stale `.rex/build`. Delete it and restart.
-2. **SW serving stale assets**: Bump `CACHE_NAME` version in `public/sw.js`. Users need a hard refresh or tab close/reopen for the new SW to activate.
-3. **Schema duplication**: `lib/schema/index.ts` is the only schema file that matters. The others (`recipe.ts`, `ingredient.ts`, etc.) are dead code.
-4. **No `<Link>` component**: All `<a>` tags trigger full page loads. This is by design with Rex.
-5. **Guest mode**: Non-localhost HTTP access hides owner-only features (AI generation, barcode scanner, cookware). Checked via `window.location.hostname` and `protocol`.
-6. **iOS camera requires HTTPS**: Barcode scanning needs `mkcert` + `local-ssl-proxy` for mobile testing. See `scripts/https-proxy.sh`.
+1. **Blank pages after code changes**: Stale `.rex/build`. Delete it and restart.
+2. **`react is not defined` in Rex V8**: npm workspaces hoists React to root. Rex doesn't walk up. The `postinstall` symlink script in `packages/app/package.json` fixes this.
+3. **SW serving stale assets**: Bump `CACHE_NAME` version in the relevant `public/sw.js`.
+4. **No `<Link>` in app**: Rex uses plain `<a>` tags. The web package uses React Router `<Link>`.
+5. **Tailwind v4 in Rex**: Rex 0.19.2 has Tailwind v4 built in. Don't use `@apply` — use plain CSS in `globals.css`.
+6. **Guest mode (app only)**: Non-localhost hides owner features. Not applicable to web package.
+7. **PGlite WASM size**: ~2.8 MB gzipped. First load initializes schema. Subsequent loads are instant from IndexedDB.
+8. **Schema sync**: `packages/web/lib/schema/index.ts` is a copy of `packages/app/lib/schema/index.ts` minus AI generation. Keep them in sync when adding queries/mutations.

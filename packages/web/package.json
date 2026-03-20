@@ -1,0 +1,32 @@
+{
+  "name": "@pantry-host/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@pantry-host/shared": "*",
+    "@electric-sql/pglite": "^0.2.17",
+    "@phosphor-icons/react": "^2.1.10",
+    "@pothos/core": "^4.6.0",
+    "graphql": "^16.10.0",
+    "graphql-yoga": "^5.10.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0"
+  }
+}

@@ -24,6 +24,15 @@ const PALETTE_OPTIONS: { value: ThemePalette; label: string }[] = [
   { value: 'claude', label: 'Claude' },
 ];
 
+function LogoJP({ size = 24 }: { size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 106.22 119.76" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M73.11,10.12V129.88l17-17V96a23.81,23.81,0,0,0,23.08-6.16l1.5-1.51h0l1.45-1.44a23.85,23.85,0,0,0,0-33.72ZM101.69,75.4c-4.84,4.84-8.43,2.68-11.58-.25V52.41l9.73,9.72C103.42,65.73,107.42,69.68,101.69,75.4Z" transform="translate(-16.89 -10.12)" />
+      <path d="M49.9,27.14V87.6l-9.73-9.73c-3.6-3.59-7.59-7.53-1.85-13.28C41,61.87,43.44,61.3,45.67,62V47.57a4.3,4.3,0,0,0-3.15-4l-.17,0-.51-.08a7.31,7.31,0,0,0-1.76,0,23.75,23.75,0,0,0-13.22,6.7l-2.68,2.68h0l-.3.3a23.83,23.83,0,0,0,0,33.72l43,43V10.12l-17,17v0Z" transform="translate(-16.89 -10.12)" />
+    </svg>
+  );
+}
+
 export default function Footer() {
   const [theme, setTheme] = useState<ThemePreference>('system');
   const [hc, setHC] = useState(false);
@@ -170,6 +179,22 @@ export default function Footer() {
               </svg>
             </a>
           </div>
+
+          {/* Credits */}
+          <details className="credits-details">
+            <summary className="inline-flex items-center gap-1.5 text-xs bg-transparent rounded px-1.5 py-0.5 cursor-pointer select-none hover:underline list-none [&::-webkit-details-marker]:hidden text-zinc-500 dark:text-zinc-400 outline-none">
+              Credits
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width={8} height={8} fill="currentColor" aria-hidden="true" className="credits-chevron">
+                <path d="M443.5 162.6l-7.1-7.1c-4.7-4.7-12.3-4.7-17 0L224 351 28.5 155.5c-4.7-4.7-12.3-4.7-17 0l-7.1 7.1c-4.7 4.7-4.7 12.3 0 17l211 211.1c4.7 4.7 12.3 4.7 17 0l211-211.1c4.8-4.7 4.8-12.3.1-17z" />
+              </svg>
+            </summary>
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-4 items-center" style={{ paddingTop: '0.25rem' }}>
+              {/* @ts-expect-error inert is valid HTML but React types lag behind */}
+              <a href="https://devries.jp" rel="nofollow" inert="" className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors" aria-label="JP DeVries">
+                <LogoJP size={28} />
+              </a>
+            </div>
+          </details>
         </div>
       </div>
     </footer>

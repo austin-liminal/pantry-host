@@ -4,14 +4,26 @@
     {
       "name": "pantry-host",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "set -a && source .env.local && export DEFAULT_THEME=claude && set +a && npx @limlabs/rex dev --host 0.0.0.0"],
+      "runtimeArgs": ["-c", "set -a && source .env.local && export DEFAULT_THEME=claude && set +a && npx @limlabs/rex dev --root packages/app --host 0.0.0.0"],
       "port": 3000
     },
     {
       "name": "graphql-server",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "set -a && source .env.local && set +a && npx tsx graphql-server.ts"],
+      "runtimeArgs": ["-c", "cd packages/app && set -a && source ../../.env.local && set +a && npx tsx graphql-server.ts"],
       "port": 4001
+    },
+    {
+      "name": "marketing",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd packages/marketing && npx vite --port 5173"],
+      "port": 5173
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd packages/web && npx vite --port 5174"],
+      "port": 5174
     }
   ]
 }

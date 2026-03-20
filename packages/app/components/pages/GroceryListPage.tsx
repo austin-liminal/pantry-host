@@ -1,0 +1,343 @@
+import Head from 'next/head';
+import { useState, useEffect } from 'react';
+import { gql } from '@/lib/gql';
+import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
+import { enqueue } from '@/lib/offlineQueue';
+import { ShoppingCart, Basket } from '@phosphor-icons/react';
+
+interface RecipeIngredient {
+  ingredientName: string;
+  quantity: number | null;
+  unit: string | null;
+}
+
+interface QueuedRecipe {
+  id: string;
+  slug: string | null;
+  title: string;
+  groceryIngredients: RecipeIngredient[];
+}
+
+interface PantryItem {
+  id: string;
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  alwaysOnHand: boolean;
+  tags: string[];
+}
+
+type ItemStatus = 'buy' | 'need_more' | 'check_pantry' | 'have';
+
+interface PerRecipeItem {
+  key: string;
+  ingredientName: string;
+  unit: string | null;
+  quantity: number | null;
+  status: ItemStatus;
+  pantryQuantity: number | null;
+}
+
+const TOGGLE_QUEUED = `mutation ToggleQueued($id: String!) { toggleRecipeQueued(id: $id) { id queued } }`;
+
+const QUEUED_RECIPES_QUERY = `
+  query QueuedRecipes($kitchenSlug: String) {
+    recipes(queued: true, kitchenSlug: $kitchenSlug) {
+      id slug title
+      groceryIngredients { ingredientName quantity unit }
+    }
+  }
+`;
+
+const INGREDIENTS_QUERY = `
+  query Ingredients($kitchenSlug: String) {
+    ingredients(kitchenSlug: $kitchenSlug) { id name quantity unit alwaysOnHand tags }
+  }
+`;
+
+function resolveStatus(ing: RecipeIngredient, pantryByName: Map<string, PantryItem>): { status: ItemStatus; pantryQuantity: number | null } {
+  const pantryItem = pantryByName.get(ing.ingredientName.toLowerCase());
+  if (!pantryItem) return { status: 'buy', pantryQuantity: null };
+  if (pantryItem.alwaysOnHand) return { status: 'have', pantryQuantity: null };
+
+  const pantryQuantity = pantryItem.quantity;
+  if (pantryQuantity == null || ing.quantity == null) return { status: 'check_pantry', pantryQuantity };
+  if (pantryItem.unit != null && ing.unit != null && pantryItem.unit !== ing.unit) return { status: 'check_pantry', pantryQuantity };
+  if (pantryQuantity >= ing.quantity) return { status: 'have', pantryQuantity };
+  return { status: 'need_more', pantryQuantity };
+}
+
+function buildPerRecipeItems(recipe: QueuedRecipe, pantryByName: Map<string, PantryItem>): PerRecipeItem[] {
+  return recipe.groceryIngredients
+    .map((ing) => {
+      const { status, pantryQuantity } = resolveStatus(ing, pantryByName);
+      return {
+        key: `${ing.ingredientName.toLowerCase()}::${ing.unit ?? ''}`,
+        ingredientName: ing.ingredientName,
+        unit: ing.unit,
+        quantity: ing.quantity,
+        status,
+        pantryQuantity,
+      };
+    })
+    .sort((a, b) => a.ingredientName.localeCompare(b.ingredientName));
+}
+
+function fmtQty(qty: number | null, unit: string | null): string {
+  if (qty == null) return unit ?? '';
+  const n = Math.round(qty * 100) / 100;
+  return unit ? `${n} ${unit}` : `${n}`;
+}
+
+interface Props { kitchen: string; }
+
+export default function GroceryListPage({ kitchen }: Props) {
+  const [recipes, setRecipes] = useState<QueuedRecipe[]>([]);
+  const [pantry, setPantry] = useState<PantryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addingCommon, setAddingCommon] = useState(false);
+  const [hasCommon, setHasCommon] = useState(false);
+  const [commonItems, setCommonItems] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem('groceryCommonItems');
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch { return []; }
+  });
+  const [checked, setChecked] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem('groceryChecked');
+      return raw ? new Set<string>(JSON.parse(raw) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
+
+  const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
+
+  const cacheKey = `cache:groceryList:${kitchen}`;
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      gql<{ recipes: QueuedRecipe[] }>(QUEUED_RECIPES_QUERY, { kitchenSlug: kitchen }),
+      gql<{ ingredients: PantryItem[] }>(INGREDIENTS_QUERY, { kitchenSlug: kitchen }),
+    ])
+      .then(([rd, id]) => {
+        setRecipes(rd.recipes);
+        setPantry(id.ingredients);
+        setHasCommon(id.ingredients.some((i) => i.tags?.some((t) => t.toLowerCase() === 'common')));
+        cacheSet(cacheKey, { recipes: rd.recipes, pantry: id.ingredients });
+      })
+      .catch(() => {
+        const cached = cacheGet<{ recipes: QueuedRecipe[]; pantry: PantryItem[] }>(cacheKey);
+        if (cached) { setRecipes(cached.recipes); setPantry(cached.pantry); }
+      })
+      .finally(() => setLoading(false));
+  }, [kitchen]);
+
+  async function handleAddCommon() {
+    setAddingCommon(true);
+    try {
+      const data = await gql<{ ingredients: { name: string }[] }>(
+        `query CommonIngredients($kitchenSlug: String) { ingredients(kitchenSlug: $kitchenSlug) { name tags } }`,
+        { kitchenSlug: kitchen }
+      );
+      const common = (data.ingredients as any[])
+        .filter((i) => i.tags?.some((t: string) => t.toLowerCase() === 'common'))
+        .map((i) => i.name);
+      setCommonItems(common);
+      try { localStorage.setItem('groceryCommonItems', JSON.stringify(common)); } catch { /* ignore */ }
+    } catch { /* ignore */ }
+    setAddingCommon(false);
+  }
+
+  function clearCommon() {
+    setCommonItems([]);
+    try { localStorage.removeItem('groceryCommonItems'); } catch { /* ignore */ }
+  }
+
+  async function handleDequeue(recipeId: string) {
+    setRecipes((prev) => prev.filter((r) => r.id !== recipeId));
+    try {
+      await gql(TOGGLE_QUEUED, { id: recipeId });
+    } catch {
+      enqueue(TOGGLE_QUEUED, { id: recipeId });
+    }
+  }
+
+  function toggleChecked(key: string) {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      try { localStorage.setItem('groceryChecked', JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }
+
+  const pantryByName = new Map<string, PantryItem>();
+  for (const item of pantry) {
+    pantryByName.set(item.name.toLowerCase(), item);
+  }
+
+  const sortedRecipes = [...recipes].sort((a, b) => a.title.localeCompare(b.title));
+
+  return (
+    <>
+      <Head><title>List — Pantry Host</title></Head>
+      <main id="stage" className="max-sm:min-h-screen px-4 py-10 md:px-8 max-w-2xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8">Grocery List</h1>
+
+        {/* Cooking queue chips */}
+        <section aria-labelledby="queue-heading" className="mb-10">
+          <h2 id="queue-heading" className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-3">
+            Cooking Queue
+          </h2>
+          {loading ? (
+            <p className="text-[var(--color-text-secondary)]" aria-busy="true">Loading…</p>
+          ) : recipes.length === 0 ? (
+            <div>
+              <p className="text-[var(--color-text-secondary)] mb-4">
+                No recipes queued. Add recipes to your cooking queue and their ingredients will appear here as a grocery list.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href={`${recipesBase}#stage`}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-accent text-[var(--color-bg-body)] hover:bg-accent-hover transition-colors rounded"
+                >
+                  <ShoppingCart size={16} aria-hidden />
+                  Add from Recipes
+                </a>
+                {hasCommon && (
+                  <button
+                    type="button"
+                    onClick={handleAddCommon}
+                    disabled={addingCommon}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-[var(--color-border-card)] text-[var(--color-text-secondary)] hover:border-accent hover:text-accent transition-colors rounded"
+                  >
+                    <Basket size={16} aria-hidden />
+                    {addingCommon ? 'Adding…' : 'Add Common Ingredients'}
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <ul role="list" className="flex flex-wrap gap-2" aria-label="Queued recipes">
+              {recipes.map((r) => (
+                <li key={r.id} className="flex items-center gap-1 bg-accent-subtle text-accent px-3 py-1 text-sm font-medium">
+                  <a href={`${recipesBase}/${r.slug ?? r.id}#stage`} className="hover:underline">{r.title}</a>
+                  <button
+                    type="button"
+                    onClick={() => handleDequeue(r.id)}
+                    aria-label={`Remove ${r.title} from queue`}
+                    className="ml-1 leading-none text-base hover:text-accent transition-colors"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Common ingredients checklist */}
+        {commonItems.length > 0 && (
+          <section aria-labelledby="common-heading" className="mb-10">
+            <div className="flex items-center justify-between mb-3">
+              <h2 id="common-heading" className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+                Common Ingredients
+              </h2>
+              <button
+                type="button"
+                onClick={clearCommon}
+                className="text-xs text-[var(--color-text-secondary)] hover:underline"
+              >
+                Clear
+              </button>
+            </div>
+            <ul role="list" className="space-y-2">
+              {commonItems.map((name) => {
+                const key = `common::${name.toLowerCase()}`;
+                const isChecked = checked.has(key);
+                return (
+                  <li key={key}>
+                    <label className={`flex items-start gap-3 cursor-pointer ${isChecked ? 'opacity-50' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggleChecked(key)}
+                        className="mt-0.5 w-5 h-5 border-2 border-[var(--color-border-card)] accent-accent shrink-0"
+                      />
+                      <span className={`flex-1 leading-snug font-medium ${isChecked ? 'line-through text-[var(--color-text-secondary)]' : ''}`}>
+                        {name}
+                      </span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* Grocery list — grouped by recipe */}
+        {!loading && sortedRecipes.length > 0 && (
+          <section aria-labelledby="grocery-heading">
+            <h2 id="grocery-heading" className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-4">
+              Ingredients
+            </h2>
+
+            <div className="space-y-6 grocery-item">
+              {sortedRecipes.map((recipe) => {
+                const items = buildPerRecipeItems(recipe, pantryByName);
+                if (items.length === 0) return null;
+
+                return (
+                  <fieldset key={recipe.id} className="border border-[var(--color-border-card)] rounded-lg p-4">
+                    <legend className="px-2 font-semibold text-sm">
+                      <a href={`${recipesBase}/${recipe.slug ?? recipe.id}#stage`} className="hover:underline">
+                        {recipe.title}
+                      </a>
+                    </legend>
+
+                    <ul role="list" className="space-y-2">
+                      {items.map((item) => {
+                        const isChecked = checked.has(item.key);
+                        const isHave = item.status === 'have';
+
+                        return (
+                          <li key={item.key}>
+                            <label className={`flex items-start gap-3 cursor-pointer ${isChecked || isHave ? 'opacity-50' : ''}`}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => toggleChecked(item.key)}
+                                className="mt-0.5 w-5 h-5 border-2 border-[var(--color-border-card)] accent-accent shrink-0"
+                              />
+                              <span className={`flex-1 leading-snug ${isChecked ? 'line-through text-[var(--color-text-secondary)]' : ''}`}>
+                                <span className="font-medium">
+                                  {fmtQty(item.quantity, item.unit)} {item.ingredientName}
+                                </span>
+                                {item.status === 'need_more' && item.pantryQuantity != null && (
+                                  <span className="ml-2 text-xs text-[var(--color-text-secondary)]">(have {fmtQty(item.pantryQuantity, item.unit)})</span>
+                                )}
+                                {item.status === 'check_pantry' && (
+                                  <span className="ml-2 text-xs text-accent">check pantry</span>
+                                )}
+                                {isHave && !isChecked && (
+                                  <span className="ml-2 text-xs text-[var(--color-text-secondary)]">✓ in pantry</span>
+                                )}
+                              </span>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </fieldset>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </main>
+    </>
+  );
+}

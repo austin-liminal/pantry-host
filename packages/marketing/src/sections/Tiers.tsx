@@ -29,7 +29,7 @@ const tiers = [
     description:
       'Run Pantry Host entirely in your browser. No server, no install. Your data lives in your browser via PGlite and OPFS.',
     features: ['Works offline', 'Zero setup', 'Export your data anytime'],
-    cta: { label: 'Open in browser', href: '#' },
+    cta: { label: 'Open in browser', href: 'https://my.pantryhost.app' },
     icon: IconBrowser,
     eta: { display: 'Ready instantly', iso: 'PT0S' },
   },

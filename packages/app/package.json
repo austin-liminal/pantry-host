@@ -1,0 +1,38 @@
+{
+  "name": "@pantry-host/app",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "rex dev --host 0.0.0.0",
+    "build": "rex build",
+    "start": "rex start",
+    "typecheck": "rex typecheck",
+    "lint": "rex lint",
+    "dev:graphql": "tsx graphql-server.ts",
+    "postinstall": "mkdir -p node_modules && cd node_modules && ln -sf ../../../node_modules/react react 2>/dev/null; ln -sf ../../../node_modules/react-dom react-dom 2>/dev/null; true"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.38.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@pothos/core": "^4.3.0",
+    "@zxing/browser": "^0.1.5",
+    "formidable": "^3.5.1",
+    "graphql": "^16.9.0",
+    "graphql-yoga": "^5.10.0",
+    "postgres": "^3.4.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/formidable": "^3.4.5",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.2"
+  }
+}
