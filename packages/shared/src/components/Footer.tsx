@@ -314,14 +314,14 @@ export default function Footer() {
 
           {/* Credits + GitHub */}
           <div className="mt-6 flex items-start justify-between">
-          <details className="credits-details">
+          <details className="credits-details flex-1">
             <summary className="inline-flex items-center gap-1.5 text-xs bg-transparent rounded px-1.5 py-0.5 cursor-pointer select-none hover:underline list-none [&::-webkit-details-marker]:hidden text-zinc-500 dark:text-zinc-400 outline-none">
               Credits
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width={8} height={8} fill="currentColor" aria-hidden="true" className="credits-chevron">
                 <path d="M443.5 162.6l-7.1-7.1c-4.7-4.7-12.3-4.7-17 0L224 351 28.5 155.5c-4.7-4.7-12.3-4.7-17 0l-7.1 7.1c-4.7 4.7-4.7 12.3 0 17l211 211.1c4.7 4.7 12.3 4.7 17 0l211-211.1c4.8-4.7 4.8-12.3.1-17z" />
               </svg>
             </summary>
-            <div className="grid grid-cols-5 sm:grid-cols-7 gap-4 items-center" style={{ paddingTop: '0.25rem' }}>
+            <div className="grid grid-cols-7 gap-x-4 gap-y-6 items-center" style={{ paddingTop: '0.75rem' }}>
               {CREDITS.map(({ name, href, Logo }) => (
                 <a key={name} href={href} rel="noopener" className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors" aria-label={name} title={name}>
                   <Logo size={28} />
