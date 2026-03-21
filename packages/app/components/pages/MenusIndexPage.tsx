@@ -103,7 +103,7 @@ export default function MenusIndexPage({ kitchen }: Props) {
           placeholder="Search menus..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full mb-6 px-4 py-2 bg-[var(--color-bg-body)] border border-[var(--color-border-card)] text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+          className="w-full mb-6 px-4 py-2 bg-body border border-[var(--color-border-card)] text-sm focus:outline-none focus:ring-2 focus:ring-accent"
         />
       )}
 

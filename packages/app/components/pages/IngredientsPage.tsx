@@ -115,7 +115,7 @@ export default function IngredientsPage({ kitchen }: Props) {
       </datalist>
 
       {sortedCategories.length > 1 && (
-        <nav aria-label="Pantry categories" className="sticky top-0 z-10 bg-[var(--color-bg-body)]/90 backdrop-blur px-4 md:px-8 max-w-4xl mx-auto pt-4 pb-2 overflow-x-auto overflow-y-hidden">
+        <nav aria-label="Pantry categories" className="sticky top-0 z-10 bg-body-translucent backdrop-blur px-4 md:px-8 max-w-4xl mx-auto pt-4 pb-2 overflow-x-auto overflow-y-hidden">
           <ul className="flex gap-2 whitespace-nowrap pb-1" role="list">
             {sortedCategories.map((cat) => (
               <li key={cat}>

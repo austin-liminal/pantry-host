@@ -167,7 +167,7 @@ export default function MenuEditPage({ kitchen, menuId }: Props) {
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 bg-[var(--color-bg-body)] border border-[var(--color-border-card)] text-sm"
+            className="w-full px-3 py-2 bg-body border border-[var(--color-border-card)] text-sm"
           />
         </div>
 
@@ -178,7 +178,7 @@ export default function MenuEditPage({ kitchen, menuId }: Props) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={4}
-            className="w-full px-3 py-2 bg-[var(--color-bg-body)] border border-[var(--color-border-card)] text-sm"
+            className="w-full px-3 py-2 bg-body border border-[var(--color-border-card)] text-sm"
           />
         </div>
 
@@ -188,7 +188,7 @@ export default function MenuEditPage({ kitchen, menuId }: Props) {
             id="menu-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-3 py-2 bg-[var(--color-bg-body)] border border-[var(--color-border-card)] text-sm"
+            className="w-full px-3 py-2 bg-body border border-[var(--color-border-card)] text-sm"
           >
             <option value="">— None —</option>
             {MENU_CATEGORIES.map((c) => (

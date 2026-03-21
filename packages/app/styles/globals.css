@@ -496,6 +496,14 @@
     border: 1px solid var(--color-border-card);
   }
 
+  /* Background body — Rex Tailwind v4 doesn't resolve bg-[var(...)] */
+  .bg-body {
+    background-color: var(--color-bg-body);
+  }
+  .bg-body-translucent {
+    background-color: color-mix(in srgb, var(--color-bg-body) 90%, transparent);
+  }
+
   /* Legible line lengths */
   .legible {
     --legible-max-width: 72ch;

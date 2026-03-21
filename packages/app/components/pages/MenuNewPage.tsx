@@ -132,7 +132,7 @@ export default function MenuNewPage({ kitchen }: Props) {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Pizza Night, Thanksgiving Dinner"
-            className="w-full px-3 py-2 bg-[var(--color-bg-body)] border border-[var(--color-border-card)] text-sm"
+            className="w-full px-3 py-2 bg-body border border-[var(--color-border-card)] text-sm"
             autoFocus
           />
         </div>
@@ -145,7 +145,7 @@ export default function MenuNewPage({ kitchen }: Props) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description..."
             rows={4}
-            className="w-full px-3 py-2 bg-[var(--color-bg-body)] border border-[var(--color-border-card)] text-sm"
+            className="w-full px-3 py-2 bg-body border border-[var(--color-border-card)] text-sm"
           />
         </div>
 
@@ -155,7 +155,7 @@ export default function MenuNewPage({ kitchen }: Props) {
             id="menu-category"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full px-3 py-2 bg-[var(--color-bg-body)] border border-[var(--color-border-card)] text-sm"
+            className="w-full px-3 py-2 bg-body border border-[var(--color-border-card)] text-sm"
           >
             <option value="">— None —</option>
             {MENU_CATEGORIES.map((c) => (

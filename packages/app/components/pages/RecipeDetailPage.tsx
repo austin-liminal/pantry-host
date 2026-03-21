@@ -640,7 +640,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
 
       {showPantryUpdate && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label="Update pantry quantities">
-          <div className="bg-[var(--color-bg-body)] w-full sm:max-w-lg sm:rounded-lg max-h-[85vh] flex flex-col">
+          <div className="bg-body w-full sm:max-w-lg sm:rounded-lg max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-card)] shrink-0">
               <h2 className="font-bold text-lg">Update Pantry</h2>
               <button type="button" onClick={() => setShowPantryUpdate(false)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-1" aria-label="Close">
