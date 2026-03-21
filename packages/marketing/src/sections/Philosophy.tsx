@@ -5,7 +5,7 @@ export default function Philosophy() {
         className="text-3xl sm:text-4xl font-bold mb-8"
         style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
       >
-        We ship code, not a&nbsp;subscription
+        No subscription&nbsp;needed
       </h2>
       <p className="text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed">
         Pantry Host is open source software you run yourself. There is no cloud service to sunset,
@@ -13,9 +13,12 @@ export default function Philosophy() {
         Your data sits on your hardware, backed up however you choose, for as long as
         you&nbsp;want&nbsp;it.
       </p>
+      <p className="mt-6 text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed italic">
+        If you feel the need to pay for something, consider donating to your local food&nbsp;bank.
+      </p>
       <p className="mt-6 text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed">
-        AI features are entirely opt-in&nbsp;&mdash; bring your own API key and requests go directly
-        to the provider. Nothing is stored, nothing is trained&nbsp;on.
+        AI features are entirely opt-in. Bring your own API key and requests go directly
+        to the&nbsp;provider.
       </p>
     </section>
   );

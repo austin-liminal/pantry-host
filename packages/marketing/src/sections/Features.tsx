@@ -112,7 +112,7 @@ export default function Features() {
         className="text-4xl sm:text-5xl font-bold text-center mb-12"
         style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
       >
-        Built for real&nbsp;kitchens
+        What Pantry Host&nbsp;does
       </h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {features.map((f) => (
@@ -129,7 +129,7 @@ export default function Features() {
             >
               {f.title}
             </h3>
-            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed pretty">
               {f.description}
             </p>
           </div>
