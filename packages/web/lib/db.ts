@@ -19,8 +19,6 @@ let initPromise: Promise<void> | null = null;
 
 // Schema SQL is inlined at build time — see initDB()
 const SCHEMA_SQL = `
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
 CREATE TABLE IF NOT EXISTS kitchens (
   id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   slug        TEXT NOT NULL UNIQUE,
