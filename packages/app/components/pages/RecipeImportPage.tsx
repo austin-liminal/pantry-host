@@ -27,6 +27,55 @@ interface ImportItem {
 
 type Step = 'input' | 'fetching' | 'review' | 'saving';
 
+function tryParsePantryHostExport(text: string): ParsedRecipe | null {
+  if (!/<meta\s+name="generator"\s+content="Pantry Host"/i.test(text)) return null;
+  const ldMatch = text.match(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
+  if (!ldMatch) return null;
+  try {
+    const data = JSON.parse(ldMatch[1]);
+    if (data['@type'] !== 'Recipe') return null;
+    const parseDur = (iso?: string) => {
+      if (!iso) return undefined;
+      const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+      return m ? (parseInt(m[1] || '0') * 60 + parseInt(m[2] || '0')) || undefined : undefined;
+    };
+    // Prefer structured pantryHost:ingredients for lossless round-trip
+    const structured = data['pantryHost:ingredients'];
+    const ingredients = Array.isArray(structured)
+      ? structured.map((ing: { name: string; quantity: number | null; unit: string | null }) => ({
+          ingredientName: ing.name,
+          quantity: ing.quantity,
+          unit: ing.unit,
+        }))
+      : (data.recipeIngredient ?? []).map((line: string) => ({
+          ingredientName: line,
+          quantity: null,
+          unit: null,
+        }));
+    return {
+      title: data.name,
+      description: data.description,
+      instructions: Array.isArray(data.recipeInstructions)
+        ? data.recipeInstructions
+            .map((s: string | { text: string }, i: number) =>
+              `${i + 1}. ${typeof s === 'string' ? s : s.text}`,
+            )
+            .join('\n')
+        : data.recipeInstructions ?? '',
+      servings: typeof data.recipeYield === 'string'
+        ? parseInt(data.recipeYield) || undefined
+        : data.recipeYield,
+      prepTime: parseDur(data.prepTime),
+      cookTime: parseDur(data.cookTime),
+      tags: [...(data.keywords ?? [])],
+      photoUrl: typeof data.image === 'string' ? data.image : undefined,
+      ingredients,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function extractUrls(text: string, filename?: string): string[] {
   const isHtml = filename?.endsWith('.html') || /<A HREF=/i.test(text);
   const isCsv = filename?.endsWith('.csv');
@@ -93,9 +142,16 @@ export default function RecipeImportPage({ kitchen }: Props) {
   function handleParse() {
     setParseError(null);
     const filename = fileRef.current?.files?.[0]?.name;
+    // Check for Pantry Host HTML export first
+    const pantryExport = tryParsePantryHostExport(pasteText);
+    if (pantryExport) {
+      setItems([{ url: 'Pantry Host export', status: 'done', recipe: pantryExport, skip: false }]);
+      setStep('review');
+      return;
+    }
     const urls = extractUrls(pasteText, filename);
     if (urls.length === 0) {
-      setParseError('No URLs found. Paste recipe URLs (one per line), or upload a bookmarks .html or .csv file.');
+      setParseError('No URLs found. Paste recipe URLs (one per line), or upload a bookmarks .html, Pantry Host export .html, or .csv file.');
       return;
     }
     const newItems: ImportItem[] = urls.map((url) => ({ url, status: 'pending', skip: false }));
@@ -193,8 +249,8 @@ export default function RecipeImportPage({ kitchen }: Props) {
             <div className="p-6 border border-[var(--color-border-card)] bg-[var(--color-bg-card)]">
               <h2 className="text-lg font-bold mb-1">Upload a file</h2>
               <p className="text-sm text-[var(--color-text-secondary)] mb-4">
-                Supports Chrome/Safari/Firefox bookmarks <span className="font-mono text-xs">.html</span>,
-                CSV <span className="font-mono text-xs">.csv</span>, or plain URL list <span className="font-mono text-xs">.txt</span>
+                Choose a recipe <span className="font-mono text-xs">.html</span> or provide bookmarks in <span className="font-mono text-xs">.html</span>,
+                <span className="font-mono text-xs">.csv</span>, or a plain URL list as <span className="font-mono text-xs">.txt</span>
               </p>
               <label className="block">
                 <span className="sr-only">Choose file</span>

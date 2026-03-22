@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
+import { recipeToDataURI } from '@pantry-host/shared/export-recipe';
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -137,6 +138,27 @@ export default function RecipeDetailPage() {
       <div className="mt-6 rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-5">
         <h2 className="font-semibold mb-3">Instructions</h2>
         <div className="text-sm whitespace-pre-wrap leading-relaxed">{recipe.instructions}</div>
+      </div>
+
+      <div className="mt-6">
+        <h2 className="font-semibold mb-3">Share the Love</h2>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border border-[var(--color-border-card)] hover:underline"
+          >
+            Print
+          </button>
+          <a
+            href={recipeToDataURI({ ...recipe, source: '', sourceUrl: null, photoUrl: null })}
+            download={`${recipe.slug || 'recipe'}.html`}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border border-[var(--color-border-card)] hover:underline"
+          >
+            Export HTML
+          </a>
+        </div>
+        <p className="text-sm text-[var(--color-text-secondary)] mt-3">Print this recipe or export it as a standalone HTML file to share with a friend.</p>
       </div>
     </div>
   );
