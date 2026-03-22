@@ -1,7 +1,8 @@
 import Head from 'next/head';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { gql } from '@/lib/gql';
+import { isApiOnline, API_STATUS_EVENT } from '@/lib/apiStatus';
 
 interface ParsedRecipe {
   title?: string;
@@ -130,6 +131,14 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const [parseError, setParseError] = useState<string | null>(null);
   const [items, setItems] = useState<ImportItem[]>([]);
   const [saveProgress, setSaveProgress] = useState(0);
+  const [apiOnline, setApiOnline] = useState(true);
+
+  useEffect(() => {
+    setApiOnline(isApiOnline());
+    const handler = (e: Event) => setApiOnline((e as CustomEvent).detail.online);
+    window.addEventListener(API_STATUS_EVENT, handler);
+    return () => window.removeEventListener(API_STATUS_EVENT, handler);
+  }, []);
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -275,8 +284,16 @@ export default function RecipeImportPage({ kitchen }: Props) {
               </label>
             </div>
 
-            <div className="p-6 border border-[var(--color-border-card)] bg-[var(--color-bg-card)]">
+            <div
+              className={`p-6 border border-[var(--color-border-card)] bg-[var(--color-bg-card)] ${!apiOnline ? 'opacity-50' : ''}`}
+              {...(!apiOnline ? { inert: '' } : {})}
+            >
               <h2 className="text-lg font-bold mb-1">Or paste URLs</h2>
+              {!apiOnline && (
+                <p className="text-sm text-[var(--color-accent)] mb-3">
+                  URL import requires a connection to your Pantry&nbsp;Host server.
+                </p>
+              )}
               <p className="text-sm text-[var(--color-text-secondary)] mb-4">
                 One URL per line, or paste bookmark HTML or CSV content directly.
               </p>

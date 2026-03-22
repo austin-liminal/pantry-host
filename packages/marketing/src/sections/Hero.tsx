@@ -24,17 +24,21 @@ function IconStar({ size = 18 }: { size?: number }) {
 
 export default function Hero() {
   return (
-    <section className="px-4 sm:px-6 pt-20 pb-16 sm:pt-28 sm:pb-24 max-w-4xl mx-auto text-center">
-      <h1
-        className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight"
-        style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
-      >
-        There&rsquo;s already enough of your data in&nbsp;the&nbsp;cloud.
-      </h1>
-      <p className="pretty mt-6 text-xl sm:text-2xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>
-        Pantry&nbsp;Host is a self-hosted, privacy-first kitchen companion for managing recipes, ingredients, cookware, and grocery lists.<br /><em className="not-italic font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>All on your&nbsp;own&nbsp;hardware</em>.
-      </p>
-      <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+    <section className="px-4 sm:px-6 min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center text-center max-w-4xl mx-auto">
+      <div className="flex-1" />
+      <div>
+        <h1
+          className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight"
+          style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+        >
+          There&rsquo;s already enough of your data in&nbsp;the&nbsp;cloud.
+        </h1>
+        <p className="pretty mt-6 text-xl sm:text-2xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>
+          Pantry&nbsp;Host is a self-hosted, privacy-first kitchen companion for managing recipes, ingredients, cookware, and grocery lists.<br /><em className="not-italic font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>All on your&nbsp;own&nbsp;hardware</em>.
+        </p>
+      </div>
+      <div className="flex-1" />
+      <div className="pb-12 sm:pb-16 flex flex-col sm:flex-row gap-4 justify-center w-full">
         <a
           href="#getting-started"
           onClick={(e) => {
