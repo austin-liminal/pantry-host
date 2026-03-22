@@ -141,6 +141,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
     { key: 'gluten-free', label: 'Gluten-Free', tags: ['gluten-free'] },
     { key: 'vegan', label: 'Vegan', tags: ['vegan'] },
     { key: 'vegetarian', label: 'Vegetarian', tags: ['vegetarian', 'vegan'] },
+    { key: 'pescatarian', label: 'Pescatarian', tags: ['pescatarian'] },
     { key: 'sustainable', label: 'Sustainable', tags: ['sustainable', 'local'] },
   ];
 
