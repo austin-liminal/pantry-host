@@ -185,8 +185,8 @@ packages/web/
 - **Tailwind CSS v4** — `@import "tailwindcss"` + `@source` directives
 - CSS custom properties for theming: `--color-bg-body`, `--color-accent`, etc.
 - Palettes: default, rosé, rebecca purple, claude
-- Dark mode via `.dark` class on `<html>`, managed by `@pantry-host/shared/theme`
-- High contrast mode via `.high-contrast` class
+- Dark mode via `data-color-scheme` attribute on `<body>` + `@media (prefers-color-scheme: dark)` for system default. Managed by `@pantry-host/shared/theme`
+- High contrast mode via `data-high-contrast` attribute on `<body>`
 
 ### Accessibility
 - **`aria-describedby` pattern**: Action buttons use `aria-label` + `aria-describedby` pointing to the item name element (better for i18n).
@@ -204,6 +204,23 @@ Font Awesome Pro 5.15.4 **Light** SVGs as inline React components. Source: `/Use
 - Web: `gql()` executes GraphQL locally via `graphql-js`
 - Same API signature: `gql<T>(query, variables): Promise<T>`
 - Queries accept `$kitchenSlug: String` for multi-kitchen filtering
+
+### Service Worker (`packages/app/public/sw.js`)
+
+The SW provides offline support for the self-hosted app. Key design decisions:
+
+**Caching strategies:**
+- **Shell pages** (/, /list, /recipes, etc.) are pre-cached on install individually (not `addAll`) so one failure doesn't abort the entire install
+- **Rex bundles** (`/_rex/`): network-first, cached for offline fallback
+- **HTML navigation**: network-first, falls back to cache, last resort is cached homepage
+- **Other same-origin** (images, fonts): stale-while-revalidate
+- **Cross-origin** (GraphQL on port 4001, Google Fonts): ignored/passthrough
+
+**Build-hash cleanup:** Rex prod builds embed an 8-char hash in filenames (e.g. `chunk-esm-557eb197.js`). Without cleanup, the cache accumulates dead entries across deploys. When a new bundle is fetched, the SW extracts the hash and purges all `/_rex/static/` entries with a different hash. No manual `CACHE_NAME` bumping needed.
+
+**GraphQL data is NOT cached by the SW.** The SW runs on port 3000 and cannot intercept cross-origin requests to port 4001. Data caching is handled at the application level via `localStorage` (`lib/cache.ts`). Pages that depend on GraphQL (menus, recipes, grocery list) need at least one prior visit while online to populate the localStorage cache — otherwise they show skeleton UI offline.
+
+**Testing offline:** Always test in prod mode (`rex build` + `rex start`). Dev mode uses different asset paths. On iOS, connect Safari remote debugger via Settings → Safari → Advanced → Web Inspector.
 
 ## Environment variables
 
@@ -237,9 +254,11 @@ cd packages/web && npx vite build         # → dist/
 
 1. **Blank pages after code changes**: Stale `.rex/build`. Delete it and restart.
 2. **`react is not defined` in Rex V8**: npm workspaces hoists React to root. Rex doesn't walk up. The `postinstall` symlink script in `packages/app/package.json` fixes this.
-3. **SW serving stale assets**: Bump `CACHE_NAME` version in the relevant `public/sw.js`.
+3. **SW serving stale assets**: The SW auto-purges stale Rex bundles by build hash. If you still see issues, clear the cache: `caches.delete('pantry-host-shell').then(() => location.reload())`. Test offline behavior in prod mode only (`rex build` + `rex start`).
 4. **No `<Link>` in app**: Rex uses plain `<a>` tags. The web package uses React Router `<Link>`.
 5. **Tailwind v4 in Rex**: Rex 0.19.2 has Tailwind v4 built in. Don't use `@apply` — use plain CSS in `globals.css`.
 6. **Guest mode (app only)**: Non-localhost hides owner features. Not applicable to web package.
 7. **PGlite WASM size**: ~2.8 MB gzipped. First load initializes schema. Subsequent loads are instant from IndexedDB.
 8. **Schema sync**: `packages/web/lib/schema/index.ts` is a copy of `packages/app/lib/schema/index.ts` minus AI generation. Keep them in sync when adding queries/mutations.
+9. **Rex router `query` unreliable in prod**: `useRouter().query` sometimes returns empty on dynamic routes in production builds. Always fall back to parsing `window.location.pathname` for route params (see `MenuDetailPage.tsx` for the pattern).
+10. **Shared component Tailwind classes missing in app**: Rex's Tailwind v4 only scans `@source` paths. Add `@source "../../shared/src/components/";` to `globals.css` so shared component classes (grid-cols-7, flex-1, etc.) are generated.
