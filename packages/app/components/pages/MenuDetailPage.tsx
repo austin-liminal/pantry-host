@@ -83,6 +83,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
   }, []);
 
   useEffect(() => {
+    console.log('[MenuDetailPage] menuId:', JSON.stringify(menuId));
     if (!menuId) return;
     const cacheKey = `cache:menu:${menuId}`;
     const dev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -92,7 +93,8 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
         setMenu(d.menu);
         cacheSet(cacheKey, d.menu);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('[MenuDetailPage] gql error:', err);
         const cached = cacheGet<Menu>(cacheKey);
         if (cached) setMenu(cached);
       });
