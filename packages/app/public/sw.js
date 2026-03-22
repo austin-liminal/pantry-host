@@ -12,8 +12,17 @@ const CACHE_NAME = 'pantry-host-shell';
 const SHELL_PAGES = ['/', '/list', '/recipes', '/ingredients', '/cookware', '/kitchens', '/menus'];
 
 self.addEventListener('install', (event) => {
+  // Cache each page individually so one failure doesn't abort the entire
+  // install. addAll() is all-or-nothing — if any page 500s or times out,
+  // the SW never activates and no offline caching happens at all.
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_PAGES)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        SHELL_PAGES.map((page) =>
+          cache.add(page).catch((err) => console.warn('[SW] Failed to pre-cache', page, err))
+        )
+      )
+    ).then(() => self.skipWaiting())
   );
 });
 
