@@ -236,6 +236,13 @@
   .hover\:text-secondary:hover {
     color: var(--color-text-secondary);
   }
+  .credits-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.25rem 1rem;
+    row-gap: 1.5rem;
+    align-items: center;
+  }
 
   /* Boost zinc grays in footer for AA contrast on dark backgrounds */
   @media (prefers-color-scheme: dark) {
