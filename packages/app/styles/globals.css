@@ -2,6 +2,7 @@
 
 @source "../pages";
 @source "../components";
+@source "../../shared/src/components";
 
 @layer base {
   /* ── Design tokens ── */
