@@ -80,6 +80,20 @@ const CACHE_NAME = 'pantry-host-shell';
 // after the SW activates, even if the user hasn't visited them yet.
 const SHELL_PAGES = ['/', '/list', '/recipes', '/ingredients', '/cookware', '/kitchens', '/menus', '/recipes/export'];
 
+/** Timeout in ms for network fetches before falling back to cache.
+ * The server is on localhost/LAN so it responds in <100ms when reachable.
+ * 1.5s is generous for cold SSR but fast enough to avoid hanging on 5G
+ * when the home server is unreachable. */
+const NETWORK_TIMEOUT = 1500;
+
+/** Race a fetch against a timeout. Rejects if the server doesn't respond in time. */
+function fetchWithTimeout(request) {
+  return Promise.race([
+    fetch(request),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), NETWORK_TIMEOUT)),
+  ]);
+}
+
 /**
  * Extract the 8-char build hash from a Rex bundle filename.
  * e.g. "chunk-esm-557eb197.js" → "557eb197"
@@ -146,7 +160,7 @@ self.addEventListener('fetch', (event) => {
   // purge stale bundles from previous builds.
   if (url.pathname.startsWith('/_rex/')) {
     event.respondWith(
-      fetch(request)
+      fetchWithTimeout(request)
         .then((response) => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -165,7 +179,7 @@ self.addEventListener('fetch', (event) => {
   // or to the cached homepage as a last resort.
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request)
+      fetchWithTimeout(request)
         .then((response) => {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
@@ -184,7 +198,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(request).then((cached) => {
-        const networkFetch = fetch(request).then((response) => {
+        const networkFetch = fetchWithTimeout(request).then((response) => {
           cache.put(request, response.clone());
           return response;
         });
