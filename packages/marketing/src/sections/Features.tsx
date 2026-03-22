@@ -69,8 +69,8 @@ const features = [
     icon: IconBarcodeRead,
   },
   {
-    title: 'Recipe import',
-    description: 'Paste a URL from any recipe site to extract the title, ingredients, and instructions.',
+    title: 'Import & Export',
+    description: 'Import recipes from any URL or exported HTML file. Export individual recipes or your entire collection as shareable, re-importable HTML.',
     icon: IconFileImport,
   },
   {

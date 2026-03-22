@@ -27,50 +27,50 @@ interface ImportItem {
 
 type Step = 'input' | 'fetching' | 'review' | 'saving';
 
-function tryParsePantryHostExport(text: string): ParsedRecipe | null {
+function parseLdRecipe(data: Record<string, unknown>): ParsedRecipe | null {
+  if (data['@type'] !== 'Recipe') return null;
+  const parseDur = (iso?: string) => {
+    if (!iso) return undefined;
+    const m = (iso as string).match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    return m ? (parseInt(m[1] || '0') * 60 + parseInt(m[2] || '0')) || undefined : undefined;
+  };
+  const structured = data['pantryHost:ingredients'] as { name: string; quantity: number | null; unit: string | null }[] | undefined;
+  const ingredients = Array.isArray(structured)
+    ? structured.map((ing) => ({ ingredientName: ing.name, quantity: ing.quantity, unit: ing.unit }))
+    : ((data.recipeIngredient ?? []) as string[]).map((line) => ({ ingredientName: line, quantity: null, unit: null }));
+  return {
+    title: data.name as string,
+    description: data.description as string | undefined,
+    instructions: Array.isArray(data.recipeInstructions)
+      ? (data.recipeInstructions as (string | { text: string })[])
+          .map((s, i) => `${i + 1}. ${typeof s === 'string' ? s : s.text}`)
+          .join('\n')
+      : (data.recipeInstructions as string) ?? '',
+    servings: typeof data.recipeYield === 'string'
+      ? parseInt(data.recipeYield) || undefined
+      : data.recipeYield as number | undefined,
+    prepTime: parseDur(data.prepTime as string | undefined),
+    cookTime: parseDur(data.cookTime as string | undefined),
+    tags: [...((data.keywords ?? []) as string[])],
+    photoUrl: typeof data.image === 'string' ? data.image : undefined,
+    ingredients,
+  };
+}
+
+function tryParsePantryHostExport(text: string): ParsedRecipe[] | null {
   if (!/<meta\s+name="generator"\s+content="Pantry Host"/i.test(text)) return null;
   const ldMatch = text.match(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/i);
   if (!ldMatch) return null;
   try {
     const data = JSON.parse(ldMatch[1]);
-    if (data['@type'] !== 'Recipe') return null;
-    const parseDur = (iso?: string) => {
-      if (!iso) return undefined;
-      const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-      return m ? (parseInt(m[1] || '0') * 60 + parseInt(m[2] || '0')) || undefined : undefined;
-    };
-    // Prefer structured pantryHost:ingredients for lossless round-trip
-    const structured = data['pantryHost:ingredients'];
-    const ingredients = Array.isArray(structured)
-      ? structured.map((ing: { name: string; quantity: number | null; unit: string | null }) => ({
-          ingredientName: ing.name,
-          quantity: ing.quantity,
-          unit: ing.unit,
-        }))
-      : (data.recipeIngredient ?? []).map((line: string) => ({
-          ingredientName: line,
-          quantity: null,
-          unit: null,
-        }));
-    return {
-      title: data.name,
-      description: data.description,
-      instructions: Array.isArray(data.recipeInstructions)
-        ? data.recipeInstructions
-            .map((s: string | { text: string }, i: number) =>
-              `${i + 1}. ${typeof s === 'string' ? s : s.text}`,
-            )
-            .join('\n')
-        : data.recipeInstructions ?? '',
-      servings: typeof data.recipeYield === 'string'
-        ? parseInt(data.recipeYield) || undefined
-        : data.recipeYield,
-      prepTime: parseDur(data.prepTime),
-      cookTime: parseDur(data.cookTime),
-      tags: [...(data.keywords ?? [])],
-      photoUrl: typeof data.image === 'string' ? data.image : undefined,
-      ingredients,
-    };
+    // Multi-recipe export: JSON-LD is an array
+    if (Array.isArray(data)) {
+      const recipes = data.map(parseLdRecipe).filter(Boolean) as ParsedRecipe[];
+      return recipes.length > 0 ? recipes : null;
+    }
+    // Single recipe export
+    const recipe = parseLdRecipe(data);
+    return recipe ? [recipe] : null;
   } catch {
     return null;
   }
@@ -143,9 +143,14 @@ export default function RecipeImportPage({ kitchen }: Props) {
     setParseError(null);
     const filename = fileRef.current?.files?.[0]?.name;
     // Check for Pantry Host HTML export first
-    const pantryExport = tryParsePantryHostExport(pasteText);
-    if (pantryExport) {
-      setItems([{ url: 'Pantry Host export', status: 'done', recipe: pantryExport, skip: false }]);
+    const pantryExports = tryParsePantryHostExport(pasteText);
+    if (pantryExports) {
+      setItems(pantryExports.map((recipe, i) => ({
+        url: recipe.title || `Pantry Host export ${i + 1}`,
+        status: 'done' as ImportStatus,
+        recipe,
+        skip: false,
+      })));
       setStep('review');
       return;
     }
