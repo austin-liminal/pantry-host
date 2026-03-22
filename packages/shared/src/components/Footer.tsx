@@ -201,7 +201,7 @@ export default function Footer() {
       <div className="max-w-5xl mx-auto">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
           <div>
-            <h3 className="font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-3">Volume</h3>
+            <h3 className="font-semibold text-secondary uppercase tracking-wider mb-3">Volume</h3>
             <dl className="space-y-1">
               <div><dt className="inline font-medium">1 cup</dt> <dd className="inline">= 16 <abbr title="tablespoons">tbsp</abbr></dd></div>
               <div><dt className="inline font-medium">1 <abbr title="tablespoon">tbsp</abbr></dt> <dd className="inline">= 3 <abbr title="teaspoons">tsp</abbr></dd></div>
@@ -212,7 +212,7 @@ export default function Footer() {
             </dl>
           </div>
           <div>
-            <h3 className="font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-3">Weight</h3>
+            <h3 className="font-semibold text-secondary uppercase tracking-wider mb-3">Weight</h3>
             <dl className="space-y-1">
               <div><dt className="inline font-medium">1 <abbr title="ounce">oz</abbr></dt> <dd className="inline">= 28.35 <abbr title="grams">g</abbr></dd></div>
               <div><dt className="inline font-medium">1 <abbr title="pound">lb</abbr></dt> <dd className="inline">= 16 <abbr title="ounces">oz</abbr></dd></div>
@@ -222,7 +222,7 @@ export default function Footer() {
             </dl>
           </div>
           <div>
-            <h3 className="font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-3">Temperature</h3>
+            <h3 className="font-semibold text-secondary uppercase tracking-wider mb-3">Temperature</h3>
             <dl className="space-y-1">
               <div><dt className="inline font-medium">250 <abbr title="Fahrenheit">°F</abbr></dt> <dd className="inline">= 121 <abbr title="Celsius">°C</abbr></dd></div>
               <div><dt className="inline font-medium">350 <abbr title="Fahrenheit">°F</abbr></dt> <dd className="inline">= 177 <abbr title="Celsius">°C</abbr></dd></div>
@@ -232,7 +232,7 @@ export default function Footer() {
             </dl>
           </div>
           <div>
-            <h3 className="font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider mb-3">Handy</h3>
+            <h3 className="font-semibold text-secondary uppercase tracking-wider mb-3">Handy</h3>
             <dl className="space-y-1">
               <div><dt className="inline font-medium">1 clove garlic</dt> <dd className="inline">≈ 1 <abbr title="teaspoon">tsp</abbr></dd></div>
               <div><dt className="inline font-medium">1 lemon</dt> <dd className="inline">≈ 3 <abbr title="tablespoons">tbsp</abbr> juice</dd></div>
@@ -243,7 +243,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-2">
-          <p className="font-serif font-bold text-sm text-zinc-700 dark:text-zinc-300" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>Pantry Host</p>
+          <p className="font-serif font-bold text-sm text-secondary" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>Pantry Host</p>
           <p className="mt-2 legible text-zinc-500 dark:text-zinc-400 pretty">
             An open source, self-hosted kitchen companion that runs entirely on your home network or mobile&nbsp;device.<br/>Your recipes, your data, your&nbsp;machine.
           </p>
@@ -273,8 +273,8 @@ export default function Footer() {
                       onClick={() => handleTheme(value)}
                       className={`p-1.5 rounded transition-colors ${
                         active
-                          ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100'
-                          : 'text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400'
+                          ? 'theme-toggle-active'
+                          : 'theme-toggle-inactive'
                       }`}
                     >
                       <Icon size={16} aria-hidden />
@@ -323,13 +323,13 @@ export default function Footer() {
             </summary>
             <div className="grid grid-cols-7 gap-x-4 gap-y-6 items-center" style={{ paddingTop: '0.75rem' }}>
               {CREDITS.map(({ name, href, Logo }) => (
-                <a key={name} href={href} rel="noopener" className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors" aria-label={name} title={name}>
+                <a key={name} href={href} rel="noopener" className="transition-colors hover:text-secondary" style={{ color: 'inherit' }} aria-label={name} title={name}>
                   <Logo size={28} />
                 </a>
               ))}
             </div>
           </details>
-            <a href="https://github.com/jpdevries/pantry-host" className="text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors" aria-label="Pantry Host on GitHub">
+            <a href="https://github.com/jpdevries/pantry-host" className="transition-colors hover:text-secondary" style={{ color: 'inherit' }} aria-label="Pantry Host on GitHub">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
               </svg>

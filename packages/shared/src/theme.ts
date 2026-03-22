@@ -15,8 +15,6 @@ const THEME_KEY = 'theme-preference';
 const HC_KEY = 'high-contrast';
 const PALETTE_KEY = 'theme-palette';
 
-const PALETTE_CLASSES = ['theme-rose', 'theme-rebecca', 'theme-claude'] as const;
-
 export function getThemePreference(): ThemePreference {
   if (typeof window === 'undefined') return 'system';
   return (localStorage.getItem(THEME_KEY) as ThemePreference) || 'system';
@@ -68,30 +66,34 @@ export function applyTheme() {
   if (typeof document === 'undefined') return;
 
   const pref = getThemePreference();
-  const el = document.documentElement;
+  const body = document.body;
 
-  let dark: boolean;
+  // Color scheme: absent = system (media query handles it)
   if (pref === 'system') {
-    dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    delete body.dataset.colorScheme;
   } else {
-    dark = pref === 'dark';
+    body.dataset.colorScheme = pref; // "light" or "dark"
   }
 
-  el.classList.toggle('dark', dark);
-  el.style.colorScheme = dark ? 'dark' : 'light';
+  // Set colorScheme style for native browser UI (scrollbars, form controls)
+  const dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  body.style.colorScheme = dark ? 'dark' : 'light';
 
   // High contrast
   const hc = getHighContrast();
-  el.classList.toggle('high-contrast', hc);
-
-  // Palette
-  const palette = getThemePalette();
-  for (const cls of PALETTE_CLASSES) {
-    el.classList.remove(cls);
+  if (hc) {
+    body.dataset.highContrast = '';
+  } else {
+    delete body.dataset.highContrast;
   }
-  if (palette === 'rose') el.classList.add('theme-rose');
-  if (palette === 'rebecca') el.classList.add('theme-rebecca');
-  if (palette === 'claude') el.classList.add('theme-claude');
+
+  // Palette: absent = default
+  const palette = getThemePalette();
+  if (palette === 'default') {
+    delete body.dataset.theme;
+  } else {
+    body.dataset.theme = palette;
+  }
 }
 
 let listenerRegistered = false;

@@ -4,6 +4,18 @@
 @source "../components";
 @source "../../shared/src/components";
 
+/* Override Tailwind v4 dark variant to match our data-attribute scheme.
+   Forced dark: body[data-color-scheme="dark"]
+   System dark: @media (prefers-color-scheme: dark) when not forced light */
+@custom-variant dark {
+  body[data-color-scheme="dark"] & {
+  }
+  @media (prefers-color-scheme: dark) {
+    body:not([data-color-scheme="light"]) & {
+    }
+  }
+}
+
 @layer base {
   /* ── Design tokens ── */
   :root {
@@ -22,48 +34,81 @@
     --color-ring-offset: #ffffff;
   }
 
-  .dark {
-    --color-bg-body: #09090b;        /* zinc-950 */
-    --color-bg-card: #18181b;        /* zinc-900 */
-    --color-border-card: #27272a;    /* zinc-800 */
-    --color-text-primary: #fafafa;   /* zinc-50 */
-    --color-text-secondary: #a1a1aa; /* zinc-400 */
-    --color-accent: #e4e4e7;         /* zinc-200 — AAA on black */
-    --color-accent-hover: #fafafa;   /* zinc-50 */
-    --color-accent-subtle: #27272a;  /* zinc-800 */
-    --color-bg-nav: #09090b;         /* zinc-950 */
-    --color-ring-focus: #e4e4e7;     /* zinc-200 */
-    --color-ring-offset: #09090b;    /* zinc-950 */
+  /* ── Default dark (system preference — no JS needed) ── */
+  @media (prefers-color-scheme: dark) {
+    body:not([data-color-scheme="light"]) {
+      --color-bg-body: #09090b;        /* zinc-950 */
+      --color-bg-card: #18181b;        /* zinc-900 */
+      --color-border-card: #27272a;    /* zinc-800 */
+      --color-text-primary: #fafafa;   /* zinc-50 */
+      --color-text-secondary: #a1a1aa; /* zinc-400 */
+      --color-accent: #e4e4e7;         /* zinc-200 — AAA on black */
+      --color-accent-hover: #fafafa;   /* zinc-50 */
+      --color-accent-subtle: #27272a;  /* zinc-800 */
+      --color-bg-nav: #09090b;         /* zinc-950 */
+      --color-ring-focus: #e4e4e7;     /* zinc-200 */
+      --color-ring-offset: #09090b;    /* zinc-950 */
+    }
+  }
+  /* ── Default dark (forced via JS) ── */
+  body[data-color-scheme="dark"] {
+    --color-bg-body: #09090b;
+    --color-bg-card: #18181b;
+    --color-border-card: #27272a;
+    --color-text-primary: #fafafa;
+    --color-text-secondary: #a1a1aa;
+    --color-accent: #e4e4e7;
+    --color-accent-hover: #fafafa;
+    --color-accent-subtle: #27272a;
+    --color-bg-nav: #09090b;
+    --color-ring-focus: #e4e4e7;
+    --color-ring-offset: #09090b;
   }
 
-  /* ── Rosé palette ── */
-  .theme-rose {
+  /* ── Rosé palette (light) ── */
+  body[data-theme="rose"] {
     --color-bg-body: #fff1f2;        /* rose-50 */
     --color-bg-card: #ffffff;
     --color-border-card: #fecdd3;    /* rose-200 */
     --color-text-secondary: #9f1239; /* rose-800 — AA on rose-50 */
     --color-accent: #be123c;         /* darkened rose — AA on rose-50 */
-    --color-accent-hover: #be123c;   /* darkened rose — AA on rose-50 */
+    --color-accent-hover: #be123c;
     --color-accent-subtle: #ffe4e6;  /* rose-100 */
-    --color-bg-nav: #fff1f2;         /* rose-50 */
+    --color-bg-nav: #fff1f2;
     --color-ring-focus: #e11d48;     /* rose-600 */
     --color-ring-offset: #ffffff;
   }
-  .theme-rose.dark {
-    --color-bg-body: #1a0a10;        /* very dark rose */
-    --color-bg-card: #2d1520;        /* dark rose */
+  /* Rosé dark (system) */
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="rose"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #1a0a10;
+      --color-bg-card: #2d1520;
+      --color-border-card: #4a1d30;
+      --color-text-secondary: #fda4af;
+      --color-accent: #fb7185;
+      --color-accent-hover: #fda4af;
+      --color-accent-subtle: #3d1525;
+      --color-bg-nav: #1a0a10;
+      --color-ring-focus: #fb7185;
+      --color-ring-offset: #1a0a10;
+    }
+  }
+  /* Rosé dark (forced) */
+  body[data-theme="rose"][data-color-scheme="dark"] {
+    --color-bg-body: #1a0a10;
+    --color-bg-card: #2d1520;
     --color-border-card: #4a1d30;
-    --color-text-secondary: #fda4af; /* rose-300 — AA on dark rose */
-    --color-accent: #fb7185;         /* rose-400 */
-    --color-accent-hover: #fda4af;   /* rose-300 */
+    --color-text-secondary: #fda4af;
+    --color-accent: #fb7185;
+    --color-accent-hover: #fda4af;
     --color-accent-subtle: #3d1525;
     --color-bg-nav: #1a0a10;
-    --color-ring-focus: #fb7185;     /* rose-400 */
+    --color-ring-focus: #fb7185;
     --color-ring-offset: #1a0a10;
   }
 
-  /* ── Rebecca Purple palette ── */
-  .theme-rebecca {
+  /* ── Rebecca Purple palette (light) ── */
+  body[data-theme="rebecca"] {
     --color-bg-body: #f3eef8;        /* warm lavender */
     --color-bg-card: #ffffff;
     --color-border-card: #d8c8ed;
@@ -75,12 +120,28 @@
     --color-ring-focus: #663399;
     --color-ring-offset: #ffffff;
   }
-  .theme-rebecca.dark {
-    --color-bg-body: #110a1f;        /* very dark rebeccapurple */
+  /* Rebecca dark (system) */
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="rebecca"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #110a1f;
+      --color-bg-card: #1c1230;
+      --color-border-card: #33245a;
+      --color-text-secondary: #c4a8e0;
+      --color-accent: #b794d6;
+      --color-accent-hover: #d1b8ec;
+      --color-accent-subtle: #211640;
+      --color-bg-nav: #110a1f;
+      --color-ring-focus: #b794d6;
+      --color-ring-offset: #110a1f;
+    }
+  }
+  /* Rebecca dark (forced) */
+  body[data-theme="rebecca"][data-color-scheme="dark"] {
+    --color-bg-body: #110a1f;
     --color-bg-card: #1c1230;
     --color-border-card: #33245a;
-    --color-text-secondary: #c4a8e0; /* AA on dark purple */
-    --color-accent: #b794d6;         /* light rebeccapurple */
+    --color-text-secondary: #c4a8e0;
+    --color-accent: #b794d6;
     --color-accent-hover: #d1b8ec;
     --color-accent-subtle: #211640;
     --color-bg-nav: #110a1f;
@@ -88,8 +149,8 @@
     --color-ring-offset: #110a1f;
   }
 
-  /* ── Claude palette ── */
-  .theme-claude {
+  /* ── Claude palette (light) ── */
+  body[data-theme="claude"] {
     --color-bg-body: #f5f0eb;        /* warm cream */
     --color-bg-card: #ffffff;
     --color-border-card: #e0d5c8;    /* warm tan */
@@ -101,12 +162,28 @@
     --color-ring-focus: #d97757;
     --color-ring-offset: #ffffff;
   }
-  .theme-claude.dark {
-    --color-bg-body: #1a1915;        /* warm charcoal */
-    --color-bg-card: #2d2b28;        /* warm dark */
+  /* Claude dark (system) */
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="claude"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #1a1915;
+      --color-bg-card: #2d2b28;
+      --color-border-card: #3d3a35;
+      --color-text-secondary: #d4a88a;
+      --color-accent: #e8956d;
+      --color-accent-hover: #f0b090;
+      --color-accent-subtle: #2a2420;
+      --color-bg-nav: #1a1915;
+      --color-ring-focus: #e8956d;
+      --color-ring-offset: #1a1915;
+    }
+  }
+  /* Claude dark (forced) */
+  body[data-theme="claude"][data-color-scheme="dark"] {
+    --color-bg-body: #1a1915;
+    --color-bg-card: #2d2b28;
     --color-border-card: #3d3a35;
-    --color-text-secondary: #d4a88a; /* AA on warm charcoal */
-    --color-accent: #e8956d;         /* lighter terracotta */
+    --color-text-secondary: #d4a88a;
+    --color-accent: #e8956d;
     --color-accent-hover: #f0b090;
     --color-accent-subtle: #2a2420;
     --color-bg-nav: #1a1915;
@@ -115,7 +192,7 @@
   }
 
   /* ── High Contrast: black-on-white ── */
-  .high-contrast {
+  body[data-high-contrast] {
     --color-bg-body: #ffffff;
     --color-bg-card: #ffffff;
     --color-border-card: #000000;
@@ -127,9 +204,23 @@
     --color-ring-focus: #000000;
     --color-ring-offset: #ffffff;
   }
-
-  /* ── High Contrast: white-on-black ── */
-  .high-contrast.dark {
+  /* High Contrast: white-on-black (system) */
+  @media (prefers-color-scheme: dark) {
+    body[data-high-contrast]:not([data-color-scheme="light"]) {
+      --color-bg-body: #000000;
+      --color-bg-card: #000000;
+      --color-border-card: #ffffff;
+      --color-text-primary: #ffffff;
+      --color-text-secondary: #ffffff;
+      --color-accent: #ffffff;
+      --color-accent-hover: #ffffff;
+      --color-bg-nav: #000000;
+      --color-ring-focus: #ffffff;
+      --color-ring-offset: #000000;
+    }
+  }
+  /* High Contrast: white-on-black (forced) */
+  body[data-high-contrast][data-color-scheme="dark"] {
     --color-bg-body: #000000;
     --color-bg-card: #000000;
     --color-border-card: #ffffff;
@@ -168,7 +259,7 @@
   }
 
   /* High contrast: use outline-offset for clearer focus */
-  .high-contrast :focus-visible {
+  body[data-high-contrast] :focus-visible {
     box-shadow: none;
     outline: 3px solid var(--color-text-primary);
     outline-offset: 3px;
@@ -389,7 +480,12 @@
   .btn-secondary:hover {
     background-color: rgba(0, 0, 0, 0.05);
   }
-  .dark .btn-secondary:hover {
+  @media (prefers-color-scheme: dark) {
+    body:not([data-color-scheme="light"]) .btn-secondary:hover {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  }
+  body[data-color-scheme="dark"] .btn-secondary:hover {
     background-color: rgba(0, 0, 0, 0.2);
   }
 
@@ -433,10 +529,18 @@
   .btn-danger:hover {
     background-color: #ef4444;
   }
-  .dark .btn-danger {
+  @media (prefers-color-scheme: dark) {
+    body:not([data-color-scheme="light"]) .btn-danger {
+      background-color: #ef4444;
+    }
+    body:not([data-color-scheme="light"]) .btn-danger:hover {
+      background-color: #f87171;
+    }
+  }
+  body[data-color-scheme="dark"] .btn-danger {
     background-color: #ef4444;
   }
-  .dark .btn-danger:hover {
+  body[data-color-scheme="dark"] .btn-danger:hover {
     background-color: #f87171;
   }
 
@@ -501,8 +605,38 @@
   .bg-body {
     background-color: var(--color-bg-body);
   }
+  .text-secondary {
+    color: var(--color-text-secondary);
+  }
+  .hover\:text-secondary:hover {
+    color: var(--color-text-secondary);
+  }
   .bg-body-translucent {
     background-color: color-mix(in srgb, var(--color-bg-body) 90%, transparent);
+  }
+
+  /* Boost zinc grays in footer for AA contrast on dark backgrounds */
+  @media (prefers-color-scheme: dark) {
+    body:not([data-color-scheme="light"]) footer {
+      --color-zinc-500: #8b8b94;  /* ~5.2:1+ on all dark bgs */
+      --color-zinc-600: #71717a;  /* ~3.6:1+ (decorative icons) */
+    }
+  }
+  body[data-color-scheme="dark"] footer {
+    --color-zinc-500: #8b8b94;
+    --color-zinc-600: #71717a;
+  }
+
+  /* Theme toggle buttons */
+  .theme-toggle-active {
+    background-color: var(--color-accent-subtle);
+    color: var(--color-text-primary);
+  }
+  .theme-toggle-inactive {
+    color: var(--color-text-secondary);
+  }
+  .theme-toggle-inactive:hover {
+    color: var(--color-text-primary);
   }
 
   /* Legible line lengths */
@@ -531,9 +665,9 @@
   }
 
   /* High contrast: thicker borders */
-  .high-contrast .card,
-  .high-contrast .tag,
-  .high-contrast .field-input {
+  body[data-high-contrast] .card,
+  body[data-high-contrast] .tag,
+  body[data-high-contrast] .field-input {
     border-width: 2px;
   }
 }
