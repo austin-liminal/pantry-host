@@ -2,7 +2,7 @@
 
 > There's already enough of your data in the cloud. Keep your recipes and pantry closer to home — running on your own hardware, on your own network, never stored in the cloud.
 
-<sub><em>\*The optional AI&ndash;powered recipe creation feature sends your ingredient list to your configured AI provider ([Anthropic](https://docs.anthropic.com/en/docs/about-claude/models) or [OpenClaw](https://openclaw.com/)) to generate suggestions. Everything else stays entirely on your local machine.</em></sub>
+<sub><em>\*The optional AI&ndash;powered recipe creation feature sends your ingredient list to [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models) to generate suggestions. Everything else stays entirely on your local machine.</em></sub>
 
 A self-hosted Progressive Web&nbsp;App for managing your kitchen. Track your pantry and cookware, import recipes from URLs, generate AI-suggested meals from what you already have, and take your grocery list, fully informed by a recipe queue, to the store — even offline.
 
@@ -26,7 +26,7 @@ Want to access the API away from home? You can't. Unless you set up a [Tailscale
 
 - Node.js 18+
 - PostgreSQL 14+
-- An AI API key (only required for AI recipe generation) — supports [Anthropic](https://console.anthropic.com/) and [OpenClaw](https://openclaw.com/)
+- An AI API key (only required for AI recipe generation) — [Anthropic](https://console.anthropic.com/)
 
 ---
 
@@ -77,7 +77,7 @@ AI_PROVIDER=anthropic
 AI_API_KEY=sk-ant-...
 ```
 
-`AI_PROVIDER` and `AI_API_KEY` are only needed for AI recipe generation. Everything else works without them. Supported providers: `anthropic`, `openclaw`.
+`AI_PROVIDER` and `AI_API_KEY` are only needed for AI recipe generation. Everything else works without them.
 
 ### 3. Run as a persistent service with pm2
 
@@ -222,17 +222,6 @@ Build me a weekly dinner menu using only what I have on hand
 I have guests coming who are gluten-free. Which of my recipes work?
 ```
 
-### OpenClaw
-
-[OpenClaw](https://openclaw.com/) is an alternative AI provider you can use in place of Anthropic. Set `AI_PROVIDER=openclaw` and your OpenClaw API key in `.env.local`:
-
-```
-AI_PROVIDER=openclaw
-AI_API_KEY=your-openclaw-key
-```
-
-The self-hosted app will route AI recipe generation through OpenClaw instead of Anthropic. Everything else — the pantry, recipes, grocery list, offline support — works the same regardless of provider.
-
 ---
 
 ## Environment Variables
@@ -240,6 +229,6 @@ The self-hosted app will route AI recipe generation through OpenClaw instead of 
 | Variable | Required | Description |
 |---|---|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `AI_PROVIDER` | No | AI provider for recipe generation (`anthropic` or `openclaw`, default: `anthropic`) |
+| `AI_PROVIDER` | No | AI provider for recipe generation (default: `anthropic`) |
 | `AI_API_KEY` | No | API key for the configured AI provider |
 | `GRAPHQL_PORT` | No | GraphQL server port (default: `4001`) |
