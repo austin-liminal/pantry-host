@@ -14,7 +14,8 @@ pantry-host/
 │   ├── app/          # Self-hosted Rex app (Postgres, SSR)
 │   ├── shared/       # Shared types, adapters, constants, theme, components
 │   ├── marketing/    # Static landing page (Vite, Cloudflare Pages)
-│   └── web/          # Browser-native PWA (PGlite + IndexedDB, Vite)
+│   ├── web/          # Browser-native PWA (PGlite + IndexedDB, Vite)
+│   └── mcp/          # MCP server (Model Context Protocol for AI integrations)
 ├── package.json      # npm workspaces root
 ├── .env.local        # App env vars (DATABASE_URL, AI_PROVIDER, AI_API_KEY)
 ├── .claude/          # Launch configs, settings
@@ -29,9 +30,10 @@ npm run dev                    # packages/app (Rex @ 3000)
 npm run dev:graphql            # packages/app GraphQL (4001)
 npm run dev:marketing          # packages/marketing (Vite @ 5173)
 npm run dev:web                # packages/web (Vite @ 5174)
+npm run dev:mcp                # packages/mcp (MCP server, stdio)
 ```
 
-Or use `.claude/launch.json` configs: `pantry-host`, `graphql-server`, `marketing`, `web`.
+Or use `.claude/launch.json` configs: `pantry-host`, `graphql-server`, `marketing`, `web`, `mcp-server`.
 
 ## packages/app — Self-hosted (Rex + Postgres)
 
@@ -52,6 +54,7 @@ Uses **Rex** (`@limlabs/rex`), a custom React bundler built on rolldown. Mimics 
 |--------|------|---------|
 | Rex dev server | 3000 | Frontend SSR + static assets |
 | GraphQL server | 4001 | API (graphql-yoga + Pothos) |
+| MCP server | 5001 | AI agent integration (optional, HTTP mode) |
 
 ### Database
 
@@ -179,6 +182,61 @@ packages/web/
 └── vite.config.ts       # Vite + React + Tailwind + @/ alias
 ```
 
+## packages/mcp — MCP Server (AI integrations)
+
+Exposes the PantryHost GraphQL API as MCP (Model Context Protocol) tools so external AI clients (Claude Desktop, IronClaw, Cursor, etc.) can interact with pantry data. Targets Tier 2 self-hosters.
+
+### Architecture
+- **Thin translation layer**: Talks to the GraphQL server over HTTP (`localhost:4001`), not directly to Postgres
+- **Dual transport**: stdio (Claude Desktop) via default, HTTP on port 5001 via `--http` flag
+- **Optional auth**: Set `MCP_API_KEY` env var to require `Authorization: Bearer` for HTTP transport
+
+### Tools (28 total)
+- **Read (9):** search_pantry, search_recipes, get_recipe, list_cookware, get_cookware, list_kitchens, get_kitchen, list_menus, get_menu
+- **Write (14):** add_ingredient, add_ingredients, update_ingredient, remove_ingredient, create_recipe, update_recipe, delete_recipe, mark_recipe_cooked, queue_recipe, add_cookware, update_cookware, delete_cookware, create_menu, update_menu, delete_menu
+- **AI (1):** generate_recipes (requires `AI_API_KEY` on the GraphQL server)
+
+### Resources
+`pantry://ingredients`, `pantry://recipes`, `pantry://cookware`, `pantry://menus`, `pantry://kitchens`
+
+### File structure
+```
+packages/mcp/
+├── src/
+│   ├── index.ts              # Entrypoint (stdio or HTTP transport)
+│   ├── server.ts             # McpServer setup, registers tools + resources
+│   ├── graphql-client.ts     # gql<T>() for talking to GraphQL on port 4001
+│   ├── tools/
+│   │   ├── ingredients.ts    # Pantry CRUD
+│   │   ├── recipes.ts        # Recipe CRUD + queue/cook
+│   │   ├── cookware.ts       # Cookware CRUD
+│   │   ├── menus.ts          # Menu CRUD
+│   │   ├── kitchens.ts       # Kitchen CRUD
+│   │   └── generate.ts       # AI recipe generation
+│   └── resources/
+│       └── pantry.ts         # pantry:// read-only resources
+├── package.json
+└── tsconfig.json
+```
+
+### Claude Desktop setup
+```json
+{
+  "mcpServers": {
+    "pantry-host": {
+      "command": "npx",
+      "args": ["tsx", "/path/to/packages/mcp/src/index.ts", "--stdio"],
+      "env": { "GRAPHQL_URL": "http://localhost:4001/graphql" }
+    }
+  }
+}
+```
+
+### Dependencies
+- `@modelcontextprotocol/sdk` — MCP TypeScript SDK
+- `zod` — Input schema validation (required by MCP SDK)
+- Requires the GraphQL server to be running on port 4001
+
 ## Conventions
 
 ### Styling
@@ -226,10 +284,13 @@ The SW provides offline support for the self-hosted app. Key design decisions:
 
 ```bash
 DATABASE_URL=postgres://jpdevries@localhost:5432/pantry_host  # required for app
-AI_PROVIDER=anthropic                                             # anthropic or openclaw
+AI_PROVIDER=anthropic                                             # default: anthropic
 AI_API_KEY=sk-ant-...                                             # optional, AI recipes
 GRAPHQL_PORT=4001                                               # default 4001
 DEFAULT_THEME=claude                                            # auto-set by launch.json
+MCP_PORT=5001                                                   # default 5001, MCP HTTP mode
+MCP_API_KEY=                                                    # optional, bearer auth for MCP HTTP
+GRAPHQL_URL=http://localhost:4001/graphql                       # MCP server's GraphQL target
 ```
 
 ## Common tasks

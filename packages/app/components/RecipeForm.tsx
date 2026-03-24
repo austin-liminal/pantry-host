@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { UNIT_GROUPS, COMMON_INGREDIENTS } from '@pantry-host/shared/constants';
 import { gql } from '@/lib/gql';
+import { enqueue } from '@/lib/offlineQueue';
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -248,42 +249,49 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
         sourceRecipeId: r.sourceRecipeId || null,
       }));
 
-    try {
-      if (editing && initial?.id) {
-        await gql(UPDATE_RECIPE, {
-          id: initial.id,
-          title: title.trim(),
-          description: description || null,
-          instructions: instructions.trim(),
-          servings: servings ? parseInt(servings) : 2,
-          prepTime: prepTime ? parseInt(prepTime) : null,
-          cookTime: cookTime ? parseInt(cookTime) : null,
-          tags,
-          requiredCookware,
-          photoUrl: photoUrl || null,
-          ingredients,
-        });
-        router.push(`${recipesBase}/${initial.id}#stage`);
-      } else {
-        const data = await gql<{ createRecipe: { id: string } }>(CREATE_RECIPE, {
-          title: title.trim(),
-          description: description || null,
-          instructions: instructions.trim(),
-          servings: servings ? parseInt(servings) : 2,
-          prepTime: prepTime ? parseInt(prepTime) : null,
-          cookTime: cookTime ? parseInt(cookTime) : null,
-          tags,
-          requiredCookware,
-          photoUrl: photoUrl || null,
-          sourceUrl: importUrl.trim() || null,
-          ingredients,
-          kitchenSlug: kitchenSlug ?? null,
-        });
-        router.push(`${recipesBase}/${data.createRecipe.id}#stage`);
+    if (editing && initial?.id) {
+      const variables = {
+        id: initial.id,
+        title: title.trim(),
+        description: description || null,
+        instructions: instructions.trim(),
+        servings: servings ? parseInt(servings) : 2,
+        prepTime: prepTime ? parseInt(prepTime) : null,
+        cookTime: cookTime ? parseInt(cookTime) : null,
+        tags,
+        requiredCookware,
+        photoUrl: photoUrl || null,
+        ingredients,
+      };
+      try {
+        await gql(UPDATE_RECIPE, variables);
+      } catch {
+        enqueue(UPDATE_RECIPE, variables);
       }
-    } catch (err) {
-      setError((err as Error).message);
-      setSaving(false);
+      router.push(`${recipesBase}/${initial.id}#stage`);
+    } else {
+      const variables = {
+        title: title.trim(),
+        description: description || null,
+        instructions: instructions.trim(),
+        servings: servings ? parseInt(servings) : 2,
+        prepTime: prepTime ? parseInt(prepTime) : null,
+        cookTime: cookTime ? parseInt(cookTime) : null,
+        tags,
+        requiredCookware,
+        photoUrl: photoUrl || null,
+        sourceUrl: importUrl.trim() || null,
+        ingredients,
+        kitchenSlug: kitchenSlug ?? null,
+      };
+      try {
+        const data = await gql<{ createRecipe: { id: string } }>(CREATE_RECIPE, variables);
+        router.push(`${recipesBase}/${data.createRecipe.id}#stage`);
+      } catch {
+        enqueue(CREATE_RECIPE, variables);
+        // No ID available offline — navigate to recipes list
+        router.push(recipesBase);
+      }
     }
   }
 

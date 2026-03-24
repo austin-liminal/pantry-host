@@ -2,6 +2,7 @@ import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { COMMON_COOKWARE } from '@pantry-host/shared/constants';
 import { gql } from '@/lib/gql';
+import { enqueue } from '@/lib/offlineQueue';
 import { PencilSimple, Trash } from '@phosphor-icons/react';
 
 interface Cookware {
@@ -135,17 +136,16 @@ function CookwareForm({ cookware, onSave, onCancel, kitchenSlug, autoFocus }: Fo
     setSaving(true);
     setError(null);
     const tags = tagInput.split(',').map((t) => t.trim()).filter(Boolean);
+    const mutation = editing && cookware ? UPDATE_COOKWARE : ADD_COOKWARE;
+    const variables = editing && cookware
+      ? { id: cookware.id, name: name.trim(), brand: brand || null, tags }
+      : { name: name.trim(), brand: brand || null, tags, kitchenSlug: kitchenSlug ?? null };
     try {
-      if (editing && cookware) {
-        await gql(UPDATE_COOKWARE, { id: cookware.id, name: name.trim(), brand: brand || null, tags });
-      } else {
-        await gql(ADD_COOKWARE, { name: name.trim(), brand: brand || null, tags, kitchenSlug: kitchenSlug ?? null });
-      }
-      onSave();
-    } catch (err) {
-      setError((err as Error).message);
-      setSaving(false);
+      await gql(mutation, variables);
+    } catch {
+      enqueue(mutation, variables);
     }
+    onSave();
   }
 
   return (

@@ -24,6 +24,12 @@
       "runtimeExecutable": "sh",
       "runtimeArgs": ["-c", "cd packages/web && npx vite --port 5174"],
       "port": 5174
+    },
+    {
+      "name": "mcp-server",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd packages/mcp && set -a && source ../../.env.local && set +a && npx tsx src/index.ts --http"],
+      "port": 5001
     }
   ]
 }

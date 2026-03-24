@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
+import { enqueue } from '@/lib/offlineQueue';
 import { MENU_CATEGORIES } from '@pantry-host/shared/constants';
 
 interface RecipeOption {
@@ -100,19 +101,21 @@ export default function MenuNewPage({ kitchen }: Props) {
     if (selected.length === 0) { setError('Add at least one recipe'); return; }
     setSaving(true);
     setError('');
+    const variables = {
+      title: title.trim(),
+      description: description.trim() || null,
+      active,
+      category: category || null,
+      kitchenSlug: slug,
+      recipes: selected.map((s, i) => ({ recipeId: s.recipeId, course: s.course, sortOrder: i })),
+    };
     try {
-      const data = await gql<{ createMenu: { id: string; slug: string } }>(CREATE_MENU, {
-        title: title.trim(),
-        description: description.trim() || null,
-        active,
-        category: category || null,
-        kitchenSlug: slug,
-        recipes: selected.map((s, i) => ({ recipeId: s.recipeId, course: s.course, sortOrder: i })),
-      });
+      const data = await gql<{ createMenu: { id: string; slug: string } }>(CREATE_MENU, variables);
       window.location.href = `${menusBase}/${data.createMenu.slug}#stage`;
-    } catch (err) {
-      setError('Failed to create menu');
-      setSaving(false);
+    } catch {
+      enqueue(CREATE_MENU, variables);
+      // No slug available offline — navigate to menus list
+      window.location.href = menusBase;
     }
   }
 

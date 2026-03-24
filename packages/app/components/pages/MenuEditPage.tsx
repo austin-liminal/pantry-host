@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
+import { enqueue } from '@/lib/offlineQueue';
 import { MENU_CATEGORIES } from '@pantry-host/shared/constants';
 
 interface RecipeOption {
@@ -124,20 +125,20 @@ export default function MenuEditPage({ kitchen, menuId }: Props) {
     if (selected.length === 0) { setError('Add at least one recipe'); return; }
     setSaving(true);
     setError('');
+    const variables = {
+      id: menuDbId,
+      title: title.trim(),
+      description: description.trim() || null,
+      active,
+      category: category || null,
+      recipes: selected.map((s, i) => ({ recipeId: s.recipeId, course: s.course, sortOrder: i })),
+    };
     try {
-      const data = await gql<{ updateMenu: { id: string; slug: string } }>(UPDATE_MENU, {
-        id: menuDbId,
-        title: title.trim(),
-        description: description.trim() || null,
-        active,
-        category: category || null,
-        recipes: selected.map((s, i) => ({ recipeId: s.recipeId, course: s.course, sortOrder: i })),
-      });
-      window.location.href = `${menusBase}/${data.updateMenu.slug}#stage`;
+      await gql(UPDATE_MENU, variables);
     } catch {
-      setError('Failed to update menu');
-      setSaving(false);
+      enqueue(UPDATE_MENU, variables);
     }
+    window.location.href = `${menusBase}/${menuId}#stage`;
   }
 
   if (loading) {
