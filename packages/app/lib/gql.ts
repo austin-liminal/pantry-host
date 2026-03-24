@@ -10,21 +10,32 @@ function getGraphqlUrl(): string {
   return `${proto}://${window.location.hostname}:${gqlPort}/graphql`;
 }
 
+/** Timeout in ms for GraphQL fetches. The server is on localhost/LAN so it
+ * responds in <100ms when reachable. 4s is generous for cold starts but fast
+ * enough to avoid hanging on mobile networks when the home server is
+ * unreachable (TCP timeouts on 5G can exceed 60s). */
+const GQL_TIMEOUT = 4000;
+
 export async function gql<T = unknown>(
   query: string,
   variables?: Record<string, unknown>,
 ): Promise<T> {
   let res: Response;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GQL_TIMEOUT);
   try {
     res = await fetch(getGraphqlUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, variables }),
+      signal: controller.signal,
     });
   } catch (err) {
-    // Network failure — API is unreachable (e.g. phone at grocery store, Mac Mini at home)
+    // Network failure or timeout — API is unreachable (e.g. phone at grocery store, Mac Mini at home)
     setApiOnline(false);
     throw err;
+  } finally {
+    clearTimeout(timer);
   }
 
   // Fetch succeeded — API is reachable regardless of GraphQL errors
