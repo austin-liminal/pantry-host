@@ -263,6 +263,11 @@ Font Awesome Pro 5.15.4 **Light** SVGs as inline React components. Source: `/Use
 - Same API signature: `gql<T>(query, variables): Promise<T>`
 - Queries accept `$kitchenSlug: String` for multi-kitchen filtering
 
+### Recipe creation
+When creating or suggesting recipes (via AI generation, MCP, or conversational requests):
+- Always search for and set a `photoUrl` on new recipes. Use `WebSearch` to find a relevant recipe photo, then `WebFetch` to extract the image URL from the page's structured data or hero image.
+- Use the `updateRecipe` mutation to set the `photoUrl` after creation if needed.
+
 ### Service Worker (`packages/app/public/sw.js`)
 
 The SW provides offline support for the self-hosted app. Key design decisions:
@@ -292,6 +297,26 @@ MCP_PORT=5001                                                   # default 5001, 
 MCP_API_KEY=                                                    # optional, bearer auth for MCP HTTP
 GRAPHQL_URL=http://localhost:4001/graphql                       # MCP server's GraphQL target
 ```
+
+## Dev vs Prod mode
+
+### Dev mode (default)
+Uses local Postgres and local servers on this machine (jps-macbook-air).
+```
+preview_start pantry-host        # Rex dev server @ :3000
+preview_start graphql-server     # GraphQL @ :4001 (local Postgres)
+```
+
+### Prod mode
+Rex prod build served locally. GraphQL proxied to Mac Mini via Tailscale.
+```
+preview_start pantry-host-prod      # Rex prod build + serve @ :3000
+preview_start graphql-proxy-prod    # Proxy :4001 → jps-mac-mini:4443
+```
+- Requires Tailscale connected and Mini's servers running
+- Mini Tailscale IP: `100.125.77.118` (hostname: `jps-mac-mini`)
+- Mini runs: Rex prod (`:3000`/`:443`), GraphQL (`:4001`/`:4443`), Postgres (`:5432`)
+- Proxy target configurable via `GRAPHQL_TARGET` env var
 
 ## Common tasks
 

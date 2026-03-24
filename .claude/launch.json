@@ -30,6 +30,18 @@
       "runtimeExecutable": "sh",
       "runtimeArgs": ["-c", "cd packages/mcp && set -a && source ../../.env.local && set +a && npx tsx src/index.ts --http"],
       "port": 5001
+    },
+    {
+      "name": "pantry-host-prod",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "set -a && source .env.local && export DEFAULT_THEME=claude && set +a && cd packages/app && rex build && rex start --host 0.0.0.0"],
+      "port": 3000
+    },
+    {
+      "name": "graphql-proxy-prod",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/graphql-proxy.mjs"],
+      "port": 4001
     }
   ]
 }
