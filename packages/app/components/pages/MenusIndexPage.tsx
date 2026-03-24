@@ -21,7 +21,7 @@ interface Props {
 }
 
 /** Sort order for menus within the Daily category */
-const DAILY_ORDER: Record<string, number> = { 'breakfast': 0, 'lunch': 1, 'dinner': 2, 'diner': 3 };
+const DAILY_ORDER: Record<string, number> = { 'breakfast': 0, 'lunch': 1, 'dinner': 2 };
 
 function categoryLabel(cat: string): string {
   return MENU_CATEGORIES.find((c) => c.value === cat)?.label ?? cat;

@@ -88,6 +88,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
 
   const articleRef = useRef<HTMLElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [supportsFullscreen, setSupportsFullscreen] = useState(false);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [servings, setServings] = useState(cachedRecipe?.servings ?? 2);
 
@@ -107,9 +108,10 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const [savingPantry, setSavingPantry] = useState(false);
   const [cookwareLookup, setCookwareLookup] = useState<Record<string, string | null>>({});
 
-  // Read favorite state from localStorage once recipe is known
+  // Client-side feature detection
   useEffect(() => {
     setIsDev(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    setSupportsFullscreen(Boolean(document.documentElement.requestFullscreen || (document.documentElement as any).webkitRequestFullscreen));
   }, []);
 
   useEffect(() => {
@@ -395,9 +397,11 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                 <Trash size={16} aria-hidden />
               </button>
             )}
-            <button type="button" onClick={isFullscreen ? exitZen : enterZen} aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} aria-pressed={isFullscreen} className="btn-secondary p-2">
-              {isFullscreen ? <ArrowsIn size={18} aria-hidden /> : <ArrowsOut size={18} aria-hidden />}
-            </button>
+            {supportsFullscreen && (
+              <button type="button" onClick={isFullscreen ? exitZen : enterZen} aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} aria-pressed={isFullscreen} className="btn-secondary p-2">
+                {isFullscreen ? <ArrowsIn size={18} aria-hidden /> : <ArrowsOut size={18} aria-hidden />}
+              </button>
+            )}
           </div>
         </div>
 
