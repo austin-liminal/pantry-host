@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect, useRef, useState } from 'react';
 import { getDailyQuote } from '@pantry-host/shared/dailyQuote';
+import { isTrustedNetwork } from '@/lib/isTrustedNetwork';
 
 export default function Nav() {
   const router = useRouter();
@@ -46,8 +47,7 @@ export default function Nav() {
   const [currentPath, setCurrentPath] = useState('');
   useEffect(() => { setCurrentPath(router.pathname); }, [router.pathname]);
   useEffect(() => {
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    setIsSecure(isDev || window.location.protocol === 'https:');
+    setIsSecure(isTrustedNetwork(window.location.hostname) || window.location.protocol === 'https:');
   }, []);
 
   return (

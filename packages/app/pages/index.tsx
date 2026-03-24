@@ -5,6 +5,7 @@ import GenerateButton from '@/components/GenerateButton';
 import RecipeCard from '@/components/RecipeCard';
 import { getDailyQuote } from '@pantry-host/shared/dailyQuote';
 import { Carrot, BookOpen, Coffee, Package, Leaf, Tag } from '@phosphor-icons/react';
+import { isTrustedNetwork } from '@/lib/isTrustedNetwork';
 
 interface HomeRecipe {
   id: string;
@@ -41,8 +42,7 @@ export default function HomePage() {
 
   useEffect(() => {
     gql<HomeData>(HOME_QUERY).then(setData).catch(console.error);
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    setIsSecure(isDev || window.location.protocol === 'https:');
+    setIsSecure(isTrustedNetwork(window.location.hostname) || window.location.protocol === 'https:');
   }, []);
 
   const [recipeLimit, setRecipeLimit] = useState(6);
