@@ -38,8 +38,8 @@ const tiers = [
     name: 'Host It',
     audience: 'Self-hosted',
     description:
-      <>Run on your own machine with PostgreSQL. Full control, full privacy. Perfect for a home Mac&nbsp;Mini or Raspberry&nbsp;Pi.</>,
-    features: ['PostgreSQL database', 'Sync to multiple devices on your LAN', 'Photo uploads', 'AI recipe generation*', 'OpenClaw compatible'],
+      <>Run on your own machine with PostgreSQL. Full control, full privacy. Perfect for a home Mac&nbsp;Mini or Raspberry&nbsp;Pi. Connect your favorite self-hosted AI&nbsp;assistant to your pantry via&nbsp;GraphQL.</>,
+    features: ['PostgreSQL database', 'Photo uploads', 'AI recipe generation*', 'MCP server for AI integrations'],
     footnote: '*With your own API key',
     cta: { label: 'View setup guide', href: 'https://github.com/jpdevries/pantry-host?tab=readme-ov-file#local-hosting', target: '_ph_self-hosted' },
     icon: IconServer,
@@ -51,7 +51,7 @@ const tiers = [
     description:
       <>Use Claude&nbsp;Code to self-host or Claude in&nbsp;Chrome to supercharge the browser version. Import recipes from any URL, generate new ones, manage your pantry conversationally.</>,
     features: ['AI recipe generation', 'URL recipe import', 'Conversational pantry management'],
-    cta: { label: 'View power user guide', href: 'https://github.com/jpdevries/pantry-host?tab=readme-ov-file#power-user', target: '_ph_power-user' },
+    cta: { label: 'Clone and Run', href: 'https://github.com/jpdevries/pantry-host?tab=readme-ov-file#power-user', target: '_ph_power-user' },
     icon: IconTerminal,
     eta: { display: '~5 min setup', iso: 'PT5M' },
   },

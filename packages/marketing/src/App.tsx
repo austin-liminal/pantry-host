@@ -1,6 +1,7 @@
 import Hero from './sections/Hero';
 import Tiers from './sections/Tiers';
 import Features from './sections/Features';
+import Integrations from './sections/Integrations';
 import Philosophy from './sections/Philosophy';
 import Footer from '@pantry-host/shared/components/Footer';
 
@@ -32,6 +33,7 @@ export default function App() {
       <main>
         <Tiers />
         <Features />
+        <Integrations />
         <Philosophy />
       </main>
       <Footer />
