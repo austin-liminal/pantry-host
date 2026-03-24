@@ -38,7 +38,7 @@ const tiers = [
     name: 'Host It',
     audience: 'Self-hosted',
     description:
-      <>Run on your own machine with PostgreSQL. Full control, full privacy. Perfect for a home Mac&nbsp;Mini or Raspberry&nbsp;Pi. Connect your favorite self-hosted AI&nbsp;assistant to your pantry via&nbsp;GraphQL.</>,
+      <>Run on your own machine with PostgreSQL. Full control, full privacy. Perfect for a home Mac&nbsp;Mini or Raspberry&nbsp;Pi. Connect your favorite AI&nbsp;assistant via <abbr title="Model Context Protocol">MCP</abbr>&nbsp;&mdash; compatible with Claude&nbsp;Desktop, ChatGPT, Cursor, and&nbsp;more.</>,
     features: ['PostgreSQL database', 'Photo uploads', 'AI recipe generation*', 'MCP server for AI integrations'],
     footnote: '*With your own API key',
     cta: { label: 'View setup guide', href: 'https://github.com/jpdevries/pantry-host?tab=readme-ov-file#local-hosting', target: '_ph_self-hosted' },
