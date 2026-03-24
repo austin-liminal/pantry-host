@@ -21,16 +21,19 @@
  * |                       |                        | from cache instantly, updated in bg |
  * | Cross-origin          | Ignored (passthrough)  | GraphQL, Google Fonts, etc.         |
  *
- * ## Build-hash aware cache cleanup
+ * ## Time-based cache cleanup
  *
  * Rex production builds embed an 8-character hash in every bundle filename
  * (e.g. chunk-esm-557eb197.js). Each build produces a new hash. Without
- * cleanup, the cache accumulates hundreds of dead entries across deploys —
- * old cached HTML references old JS bundles, causing blank pages offline.
+ * cleanup, the cache accumulates dead entries across deploys.
  *
- * When a new /_rex/static/ bundle is fetched successfully, the SW extracts
- * the hash and purges all cached /_rex/static/ entries with a different
- * hash. This is self-cleaning — no manual CACHE_NAME bumping needed.
+ * Instead of purging by hash (which races with cached HTML that still
+ * references old bundles), the SW stamps each cached response with a
+ * `sw-cached-at` timestamp and only purges /_rex/static/ entries older
+ * than BUNDLE_MAX_AGE (7 days). This gives cached HTML from previous
+ * builds plenty of time to find their JS bundles offline, while still
+ * preventing unbounded cache growth. Self-cleaning — no manual CACHE_NAME
+ * bumping needed.
  *
  * ## Pre-caching
  *
@@ -94,31 +97,45 @@ function fetchWithTimeout(request) {
   ]);
 }
 
+/** Max age for cached /_rex/static/ bundles before they're eligible for
+ * cleanup. 7 days is generous — it covers users who go offline for a
+ * long weekend while keeping the cache from growing forever. */
+const BUNDLE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+
 /**
- * Extract the 8-char build hash from a Rex bundle filename.
- * e.g. "chunk-esm-557eb197.js" → "557eb197"
- * Returns null for non-hashed files like "router.js".
+ * Clone a response and stamp it with the current time so we can
+ * determine age later. We copy headers into a new Response because
+ * the Cache API stores whatever headers we give it.
  */
-function extractHash(pathname) {
-  const match = pathname.match(/-([a-f0-9]{8})\.js/);
-  return match ? match[1] : null;
+function stampResponse(response) {
+  const headers = new Headers(response.headers);
+  headers.set('sw-cached-at', String(Date.now()));
+  return response.arrayBuffer().then((body) =>
+    new Response(body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    })
+  );
 }
 
 /**
- * Remove cached /_rex/static/ entries whose hash doesn't match the
- * current build. Called after successfully fetching a new bundle.
+ * Remove cached /_rex/static/ entries that were cached more than
+ * BUNDLE_MAX_AGE ago. Entries without a timestamp are treated as
+ * stale and removed (they predate this logic).
  */
-function purgeStaleAssets(cache, currentHash) {
+function purgeStaleAssets(cache) {
+  const cutoff = Date.now() - BUNDLE_MAX_AGE;
   return cache.keys().then((requests) =>
     Promise.all(
       requests
-        .filter((req) => {
-          const url = new URL(req.url);
-          if (!url.pathname.startsWith('/_rex/static/')) return false;
-          const hash = extractHash(url.pathname);
-          return hash && hash !== currentHash;
-        })
-        .map((req) => cache.delete(req))
+        .filter((req) => new URL(req.url).pathname.startsWith('/_rex/static/'))
+        .map((req) =>
+          cache.match(req).then((res) => {
+            const cachedAt = Number(res?.headers.get('sw-cached-at'));
+            if (!cachedAt || cachedAt < cutoff) return cache.delete(req);
+          })
+        )
     )
   );
 }
@@ -156,18 +173,19 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin requests — GraphQL (port 4001) is cross-origin
   if (url.origin !== self.location.origin) return;
 
-  // Network-first for Rex bundles. On success, cache the response and
-  // purge stale bundles from previous builds.
+  // Network-first for Rex bundles. On success, stamp with cache time,
+  // store, and periodically purge entries older than BUNDLE_MAX_AGE.
   if (url.pathname.startsWith('/_rex/')) {
     event.respondWith(
       fetchWithTimeout(request)
         .then((response) => {
           const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, clone);
-            const hash = extractHash(url.pathname);
-            if (hash) purgeStaleAssets(cache, hash);
-          });
+          caches.open(CACHE_NAME).then((cache) =>
+            stampResponse(clone).then((stamped) => {
+              cache.put(request, stamped);
+              purgeStaleAssets(cache);
+            })
+          );
           return response;
         })
         .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(request)))
