@@ -19,11 +19,7 @@ export default function Philosophy() {
         you&nbsp;want&nbsp;it.
       </p>
       <p className="mt-6 text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed italic">
-        If you feel the need to pay for something, consider donating to your local food&nbsp;bank.
-      </p>
-      <p className="mt-6 text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed">
-        AI features are entirely opt-in. Bring your own API key and requests go directly
-        to the&nbsp;provider.
+        If you feel the need to pay, please consider donating to your local food&nbsp;bank.
       </p>
     </section>
   );
