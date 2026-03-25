@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
   apiKey: process.env.AI_API_KEY || process.env.ANTHROPIC_API_KEY,
+  dangerouslyAllowBrowser: true, // Rex V8 SSR is server-side, not a real browser
 });
 
 interface GeneratedIngredient {
