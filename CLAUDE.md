@@ -318,15 +318,16 @@ preview_start graphql-server     # GraphQL @ :4001 (local Postgres)
 ```
 
 ### Prod mode
-Rex prod build served locally. GraphQL proxied to Mac Mini via Tailscale.
+Local servers connecting to Mac Mini's Postgres directly over Tailscale.
 ```
-preview_start pantry-host-prod      # Rex prod build + serve @ :3000
-preview_start graphql-proxy-prod    # Proxy :4001 → jps-mac-mini:4443
+preview_start pantry-host           # Rex dev server @ :3000 (SSR from Mini's DB)
+preview_start graphql-server-prod   # GraphQL @ :4001 (Mini's Postgres via Tailscale)
 ```
-- Requires Tailscale connected and Mini's servers running
+- Requires Tailscale connected and Mini's Postgres accepting connections
 - Mini Tailscale IP: `100.125.77.118` (hostname: `jps-mac-mini`)
-- Mini runs: Rex prod (`:3000`/`:443`), GraphQL (`:4001`/`:4443`), Postgres (`:5432`)
-- Proxy target configurable via `GRAPHQL_TARGET` env var
+- Mini Postgres user: `j7`, database: `pantry_host`
+- Mini's `pg_hba.conf` allows Tailscale CGNAT range (`100.64.0.0/10`)
+- `DATABASE_URL=postgres://j7@100.125.77.118:5432/pantry_host`
 
 ## Common tasks
 

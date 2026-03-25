@@ -315,7 +315,7 @@ export default function Footer() {
 
           {/* Accessibility preferences link */}
           <a
-            href="/accessibility"
+            href="/accessibility#stage"
             className="mt-3 inline-block text-xs underline text-zinc-500 dark:text-zinc-400 hover:text-[var(--color-text-secondary)]"
           >
             Accessibility Preferences
