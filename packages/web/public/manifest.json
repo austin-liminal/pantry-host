@@ -1,6 +1,6 @@
 {
   "name": "Pantry Host",
-  "short_name": "Pantry",
+  "short_name": "Pantry Host",
   "description": "Browser-native kitchen companion. Your data stays in your browser.",
   "start_url": "/",
   "display": "standalone",
