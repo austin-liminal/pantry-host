@@ -66,6 +66,57 @@ export function setThemePalette(palette: ThemePalette) {
   applyTheme();
 }
 
+const COLOR_OVERRIDES_KEY = 'theme-color-overrides';
+
+const CSS_VARS = [
+  '--color-bg-body', '--color-bg-card', '--color-border-card',
+  '--color-text-primary', '--color-text-secondary',
+  '--color-accent', '--color-accent-hover', '--color-accent-subtle',
+  '--color-bg-nav', '--color-ring-focus', '--color-ring-offset',
+] as const;
+
+export type CSSVar = typeof CSS_VARS[number];
+export { CSS_VARS };
+
+export type ColorOverrides = Record<string, Record<string, string>>;
+
+export function getColorOverrides(): ColorOverrides {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem(COLOR_OVERRIDES_KEY) || '{}');
+  } catch { return {}; }
+}
+
+export function setColorOverrides(overrides: ColorOverrides) {
+  localStorage.setItem(COLOR_OVERRIDES_KEY, JSON.stringify(overrides));
+  applyColorOverrides();
+}
+
+export function getCurrentMode(): 'light' | 'dark' {
+  const pref = getThemePreference();
+  if (pref === 'dark') return 'dark';
+  if (pref === 'light') return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyColorOverrides() {
+  if (typeof document === 'undefined') return;
+  const el = document.documentElement;
+  const overrides = getColorOverrides();
+  const palette = getThemePalette();
+  const mode = getCurrentMode();
+  const key = `${palette}-${mode}`;
+  const active = overrides[key] || {};
+
+  for (const v of CSS_VARS) {
+    if (active[v]) {
+      el.style.setProperty(v, active[v]);
+    } else {
+      el.style.removeProperty(v);
+    }
+  }
+}
+
 export function applyTheme() {
   if (typeof document === 'undefined') return;
 
@@ -98,6 +149,8 @@ export function applyTheme() {
   } else {
     body.dataset.theme = palette;
   }
+
+  applyColorOverrides();
 }
 
 let listenerRegistered = false;

@@ -308,9 +308,18 @@ export default function Footer() {
                 />
                 <span className="text-xs">High contrast</span>
               </label>
+
             </div>
 
           </div>
+
+          {/* Accessibility preferences link */}
+          <a
+            href="/accessibility"
+            className="mt-3 inline-block text-xs underline text-zinc-500 dark:text-zinc-400 hover:text-[var(--color-text-secondary)]"
+          >
+            Accessibility Preferences
+          </a>
 
           {/* Credits + GitHub */}
           <div className="mt-6 flex items-start justify-between">
