@@ -171,6 +171,7 @@ const CookwareType = builder.objectType('Cookware', {
     name: t.exposeString('name'),
     brand: t.string({ nullable: true, resolve: (r) => r.brand }),
     tags: t.stringList({ resolve: (r) => r.tags ?? [] }),
+    notes: t.string({ nullable: true, resolve: (r) => r.notes }),
     createdAt: t.string({ resolve: (r) => r.created_at?.toISOString() ?? '' }),
     recipes: t.field({
       type: [RecipeType],
@@ -688,13 +689,14 @@ builder.mutationField('addCookware', (t) =>
       name: t.arg.string({ required: true }),
       brand: t.arg.string(),
       tags: t.arg.stringList(),
+      notes: t.arg.string(),
       kitchenSlug: t.arg.string(),
     },
     resolve: async (_, args) => {
       const kitchenId = await resolveKitchenId(args.kitchenSlug);
       const [row] = await sql`
-        INSERT INTO cookware (name, brand, tags, kitchen_id)
-        VALUES (${args.name}, ${args.brand ?? null}, ${sql.array(args.tags ?? [])}, ${kitchenId})
+        INSERT INTO cookware (name, brand, tags, notes, kitchen_id)
+        VALUES (${args.name}, ${args.brand ?? null}, ${sql.array(args.tags ?? [])}, ${args.notes ?? null}, ${kitchenId})
         RETURNING *
       `;
       return row;
@@ -710,13 +712,15 @@ builder.mutationField('updateCookware', (t) =>
       name: t.arg.string(),
       brand: t.arg.string(),
       tags: t.arg.stringList(),
+      notes: t.arg.string(),
     },
     resolve: async (_, args) => {
       const [row] = await sql`
         UPDATE cookware SET
           name = COALESCE(${args.name ?? null}, name),
           brand = COALESCE(${args.brand ?? null}, brand),
-          tags = COALESCE(${args.tags ? sql.array(args.tags) : null}, tags)
+          tags = COALESCE(${args.tags ? sql.array(args.tags) : null}, tags),
+          notes = COALESCE(${args.notes ?? null}, notes)
         WHERE id = ${args.id}
         RETURNING *
       `;

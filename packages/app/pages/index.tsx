@@ -22,14 +22,14 @@ interface HomeRecipe {
 
 interface HomeData {
   ingredients: { id: string; category: string | null }[];
-  cookware: { name: string }[];
+  cookware: { id: string; name: string; tags: string[]; notes: string | null }[];
   recipes: HomeRecipe[];
   kitchens: { id: string; slug: string; name: string }[];
 }
 
 const HOME_QUERY = `{
   ingredients { id category }
-  cookware { name }
+  cookware { id name tags notes }
   recipes { id slug title cookTime prepTime servings source tags photoUrl queued }
   kitchens { id slug name }
 }`;
@@ -162,7 +162,7 @@ export default function HomePage() {
           <section aria-labelledby="ai-heading" className="mb-12">
             <h2 id="ai-heading" className="text-xl font-bold mb-2">Artificial Intelligence</h2>
             <p className="legible text-sm text-zinc-500 dark:text-zinc-400 mb-4">Generate a recipe based on the ingredients and cookware in your kitchen.<br />Your ingredient list is sent to the Anthropic API. Anthropic does not use API data to train models or sell it to third parties.</p>
-            <GenerateButton ingredientCount={ingredientCount} />
+            <GenerateButton ingredientCount={ingredientCount} cookware={cookwareList} />
           </section>
         )}
 

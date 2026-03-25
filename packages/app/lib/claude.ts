@@ -24,7 +24,7 @@ interface GeneratedRecipe {
 
 export async function generateRecipes(
   ingredients: { name: string; quantity: number | null; unit: string | null }[],
-  cookware: { name: string }[],
+  cookware: { name: string; tags?: string[]; notes?: string | null }[],
 ): Promise<GeneratedRecipe[]> {
   const ingredientList = ingredients
     .map((i) => {
@@ -35,12 +35,20 @@ export async function generateRecipes(
 
   const cookwareList = cookware.map((c) => c.name).join(', ') || 'standard kitchen equipment';
 
+  // Build composting context if any cookware is tagged as a composter/waste-cycler
+  const composters = cookware.filter((c) =>
+    (c.tags ?? []).some((t) => ['waste-cycler', 'compost'].includes(t)),
+  );
+  const compostContext = composters.length > 0
+    ? `\n\nThe family owns ${composters.map((c) => `a ${c.name}${c.notes ? ` (composting device — ${c.notes})` : ' (composting device)'}`).join(' and ')}. For each recipe, append a final instruction step starting with "Compost:" listing which scraps from that recipe can go into the composter and which cannot, based on the device's rules.`
+    : '';
+
   const prompt = `You are a helpful home chef.
 
 Available ingredients: ${ingredientList || 'none listed'}
 Available cookware: ${cookwareList}
 
-Generate 3 practical family recipes using primarily these ingredients. Favor cookware the family owns. Default to 2 servings unless ingredients clearly suggest more.
+Generate 3 practical family recipes using primarily these ingredients. Favor cookware the family owns. Default to 2 servings unless ingredients clearly suggest more.${compostContext}
 
 Respond with ONLY a valid JSON array — no markdown, no explanation — matching this schema:
 [

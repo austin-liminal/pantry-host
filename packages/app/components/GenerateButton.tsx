@@ -3,8 +3,16 @@ import { useRouter } from 'next/router';
 import { gql } from '@/lib/gql';
 import { SpinnerGap } from '@phosphor-icons/react';
 
+interface CookwareItem {
+  id: string;
+  name: string;
+  tags: string[];
+  notes: string | null;
+}
+
 interface Props {
   ingredientCount: number;
+  cookware?: CookwareItem[];
 }
 
 const GENERATE_MUTATION = `
@@ -16,12 +24,31 @@ const GENERATE_MUTATION = `
   }
 `;
 
-export default function GenerateButton({ ingredientCount }: Props) {
+const UPDATE_COOKWARE = `
+  mutation UpdateCookware($id: String!, $notes: String) {
+    updateCookware(id: $id, notes: $notes) { id notes }
+  }
+`;
+
+export default function GenerateButton({ ingredientCount, cookware = [] }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [promptItem, setPromptItem] = useState<CookwareItem | null>(null);
+  const [notesInput, setNotesInput] = useState('');
+
+  // Find composting cookware missing notes
+  const compostersWithoutNotes = cookware.filter(
+    (c) => c.tags.some((t) => ['waste-cycler', 'compost'].includes(t)) && !c.notes,
+  );
 
   async function handleGenerate() {
+    // Prompt for missing composting notes first
+    if (compostersWithoutNotes.length > 0 && !promptItem) {
+      setPromptItem(compostersWithoutNotes[0]);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -36,8 +63,50 @@ export default function GenerateButton({ ingredientCount }: Props) {
     }
   }
 
+  async function handleSaveNotes() {
+    if (!promptItem || !notesInput.trim()) return;
+    try {
+      await gql(UPDATE_COOKWARE, { id: promptItem.id, notes: notesInput.trim() });
+      // Update local state so we don't prompt again
+      promptItem.notes = notesInput.trim();
+      setPromptItem(null);
+      setNotesInput('');
+      // Now proceed with generation
+      handleGenerate();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   return (
     <div>
+      {promptItem && (
+        <div className="mb-4 p-4 rounded-lg border border-[var(--color-border-card)] bg-[var(--color-bg-card)]">
+          <p className="text-sm font-medium mb-2">
+            You have a <strong>{promptItem.name}</strong> but we don&rsquo;t have its composting rules yet.
+          </p>
+          <p className="text-xs text-[var(--color-text-secondary)] mb-3">
+            Paste or describe what it can and can&rsquo;t process so we can include composting tips in generated recipes.
+          </p>
+          <textarea
+            value={notesInput}
+            onChange={(e) => setNotesInput(e.target.value)}
+            placeholder="e.g. Accepts fruit scraps, veggie scraps, eggshells, coffee grounds. Does NOT accept meat, dairy, oils, or bones."
+            className="field-input w-full mb-3"
+            rows={3}
+            autoFocus
+          />
+          <div className="flex gap-3">
+            <button type="button" onClick={handleSaveNotes} disabled={!notesInput.trim()} className="btn-primary text-sm disabled:opacity-50">
+              Save &amp; Generate
+            </button>
+            <button type="button" onClick={() => { setPromptItem(null); handleGenerate(); }} className="btn-secondary text-sm">
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={handleGenerate}
@@ -73,4 +142,3 @@ export default function GenerateButton({ ingredientCount }: Props) {
     </div>
   );
 }
-

@@ -10,11 +10,12 @@ interface Cookware {
   name: string;
   brand: string | null;
   tags: string[];
+  notes: string | null;
 }
 
-const COOKWARE_QUERY = `query Cookware($kitchenSlug: String) { cookware(kitchenSlug: $kitchenSlug) { id name brand tags } }`;
-const ADD_COOKWARE = `mutation AddCookware($name: String!, $brand: String, $tags: [String!], $kitchenSlug: String) { addCookware(name: $name, brand: $brand, tags: $tags, kitchenSlug: $kitchenSlug) { id } }`;
-const UPDATE_COOKWARE = `mutation UpdateCookware($id: String!, $name: String, $brand: String, $tags: [String!]) { updateCookware(id: $id, name: $name, brand: $brand, tags: $tags) { id } }`;
+const COOKWARE_QUERY = `query Cookware($kitchenSlug: String) { cookware(kitchenSlug: $kitchenSlug) { id name brand tags notes } }`;
+const ADD_COOKWARE = `mutation AddCookware($name: String!, $brand: String, $tags: [String!], $notes: String, $kitchenSlug: String) { addCookware(name: $name, brand: $brand, tags: $tags, notes: $notes, kitchenSlug: $kitchenSlug) { id } }`;
+const UPDATE_COOKWARE = `mutation UpdateCookware($id: String!, $name: String, $brand: String, $tags: [String!], $notes: String) { updateCookware(id: $id, name: $name, brand: $brand, tags: $tags, notes: $notes) { id } }`;
 const DELETE_COOKWARE = `mutation DeleteCookware($id: String!) { deleteCookware(id: $id) }`;
 
 interface Props { kitchen: string; }
@@ -127,6 +128,7 @@ function CookwareForm({ cookware, onSave, onCancel, kitchenSlug, autoFocus }: Fo
   const [name, setName] = useState(cookware?.name ?? '');
   const [brand, setBrand] = useState(cookware?.brand ?? '');
   const [tagInput, setTagInput] = useState(cookware?.tags?.join(', ') ?? '');
+  const [notes, setNotes] = useState(cookware?.notes ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -138,8 +140,8 @@ function CookwareForm({ cookware, onSave, onCancel, kitchenSlug, autoFocus }: Fo
     const tags = tagInput.split(',').map((t) => t.trim()).filter(Boolean);
     const mutation = editing && cookware ? UPDATE_COOKWARE : ADD_COOKWARE;
     const variables = editing && cookware
-      ? { id: cookware.id, name: name.trim(), brand: brand || null, tags }
-      : { name: name.trim(), brand: brand || null, tags, kitchenSlug: kitchenSlug ?? null };
+      ? { id: cookware.id, name: name.trim(), brand: brand || null, tags, notes: notes || null }
+      : { name: name.trim(), brand: brand || null, tags, notes: notes || null, kitchenSlug: kitchenSlug ?? null };
     try {
       await gql(mutation, variables);
     } catch {
@@ -159,9 +161,13 @@ function CookwareForm({ cookware, onSave, onCancel, kitchenSlug, autoFocus }: Fo
         <label htmlFor="cw-brand" className="field-label">Brand</label>
         <input id="cw-brand" type="text" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="e.g. Instant Pot Co." className="field-input w-full" />
       </div>
-      <div className="mb-5">
+      <div className="mb-4">
         <label htmlFor="cw-tags" className="field-label">Tags <span className="font-normal text-[var(--color-text-secondary)]">(comma-separated)</span></label>
         <input id="cw-tags" type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} placeholder="e.g. pressure-cooker, slow-cooker" className="field-input w-full" />
+      </div>
+      <div className="mb-5">
+        <label htmlFor="cw-notes" className="field-label">Notes <span className="font-normal text-[var(--color-text-secondary)]">(usage guide, composting rules, etc.)</span></label>
+        <textarea id="cw-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Accepts fruit scraps, veggie scraps, eggshells. Does NOT accept meat, dairy, or oils." className="field-input w-full" rows={3} />
       </div>
       {error && <p role="alert" className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
       <div className="flex gap-3">

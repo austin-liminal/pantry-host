@@ -268,6 +268,16 @@ When creating or suggesting recipes (via AI generation, MCP, or conversational r
 - Always search for and set a `photoUrl` on new recipes. Use `WebSearch` to find a relevant recipe photo, then `WebFetch` to extract the image URL from the page's structured data or hero image.
 - Use the `updateRecipe` mutation to set the `photoUrl` after creation if needed.
 
+### Composting tips
+When the user asks to add composting tips to an existing recipe:
+1. Query cookware for items tagged `waste-cycler` or `compost`
+2. Read the cookware's `notes` field for device-specific rules (what it accepts/rejects)
+3. If `notes` is empty, ask the user to provide their device's composting rules first, then save via `updateCookware`
+4. Append a "Compost:" step to the recipe's instructions listing which scraps can/can't go in the device
+5. Update the recipe via `updateRecipe` mutation
+
+AI-generated recipes automatically include composting tips when composting cookware with notes is detected.
+
 ### Service Worker (`packages/app/public/sw.js`)
 
 The SW provides offline support for the self-hosted app. Key design decisions:

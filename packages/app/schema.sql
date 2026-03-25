@@ -51,6 +51,7 @@ CREATE TABLE cookware (
   name        VARCHAR(255) NOT NULL,
   brand       VARCHAR(255),
   tags        TEXT[] DEFAULT '{}',
+  notes       TEXT,
   kitchen_id  TEXT NOT NULL REFERENCES kitchens(id) ON DELETE CASCADE DEFAULT (SELECT id FROM kitchens WHERE slug = 'home'),
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
@@ -90,3 +91,6 @@ CREATE TABLE IF NOT EXISTS menu_recipes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_menu_recipes_menu ON menu_recipes(menu_id);
+
+-- v0.1.1: Add notes to cookware (e.g. device guides, composting rules)
+ALTER TABLE cookware ADD COLUMN IF NOT EXISTS notes TEXT;
