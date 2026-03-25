@@ -2,6 +2,8 @@
 
 Project context for AI agents working on this codebase.
 
+> **Machine-specific context:** If a `CLAUDE.local.md` file exists in the repo root, read it for machine-specific setup notes (DB credentials, paths, local services, etc.). It is gitignored and varies per machine.
+
 ## What is this?
 
 Pantry Host is a privacy-first kitchen companion for managing recipes, pantry ingredients, cookware, and grocery lists. It ships three ways: self-hosted with PostgreSQL, browser-native with PGlite, or as a static marketing page. All data stays on your hardware.

@@ -8,3 +8,4 @@ node_modules
 .claude/settings.local.json
 dist
 packages/app/public/uploads/
+CLAUDE.local.md
