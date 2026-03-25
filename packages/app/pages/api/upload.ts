@@ -10,6 +10,14 @@ export const config = {
   },
 };
 
+/**
+ * Upload handler for recipe photos and other images.
+ *
+ * Files are stored with UUID filenames (e.g. a1b2c3d4-...jpg). The SW and
+ * browser cache these as immutable — NEVER overwrite an existing upload path.
+ * If an image needs to be replaced, upload a new file (new UUID) and update
+ * the recipe's photoUrl. The old file can be cleaned up separately.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 

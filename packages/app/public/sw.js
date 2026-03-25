@@ -13,12 +13,14 @@
  * | Request type          | Strategy               | Rationale                           |
  * |-----------------------|------------------------|-------------------------------------|
  * | Shell pages (install) | Pre-cache individually | Ensures offline navigation works    |
- * | /_rex/ bundles        | Network-first          | Always serve fresh JS; cache for    |
- * |                       |                        | offline fallback                    |
+ * | /_rex/ bundles        | Cache-first (immutable)| Hashed filenames never change;      |
+ * |                       |                        | serve from cache, fetch on miss     |
+ * | /uploads/ images      | Cache-first (immutable)| UUID filenames never change; if an  |
+ * |                       |                        | image is edited, a new UUID is used |
  * | HTML navigation       | Network-first          | SSR content stays fresh; cached     |
  * |                       |                        | shell available offline             |
- * | Other same-origin     | Stale-while-revalidate | Images, fonts, manifest served      |
- * |                       |                        | from cache instantly, updated in bg |
+ * | Other same-origin     | Stale-while-revalidate | Fonts, manifest served from cache   |
+ * |                       |                        | instantly, updated in bg            |
  * | Cross-origin          | Ignored (passthrough)  | GraphQL, Google Fonts, etc.         |
  *
  * ## Time-based cache cleanup
@@ -173,22 +175,33 @@ self.addEventListener('fetch', (event) => {
   // Only handle same-origin requests — GraphQL (port 4001) is cross-origin
   if (url.origin !== self.location.origin) return;
 
-  // Network-first for Rex bundles. On success, stamp with cache time,
-  // store, and periodically purge entries older than BUNDLE_MAX_AGE.
-  if (url.pathname.startsWith('/_rex/')) {
+  // Immutable assets: Rex bundles (hashed filenames) and uploaded images
+  // (UUID filenames). These URLs never change — serve from cache first,
+  // fall back to network + cache forever.
+  //
+  // NOTE: If a recipe image is ever re-processed or edited, the upload
+  // endpoint MUST generate a new UUID filename. Never overwrite an
+  // existing upload path — the browser and SW will serve the cached
+  // version indefinitely.
+  const isImmutable = url.pathname.startsWith('/_rex/') || url.pathname.startsWith('/uploads/');
+
+  if (isImmutable) {
     event.respondWith(
-      fetchWithTimeout(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) =>
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.match(request).then((cached) => {
+          if (cached) return cached;
+          // Not in cache — fetch, stamp, store, return.
+          return fetch(request).then((response) => {
+            const clone = response.clone();
             stampResponse(clone).then((stamped) => {
               cache.put(request, stamped);
-              purgeStaleAssets(cache);
-            })
-          );
-          return response;
+              // Only purge stale bundles, not uploads
+              if (url.pathname.startsWith('/_rex/')) purgeStaleAssets(cache);
+            });
+            return response;
+          });
         })
-        .catch(() => caches.open(CACHE_NAME).then((cache) => cache.match(request)))
+      )
     );
     return;
   }
