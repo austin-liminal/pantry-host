@@ -197,7 +197,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="no-print mt-16 pt-10 pb-8 px-4 sm:px-6 text-xs text-zinc-500 dark:text-zinc-400">
+    <footer rel="contentinfo" className="no-print pt-10 pb-8 px-4 sm:px-6 text-xs text-zinc-500 dark:text-zinc-400">
       <div className="max-w-5xl mx-auto border-t pt-10" style={{ borderColor: 'var(--color-accent-subtle)' }}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
           <div>
