@@ -69,6 +69,41 @@ AI_API_KEY=sk-ant-... docker compose up -d
 
 Data (database + uploaded images) persists in Docker volumes across restarts.
 
+### Raspberry Pi
+
+Docker on a Raspberry Pi 4 or 5 (ARM64, 4 GB+ RAM recommended) works out of the box:
+
+```bash
+git clone https://github.com/jpdevries/pantry-host.git
+cd pantry-host
+docker compose up -d
+```
+
+The initial `docker compose up` builds the image on-device — this takes a while on a Pi (10–20 min) but only happens once. Subsequent starts are instant.
+
+**Pi 4 with 2 GB RAM:** The build step may run out of memory. Add swap first:
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+Or build on a faster machine and transfer the image:
+
+```bash
+# On your Mac/PC:
+docker buildx build --platform linux/arm64 -t pantry-host:latest .
+docker save pantry-host:latest | gzip > pantry-host-arm64.tar.gz
+
+# Copy to Pi, then:
+docker load < pantry-host-arm64.tar.gz
+docker compose up -d
+```
+
+**Not supported:** Pi 3 and older (32-bit ARMv7) — the Rex runtime requires ARM64.
+
 ---
 
 ## Local Hosting
