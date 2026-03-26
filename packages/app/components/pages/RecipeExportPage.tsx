@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { gql } from '@/lib/gql';
-import { recipeBookToDataURI } from '@pantry-host/shared/export-recipe';
+import { recipeBookToDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
 import type { ExportableRecipe } from '@pantry-host/shared/export-recipe';
 
 interface RecipeListItem {
@@ -120,7 +120,20 @@ export default function RecipeExportPage({ kitchen }: Props) {
         }
       }
       const details = ids.map((id) => detailCache.current.get(id)).filter(Boolean) as ExportableRecipe[];
-      const uri = recipeBookToDataURI(details);
+      // Resolve local upload photos to data URIs for self-contained export
+      const resolvedDetails = await Promise.all(
+        details.map(async (r) => {
+          if (!r.photoUrl?.startsWith('/uploads/')) return r;
+          const uuid = r.photoUrl.replace(/^\/uploads\//, '').replace(/\.\w+$/, '');
+          try {
+            const dataUri = await imageToDataURI(`/uploads/${uuid}-400.jpg`);
+            return { ...r, photoUrl: dataUri };
+          } catch {
+            return { ...r, photoUrl: null };
+          }
+        }),
+      );
+      const uri = recipeBookToDataURI(resolvedDetails);
       // Trigger download immediately
       const a = document.createElement('a');
       a.href = uri;

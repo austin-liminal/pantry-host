@@ -152,6 +152,27 @@ export function recipeToDataURI(recipe: ExportableRecipe): string {
   return 'data:text/html;charset=utf-8,' + encodeURIComponent(generateRecipeHTML(recipe));
 }
 
+/**
+ * Convert a same-origin image to a base64 data URI via the Canvas API.
+ * Zero dependencies — uses the browser's native <canvas> element.
+ */
+export function imageToDataURI(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = src;
+  });
+}
+
 function renderRecipeArticle(recipe: ExportableRecipe): string {
   const steps = parseInstructionSteps(recipe.instructions);
   const timeInfo: string[] = [];

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
-import { recipeToDataURI } from '@pantry-host/shared/export-recipe';
+import { recipeToDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -38,6 +38,21 @@ export default function RecipeDetailPage() {
   const navigate = useNavigate();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportPhotoUrl, setExportPhotoUrl] = useState<string | null>(null);
+
+  // Resolve local upload photos to base64 data URIs for export
+  useEffect(() => {
+    const photoUrl = recipe?.photoUrl;
+    if (!photoUrl) { setExportPhotoUrl(null); return; }
+    if (!photoUrl.startsWith('/uploads/')) {
+      setExportPhotoUrl(photoUrl);
+      return;
+    }
+    const uuid = photoUrl.replace(/^\/uploads\//, '').replace(/\.\w+$/, '');
+    imageToDataURI(`/uploads/${uuid}-400.jpg`)
+      .then(setExportPhotoUrl)
+      .catch(() => setExportPhotoUrl(null));
+  }, [recipe?.photoUrl]);
 
   useEffect(() => {
     if (!slug) return;
@@ -150,7 +165,7 @@ export default function RecipeDetailPage() {
             Print
           </button>
           <a
-            href={recipeToDataURI({ ...recipe, source: '', sourceUrl: null, photoUrl: null })}
+            href={recipeToDataURI({ ...recipe, source: '', sourceUrl: null, photoUrl: exportPhotoUrl })}
             download={`${recipe.slug || 'recipe'}.html`}
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border border-[var(--color-border-card)] hover:underline"
           >

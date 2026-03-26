@@ -9,7 +9,7 @@ import RecipeCard from '@/components/RecipeCard';
 import { Leaf } from '@phosphor-icons/react';
 import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
 import ResponsiveImage from '@/components/ResponsiveImage';
-import { recipeToDataURI } from '@pantry-host/shared/export-recipe';
+import { recipeToDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -108,6 +108,20 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const [pantryEdits, setPantryEdits] = useState<Map<string, number>>(new Map());
   const [savingPantry, setSavingPantry] = useState(false);
   const [cookwareLookup, setCookwareLookup] = useState<Record<string, string | null>>({});
+  const [exportPhotoUrl, setExportPhotoUrl] = useState<string | null>(null);
+
+  // Resolve local upload photos to base64 data URIs for export
+  useEffect(() => {
+    if (!recipe?.photoUrl) { setExportPhotoUrl(null); return; }
+    if (!recipe.photoUrl.startsWith('/uploads/')) {
+      setExportPhotoUrl(recipe.photoUrl);
+      return;
+    }
+    const uuid = recipe.photoUrl.replace(/^\/uploads\//, '').replace(/\.\w+$/, '');
+    imageToDataURI(`/uploads/${uuid}-400.jpg`)
+      .then(setExportPhotoUrl)
+      .catch(() => setExportPhotoUrl(null));
+  }, [recipe?.photoUrl]);
 
   // Client-side feature detection
   useEffect(() => {
@@ -636,7 +650,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                 Print Recipe
               </button>
               <a
-                href={recipeToDataURI(recipe)}
+                href={recipeToDataURI({ ...recipe, photoUrl: exportPhotoUrl })}
                 download={`${recipe.slug || 'recipe'}.html`}
                 className="inline-flex items-center gap-2 btn-secondary text-sm"
               >
