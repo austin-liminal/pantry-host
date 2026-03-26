@@ -6,6 +6,7 @@ import { gql } from '@/lib/gql';
 import { Camera, PencilSimple, Trash } from '@phosphor-icons/react';
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
 import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
+import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface Ingredient {
   id: string;
@@ -58,8 +59,7 @@ export default function IngredientsPage({ kitchen }: Props) {
 
   useEffect(() => { refresh(); }, [kitchen]);
   useEffect(() => {
-    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    setIsSecure(isDev || window.location.protocol === 'https:');
+    setIsSecure(isOwner());
   }, []);
 
   // Scroll to hash target after data renders (browser can't scroll to #cat-* if it didn't exist on first paint)
@@ -145,15 +145,17 @@ export default function IngredientsPage({ kitchen }: Props) {
                 Batch Scan
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => { setShowAddForm(!showAddForm); setEditingId(null); }}
-              className="btn-primary"
-              aria-expanded={showAddForm}
-              aria-controls="add-ingredient-form"
-            >
-              {showAddForm ? 'Cancel' : '+ Add Item'}
-            </button>
+            {isSecure && (
+              <button
+                type="button"
+                onClick={() => { setShowAddForm(!showAddForm); setEditingId(null); }}
+                className="btn-primary"
+                aria-expanded={showAddForm}
+                aria-controls="add-ingredient-form"
+              >
+                {showAddForm ? 'Cancel' : '+ Add Item'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -225,22 +227,24 @@ export default function IngredientsPage({ kitchen }: Props) {
                           </span>
                         )}
                       </div>
-                      <div className="flex gap-2 shrink-0">
-                        <button type="button" onClick={() => setEditingId(ing.id)} aria-label="Edit" aria-describedby={`ing-${ing.id}`} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2">
-                          <PencilSimple size={16} aria-hidden />
-                        </button>
-                        {deleteConfirm === ing.id ? (
-                          <div className="flex gap-1 items-center">
-                            <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
-                            <button type="button" autoFocus onClick={() => handleDelete(ing.id)} disabled={deleting} aria-label="Confirm delete" aria-describedby={`ing-${ing.id}`} className="text-xs btn-danger px-2 py-1">Yes</button>
-                            <button type="button" onClick={() => setDeleteConfirm(null)} aria-label="Cancel delete" aria-describedby={`ing-${ing.id}`} className="text-xs btn-secondary px-2 py-1">No</button>
-                          </div>
-                        ) : (
-                          <button type="button" onClick={() => setDeleteConfirm(ing.id)} aria-label="Delete" aria-describedby={`ing-${ing.id}`} className="text-[var(--color-text-secondary)] hover:text-red-500 p-2">
-                            <Trash size={16} aria-hidden />
+                      {isSecure && (
+                        <div className="flex gap-2 shrink-0">
+                          <button type="button" onClick={() => setEditingId(ing.id)} aria-label="Edit" aria-describedby={`ing-${ing.id}`} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2">
+                            <PencilSimple size={16} aria-hidden />
                           </button>
-                        )}
-                      </div>
+                          {deleteConfirm === ing.id ? (
+                            <div className="flex gap-1 items-center">
+                              <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
+                              <button type="button" autoFocus onClick={() => handleDelete(ing.id)} disabled={deleting} aria-label="Confirm delete" aria-describedby={`ing-${ing.id}`} className="text-xs btn-danger px-2 py-1">Yes</button>
+                              <button type="button" onClick={() => setDeleteConfirm(null)} aria-label="Cancel delete" aria-describedby={`ing-${ing.id}`} className="text-xs btn-secondary px-2 py-1">No</button>
+                            </div>
+                          ) : (
+                            <button type="button" onClick={() => setDeleteConfirm(ing.id)} aria-label="Delete" aria-describedby={`ing-${ing.id}`} className="text-[var(--color-text-secondary)] hover:text-red-500 p-2">
+                              <Trash size={16} aria-hidden />
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </li>

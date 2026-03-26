@@ -10,6 +10,7 @@ import { Leaf } from '@phosphor-icons/react';
 import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { recipeToDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
+import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -81,7 +82,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const cachedRecipe = typeof window !== 'undefined' ? cacheGet<Recipe>(cacheKey) : null;
   const [recipe, setRecipe] = useState<Recipe | null>(cachedRecipe);
   const [notFound, setNotFound] = useState(false);
-  const [isDev, setIsDev] = useState(false);
+  const [owner, setOwner] = useState(false);
   const [ageVerified, setAgeVerified] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('age-verified') === 'true';
     return false;
@@ -125,7 +126,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
 
   // Client-side feature detection
   useEffect(() => {
-    setIsDev(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    setOwner(isOwner());
     setSupportsFullscreen(Boolean(document.documentElement.requestFullscreen || (document.documentElement as any).webkitRequestFullscreen));
   }, []);
 
@@ -645,7 +646,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
               {lastMadeAt ? 'I Made This Again' : 'I Made This'}
             </button>
             <p className="text-sm text-[var(--color-text-secondary)] mt-3">Mark this recipe as made to track when you last cooked it and update your pantry quantities.</p>
-            {lastMadeAt && (isDev || (Date.now() - new Date(lastMadeAt).getTime()) > 7 * 24 * 60 * 60 * 1000) && (
+            {lastMadeAt && (owner || (Date.now() - new Date(lastMadeAt).getTime()) > 7 * 24 * 60 * 60 * 1000) && (
               <p className="mt-2 text-xs italic text-[var(--color-text-secondary)]">
                 Last made on {new Date(lastMadeAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
               </p>

@@ -4,6 +4,7 @@ import { COMMON_COOKWARE } from '@pantry-host/shared/constants';
 import { gql } from '@/lib/gql';
 import { enqueue } from '@/lib/offlineQueue';
 import { PencilSimple, Trash } from '@phosphor-icons/react';
+import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface Cookware {
   id: string;
@@ -30,6 +31,9 @@ export default function CookwarePage({ kitchen }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [owner, setOwner] = useState(false);
+
+  useEffect(() => { setOwner(isOwner()); }, []);
 
   async function refresh() {
     const data = await gql<{ cookware: Cookware[] }>(COOKWARE_QUERY, { kitchenSlug: kitchen });
@@ -60,9 +64,11 @@ export default function CookwarePage({ kitchen }: Props) {
       <main id="stage" className="max-sm:min-h-screen px-4 py-10 md:px-8 max-w-4xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <h1 className="text-4xl font-bold">Cookware</h1>
-          <button type="button" onClick={() => { setShowForm(!showForm); setEditingId(null); }} aria-expanded={showForm} aria-controls="add-cookware-form" className="btn-primary">
-            {showForm ? 'Cancel' : '+ Add Cookware'}
-          </button>
+          {owner && (
+            <button type="button" onClick={() => { setShowForm(!showForm); setEditingId(null); }} aria-expanded={showForm} aria-controls="add-cookware-form" className="btn-primary">
+              {showForm ? 'Cancel' : '+ Add Cookware'}
+            </button>
+          )}
         </div>
 
         {showForm && (
@@ -95,22 +101,24 @@ export default function CookwarePage({ kitchen }: Props) {
                       <span className="ml-2">{item.tags.map((t) => <span key={t} className="tag mr-1">{t}</span>)}</span>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button type="button" onClick={() => setEditingId(item.id)} aria-label="Edit" aria-describedby={`cw-${item.id}`} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2">
-                      <PencilSimple size={16} aria-hidden />
-                    </button>
-                    {deleteConfirm === item.id ? (
-                      <div className="flex gap-1 items-center">
-                        <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
-                        <button type="button" autoFocus onClick={() => handleDelete(item.id)} disabled={deleting} aria-label="Confirm delete" aria-describedby={`cw-${item.id}`} className="btn-danger text-xs px-2 py-1">Yes</button>
-                        <button type="button" onClick={() => setDeleteConfirm(null)} aria-label="Cancel delete" aria-describedby={`cw-${item.id}`} className="btn-secondary text-xs px-2 py-1">No</button>
-                      </div>
-                    ) : (
-                      <button type="button" onClick={() => setDeleteConfirm(item.id)} aria-label="Delete" aria-describedby={`cw-${item.id}`} className="text-[var(--color-text-secondary)] hover:text-red-500 p-2">
-                        <Trash size={16} aria-hidden />
+                  {owner && (
+                    <div className="flex gap-2 shrink-0">
+                      <button type="button" onClick={() => setEditingId(item.id)} aria-label="Edit" aria-describedby={`cw-${item.id}`} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2">
+                        <PencilSimple size={16} aria-hidden />
                       </button>
-                    )}
-                  </div>
+                      {deleteConfirm === item.id ? (
+                        <div className="flex gap-1 items-center">
+                          <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
+                          <button type="button" autoFocus onClick={() => handleDelete(item.id)} disabled={deleting} aria-label="Confirm delete" aria-describedby={`cw-${item.id}`} className="btn-danger text-xs px-2 py-1">Yes</button>
+                          <button type="button" onClick={() => setDeleteConfirm(null)} aria-label="Cancel delete" aria-describedby={`cw-${item.id}`} className="btn-secondary text-xs px-2 py-1">No</button>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => setDeleteConfirm(item.id)} aria-label="Delete" aria-describedby={`cw-${item.id}`} className="text-[var(--color-text-secondary)] hover:text-red-500 p-2">
+                          <Trash size={16} aria-hidden />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </li>

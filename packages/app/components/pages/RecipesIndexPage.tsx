@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { gql } from '@/lib/gql';
 import RecipeCard from '@/components/RecipeCard';
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
+import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface Recipe {
   id: string;
@@ -30,6 +31,7 @@ const ADULT_TAGS = ['420', 'cannabis', 'adult-only'];
 export default function RecipesIndexPage({ kitchen }: Props) {
   const cacheKey = `cache:recipes:${kitchen}`;
   const [recipes, setRecipes] = useState<Recipe[]>(() => cacheGet<Recipe[]>(cacheKey) ?? []);
+  const [owner, setOwner] = useState(false);
   const [ageVerified, setAgeVerified] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('age-verified') === 'true';
     return false;
@@ -48,6 +50,8 @@ export default function RecipesIndexPage({ kitchen }: Props) {
     const r = recipes[Math.floor(Math.random() * recipes.length)];
     return r.title;
   }, [recipes]);
+
+  useEffect(() => { setOwner(isOwner()); }, []);
 
   useEffect(() => {
     gql<{ recipes: Recipe[] }>(RECIPES_QUERY, { kitchenSlug: kitchen })
@@ -69,10 +73,12 @@ export default function RecipesIndexPage({ kitchen }: Props) {
       <main id="stage" className="max-sm:min-h-screen px-4 py-10 md:px-8 max-w-5xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <h1 className="text-4xl font-bold">Recipes</h1>
-          <div className="flex gap-2">
-            <a href={`${base}/import#stage`} className="btn-secondary">↓ Import</a>
-            <a href={`${base}/new#stage`} className="btn-primary">+ Add Recipe</a>
-          </div>
+          {owner && (
+            <div className="flex gap-2">
+              <a href={`${base}/import#stage`} className="btn-secondary">↓ Import</a>
+              <a href={`${base}/new#stage`} className="btn-primary">+ Add Recipe</a>
+            </div>
+          )}
         </div>
 
         {!ageVerified && recipes.some((r) => r.tags.some((t) => ADULT_TAGS.includes(t.toLowerCase()))) && (
@@ -118,11 +124,13 @@ export default function RecipesIndexPage({ kitchen }: Props) {
           if (recipes.length === 0) return (
             <div className="text-center py-20 text-[var(--color-text-secondary)]">
               <p className="text-lg mb-4">No recipes yet.</p>
-              <p className="mb-4">
-                <a href="/#stage" className="underline hover:text-accent">Generate recipes from your pantry</a>
-                {' '}or{' '}
-                <a href={`${base}/new#stage`} className="underline hover:text-accent">add one manually</a>.
-              </p>
+              {owner && (
+                <p className="mb-4">
+                  <a href="/#stage" className="underline hover:text-accent">Generate recipes from your pantry</a>
+                  {' '}or{' '}
+                  <a href={`${base}/new#stage`} className="underline hover:text-accent">add one manually</a>.
+                </p>
+              )}
             </div>
           );
 

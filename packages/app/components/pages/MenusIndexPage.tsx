@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
 import { cacheGet, cacheSet } from '@pantry-host/shared/cache';
 import { MENU_CATEGORIES, MENU_CATEGORY_ORDER } from '@pantry-host/shared/constants';
+import { isOwner } from '@/lib/isTrustedNetwork';
 import MenuCard from '@/components/MenuCard';
 
 interface MenuSummary {
@@ -31,13 +32,13 @@ export default function MenusIndexPage({ kitchen }: Props) {
   const [menus, setMenus] = useState<MenuSummary[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isDev, setIsDev] = useState(false);
+  const [owner, setOwner] = useState(false);
   const menusBase = kitchen === 'home' ? '/menus' : `/kitchens/${kitchen}/menus`;
   const slug = kitchen === 'home' ? undefined : kitchen;
   const cacheKey = `cache:menus:${kitchen}`;
 
   useEffect(() => {
-    setIsDev(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    setOwner(isOwner());
     const cached = cacheGet<MenuSummary[]>(cacheKey);
     if (cached) { setMenus(cached); setLoading(false); }
     gql<{ menus: MenuSummary[] }>(MENUS_QUERY, { kitchenSlug: slug })
@@ -46,7 +47,7 @@ export default function MenusIndexPage({ kitchen }: Props) {
   }, [kitchen]);
 
   const q = search.toLowerCase();
-  const visibleMenus = isDev ? menus : menus.filter((m) => m.active);
+  const visibleMenus = owner ? menus : menus.filter((m) => m.active);
   const filtered = q
     ? visibleMenus.filter((m) =>
         m.title.toLowerCase().includes(q) ||
@@ -92,7 +93,7 @@ export default function MenusIndexPage({ kitchen }: Props) {
     <main id="stage" className="max-sm:min-h-screen px-4 py-10 md:px-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Menus</h1>
-        {isDev && (
+        {owner && (
           <a href={`${menusBase}/new`} className="btn-primary text-sm">+ New Menu</a>
         )}
       </div>

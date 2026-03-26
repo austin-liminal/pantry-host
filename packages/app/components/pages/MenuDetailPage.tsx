@@ -3,6 +3,7 @@ import { gql } from '@/lib/gql';
 import { cacheGet, cacheSet } from '@pantry-host/shared/cache';
 import RecipeCard from '@/components/RecipeCard';
 import { Robot, Leaf, ArrowsOut, ArrowsIn } from '@phosphor-icons/react';
+import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface MenuRecipe {
   id: string;
@@ -72,7 +73,7 @@ interface Props {
 export default function MenuDetailPage({ kitchen, menuId }: Props) {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [isDev, setIsDev] = useState(false);
+  const [owner, setOwner] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
@@ -83,7 +84,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
   const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
 
   useEffect(() => {
-    setIsDev(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    setOwner(isOwner());
     setSupportsFullscreen(Boolean(document.documentElement.requestFullscreen || (document.documentElement as any).webkitRequestFullscreen));
   }, []);
 
@@ -120,10 +121,10 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
     console.log('[MenuDetailPage] menuId:', JSON.stringify(menuId));
     if (!menuId) return;
     const cacheKey = `cache:menu:${menuId}`;
-    const dev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const ownr = isOwner();
     gql<{ menu: Menu | null }>(MENU_QUERY, { id: menuId })
       .then((d) => {
-        if (!d.menu || (!d.menu.active && !dev)) { setNotFound(true); return; }
+        if (!d.menu || (!d.menu.active && !ownr)) { setNotFound(true); return; }
         setMenu(d.menu);
         cacheSet(cacheKey, d.menu);
       })
@@ -247,7 +248,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
               {isFullscreen ? <ArrowsIn size={18} aria-hidden /> : <ArrowsOut size={18} aria-hidden />}
             </button>
           )}
-        {isDev && (<>
+        {owner && (<>
             <a href={`${menusBase}/${menu.slug ?? menu.id}/edit`} className="btn-secondary text-sm">Edit</a>
             {!deleteConfirm ? (
               <button type="button" onClick={() => setDeleteConfirm(true)} className="btn-secondary text-sm text-red-500">

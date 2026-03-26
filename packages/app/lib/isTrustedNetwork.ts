@@ -23,3 +23,14 @@ export function isTrustedNetwork(hostname: string): boolean {
 
   return false;
 }
+
+/**
+ * Determines if the current user has owner-level access.
+ * Owner = localhost (direct machine) or HTTPS (Tailscale cert, mkcert, etc.).
+ * Guest = HTTP on a LAN IP (shareable link like http://192.168.x.x:3000).
+ */
+export function isOwner(): boolean {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1' || window.location.protocol === 'https:';
+}
