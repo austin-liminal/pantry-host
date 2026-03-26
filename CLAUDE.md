@@ -319,6 +319,7 @@ DEFAULT_THEME=claude                                            # auto-set by la
 MCP_PORT=5001                                                   # default 5001, MCP HTTP mode
 MCP_API_KEY=                                                    # optional, bearer auth for MCP HTTP
 GRAPHQL_URL=http://localhost:4001/graphql                       # MCP server's GraphQL target
+ENABLE_IMAGE_PROCESSING=true                                    # false: skip sharp variants, save disk (Pi)
 ```
 
 ## Dev vs Prod mode

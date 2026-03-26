@@ -104,6 +104,23 @@ docker compose up -d
 
 **Not supported:** Pi 3 and older (32-bit ARMv7) — the Rex runtime requires ARM64.
 
+**Save disk space:** Disable image variant generation to keep only the original upload (no WebP/JPEG/grayscale variants):
+
+```bash
+ENABLE_IMAGE_PROCESSING=false docker compose up -d
+```
+
+### HTTPS with Tailscale
+
+Need HTTPS for the barcode scanner on iOS? [Tailscale](https://tailscale.com/) provides free, automatic TLS certificates for your devices — no reverse proxy, no public DNS, no Cloudflare tunnel.
+
+1. Install Tailscale on your server (Mac Mini, Pi, etc.) and your phone/laptop
+2. Enable MagicDNS and HTTPS in the Tailscale admin console
+3. Run `tailscale cert your-machine.tailnet-name.ts.net` on the server
+4. Add a Caddy container (or similar) to terminate TLS and proxy to port 3000
+
+Your devices can then access Pantry Host at `https://your-machine.tailnet-name.ts.net` — valid certificate, secure context, camera and barcode scanner work at the grocery store over your Tailnet.
+
 ---
 
 ## Local Hosting

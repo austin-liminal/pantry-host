@@ -24,6 +24,8 @@ services:
     environment:
       DATABASE_URL: postgres://recipes:recipes@db:5432/pantry_host
       AI_API_KEY: ${AI_API_KEY:-}
+      # Raspberry Pi: uncomment to skip image variant generation, save disk/CPU
+      # ENABLE_IMAGE_PROCESSING: "false"
     depends_on:
       db:
         condition: service_healthy

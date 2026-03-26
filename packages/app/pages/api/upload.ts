@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { processUploadedImage } from '../../lib/image-server';
+import { FEATURES } from '../../lib/features';
 
 export const config = {
   api: {
@@ -60,9 +61,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Generate responsive variants (WebP, JPEG, grayscale) in background.
       // Don't block the response — variants are a progressive enhancement.
-      processUploadedImage(dest, uploadsDir, uuid).catch((e) =>
-        console.error('[upload] Failed to generate image variants:', e),
-      );
+      // Disabled via ENABLE_IMAGE_PROCESSING=false for constrained devices (Pi).
+      if (FEATURES.imageProcessing) {
+        processUploadedImage(dest, uploadsDir, uuid).catch((e) =>
+          console.error('[upload] Failed to generate image variants:', e),
+        );
+      }
 
       res.json({ url: `/uploads/${filename}` });
       resolve();
