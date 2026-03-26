@@ -243,11 +243,6 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
           &larr; Menus
         </a>
         <div className="flex gap-2">
-          {supportsFullscreen && (
-            <button type="button" onClick={isFullscreen ? exitZen : enterZen} aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} aria-pressed={isFullscreen} className="btn-secondary p-2">
-              {isFullscreen ? <ArrowsIn size={18} aria-hidden /> : <ArrowsOut size={18} aria-hidden />}
-            </button>
-          )}
         {owner && (<>
             <a href={`${menusBase}/${menu.slug ?? menu.id}/edit`} className="btn-secondary text-sm">Edit</a>
             {!deleteConfirm ? (
@@ -265,6 +260,11 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
               </div>
             )}
           </>)}
+          {supportsFullscreen && (
+            <button type="button" onClick={isFullscreen ? exitZen : enterZen} aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'} aria-pressed={isFullscreen} className="btn-secondary p-2">
+              {isFullscreen ? <ArrowsIn size={18} aria-hidden /> : <ArrowsOut size={18} aria-hidden />}
+            </button>
+          )}
         </div>
       </div>
 

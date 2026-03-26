@@ -77,6 +77,10 @@ export default function HomePage() {
       <Head>
         <title>Pantry Host</title>
         <meta name="description" content="Family recipe manager — pantry, cookware, and AI-generated recipes." />
+        <meta property="og:title" content="Pantry Host" />
+        <meta property="og:description" content="Family recipe manager — pantry, cookware, and AI-generated recipes." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary" />
       </Head>
 
       <main id="stage" className="min-h-screen px-4 py-10 md:px-8 max-w-4xl mx-auto">

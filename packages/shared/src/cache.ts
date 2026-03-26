@@ -4,14 +4,16 @@
  */
 
 export function cacheSet(key: string, data: unknown): void {
+  if (typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
   } catch {
-    // localStorage may be unavailable (private browsing quota, SSR)
+    // localStorage may be unavailable (private browsing quota)
   }
 }
 
 export function cacheGet<T>(key: string): T | null {
+  if (typeof localStorage === 'undefined') return null;
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
