@@ -39,7 +39,7 @@ export default function Integrations() {
       </div>
       <h2
         className="text-3xl sm:text-4xl font-bold text-center mb-4"
-        style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+        style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
       >
         Open by&nbsp;Design
       </h2>
@@ -57,7 +57,7 @@ export default function Integrations() {
             </div>
             <h3
               className="text-xl font-bold mb-2"
-              style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+              style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
             >
               {cap.title}
             </h3>

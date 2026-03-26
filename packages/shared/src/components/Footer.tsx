@@ -243,7 +243,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t pt-6 mt-2" style={{ borderColor: 'var(--color-accent-subtle)' }}>
-          <p className="font-serif font-bold text-sm text-secondary" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>Pantry Host</p>
+          <p className="font-serif font-bold text-sm text-secondary" style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}>Pantry Host</p>
           <p className="mt-2 legible text-zinc-500 dark:text-zinc-400 pretty">
             An open source, self-hosted kitchen companion that runs entirely on your home network or mobile&nbsp;device.<br/>Your recipes, your data, your&nbsp;machine.
           </p>

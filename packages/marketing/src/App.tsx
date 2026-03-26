@@ -15,7 +15,7 @@ function Header() {
         <Plant size={24} weight="light" />
         <span
           className="text-xl font-bold text-[var(--color-text-primary)]"
-          style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+          style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
         >
           Pantry Host
         </span>

@@ -43,7 +43,7 @@ export default function Layout() {
           {isHome ? (
             <span
               className="text-2xl font-bold tracking-tight"
-              style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+              style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
             >
               Pantry Host
             </span>
@@ -52,7 +52,7 @@ export default function Layout() {
               to="/"
               onClick={(e) => handleNavClick(e, '/')}
               className="text-2xl font-bold tracking-tight hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+              style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
               aria-label="Pantry Host — home"
             >
               Pantry Host
@@ -77,7 +77,7 @@ export default function Layout() {
                         'text-base font-semibold tracking-wide uppercase transition-colors',
                         active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                       ].join(' ')}
-                      style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+                      style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
                     >
                       {label}
                     </NavLink>
@@ -90,7 +90,7 @@ export default function Layout() {
 
         {/* Random quote (mobile only — fills dead space in 100svh cover) */}
         {quote && (
-          <blockquote className="my-auto px-2 sm:hidden text-[var(--color-text-secondary)] text-lg italic max-w-[36ch] pretty" style={{ opacity: 0.7, fontFamily: "'Crimson Pro', Georgia, serif" }}>
+          <blockquote className="my-auto px-2 sm:hidden text-[var(--color-text-secondary)] text-lg italic max-w-[36ch] pretty" style={{ opacity: 0.7, fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}>
             <p>&ldquo;{quote.text}&rdquo;</p>
             <footer className="mt-2 text-sm not-italic text-[var(--color-text-secondary)]" style={{ fontFamily: 'system-ui, sans-serif' }}>— {quote.author}</footer>
           </blockquote>
@@ -111,7 +111,7 @@ export default function Layout() {
                       'block text-3xl font-bold tracking-tight transition-colors',
                       active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                     ].join(' ')}
-                    style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+                    style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
                   >
                     {label}
                   </NavLink>

@@ -31,7 +31,7 @@ export default function HomePage() {
     <div>
       <h1
         className="text-3xl font-bold mb-8"
-        style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+        style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
       >
         Your Kitchen
       </h1>

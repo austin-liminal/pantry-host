@@ -200,7 +200,7 @@ export default function RecipeExportPage({ kitchen }: Props) {
       <Head><title>Export Recipes — Pantry Host</title></Head>
       <main id="stage" className="max-sm:min-h-screen px-4 py-10 md:px-8 max-w-3xl mx-auto">
         <a href={`${recipesBase}#stage`} className="text-sm text-secondary hover:underline mb-6 inline-block">&larr; Recipes</a>
-        <h1 className="text-4xl font-bold mb-4" style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}>Export Recipes</h1>
+        <h1 className="text-4xl font-bold mb-4" style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}>Export Recipes</h1>
 
         {tagCloud.length > 0 && (
           <details className="mb-8">

@@ -48,7 +48,7 @@ export default function Features() {
     <section className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
       <h2
         className="text-4xl sm:text-5xl font-bold text-center mb-12"
-        style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+        style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
       >
         What Pantry Host&nbsp;does
       </h2>
@@ -63,7 +63,7 @@ export default function Features() {
             </div>
             <h3
               className="font-bold text-xl mb-2"
-              style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+              style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
             >
               {f.title}
             </h3>

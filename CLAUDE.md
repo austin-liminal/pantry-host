@@ -270,6 +270,17 @@ When creating or suggesting recipes (via AI generation, MCP, or conversational r
 - Always search for and set a `photoUrl` on new recipes. Use `WebSearch` to find a relevant recipe photo, then `WebFetch` to extract the image URL from the page's structured data or hero image.
 - Use the `updateRecipe` mutation to set the `photoUrl` after creation if needed.
 
+### Recipe images
+`photoUrl` supports two modes:
+- **External URL** (e.g. `https://example.com/photo.jpg`) — served as-is via a plain `<img>`. Quick to set but no responsive variants, no offline caching.
+- **Local upload** (e.g. `/uploads/{uuid}.jpg`) — processed by `sharp` on upload into 9 variants: 3 widths (400/800/1200) × WebP + JPEG + grayscale JPEG. Served via `<picture>` with `srcset` for responsive loading, `@media (monochrome)` for e-ink, and cached immutably by the service worker. **Preferred.**
+
+To use local uploads: `POST /api/upload` with a `multipart/form-data` file field. The endpoint saves the original, generates variants in the background, and returns `{ url: "/uploads/{uuid}.ext" }`. Uploaded files use UUID filenames and are immutable — if an image needs replacing, upload a new file and update the recipe's `photoUrl`.
+
+For batch processing existing uploads: `npx tsx packages/app/scripts/process-existing-uploads.ts` (idempotent).
+
+The `ResponsiveImage` component (`components/ResponsiveImage.tsx`) handles both modes automatically — local uploads get `<picture>` with sources, external URLs get a plain `<img>` with `width`/`height` for CLS prevention.
+
 ### Composting tips
 When the user asks to add composting tips to an existing recipe:
 1. Query cookware for items tagged `waste-cycler` or `compost`

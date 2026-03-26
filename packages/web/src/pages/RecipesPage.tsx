@@ -39,7 +39,7 @@ export default function RecipesPage() {
       <div className="flex items-center justify-between mb-6">
         <h1
           className="text-3xl font-bold"
-          style={{ fontFamily: "'Crimson Pro', Georgia, serif" }}
+          style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
         >
           Recipes
         </h1>
