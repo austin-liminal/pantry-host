@@ -42,6 +42,7 @@ export default function RecipesIndexPage({ kitchen }: Props) {
     }
     return '';
   });
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
 
   const base = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
 
@@ -61,6 +62,44 @@ export default function RecipesIndexPage({ kitchen }: Props) {
         if (cached) setRecipes(cached);
       });
   }, [kitchen]);
+
+  const RECIPE_FILTERS: { key: string; label: string; tags: string[] }[] = [
+    // Dietary
+    { key: 'gluten-free', label: 'Gluten-Free', tags: ['gluten-free'] },
+    { key: 'vegan', label: 'Vegan', tags: ['vegan'] },
+    { key: 'vegetarian', label: 'Vegetarian', tags: ['vegetarian', 'vegan'] },
+    { key: 'keto', label: 'Keto', tags: ['keto'] },
+    // Meal
+    { key: 'breakfast', label: 'Breakfast', tags: ['breakfast', 'brunch'] },
+    { key: 'lunch', label: 'Lunch', tags: ['lunch'] },
+    { key: 'dinner', label: 'Dinner', tags: ['dinner'] },
+    { key: 'dessert', label: 'Dessert', tags: ['dessert'] },
+    { key: 'snack', label: 'Snack', tags: ['snack'] },
+    { key: 'drink', label: 'Drink', tags: ['drink', 'juice', 'milkshake', 'coffee'] },
+    // Method
+    { key: 'instant-pot', label: 'Instant Pot', tags: ['instant-pot'] },
+    { key: 'griddle', label: 'Griddle', tags: ['griddle'] },
+    { key: 'no-cook', label: 'No Cook', tags: ['no-cook', 'no-bake'] },
+    { key: 'quick', label: 'Quick', tags: ['quick', 'quick-dinner'] },
+    // Lifestyle
+    { key: 'breastfeeding-safe', label: 'Breastfeeding Safe', tags: ['breastfeeding-safe'] },
+    { key: 'baby-food', label: 'Baby Food', tags: ['baby-food', 'first-foods'] },
+    { key: 'lactation', label: 'Lactation', tags: ['lactation'] },
+    { key: 'sustainable', label: 'Sustainable', tags: ['sustainable', 'local'] },
+  ];
+
+  const availableFilters = RECIPE_FILTERS.filter((f) =>
+    recipes.some((r) => r.tags.some((t) => f.tags.includes(t.toLowerCase())))
+  );
+
+  function toggleFilter(key: string) {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   return (
     <>
@@ -100,6 +139,39 @@ export default function RecipesIndexPage({ kitchen }: Props) {
           <label htmlFor="recipe-search" className="field-label">Search</label>
           <input id="recipe-search" type="search" list="recipe-titles" placeholder={placeholder} value={search} onChange={(e) => setSearch(e.target.value)} className="field-input w-full md:max-w-sm" />
         </div>
+
+        {availableFilters.length > 0 && (
+          <div className="mb-6">
+            <p id="filter-desc" className="text-xs text-[var(--color-text-secondary)] mb-2">Filter by tag</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="filter-desc">
+              {availableFilters.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => toggleFilter(f.key)}
+                  aria-pressed={activeFilters.has(f.key)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-full border-2 transition-colors"
+                  style={activeFilters.has(f.key)
+                    ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-bg-body)', borderColor: 'var(--color-accent)', fontWeight: 700 }
+                    : { borderColor: 'var(--color-border-card)', color: 'var(--color-text-secondary)' }
+                  }
+                >
+                  {f.label}
+                </button>
+              ))}
+              {activeFilters.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setActiveFilters(new Set())}
+                  className="text-xs text-[var(--color-text-secondary)] hover:underline px-2 py-1.5"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="mb-8 flex justify-end">
           <a href={`${base}/export#stage`} className="inline-flex items-center gap-1.5 text-sm text-secondary hover:underline">
             Export Recipes
@@ -114,12 +186,21 @@ export default function RecipesIndexPage({ kitchen }: Props) {
           const visible = ageVerified
             ? recipes
             : recipes.filter((r) => !r.tags.some((t) => ADULT_TAGS.includes(t.toLowerCase())));
-          const filtered = q
+          const searched = q
             ? visible.filter((r) =>
                 r.title.toLowerCase().includes(q) ||
                 r.tags.some((t) => t.toLowerCase().includes(q))
               )
             : visible;
+          const filtered = activeFilters.size === 0
+            ? searched
+            : searched.filter((r) => {
+                const tags = r.tags.map((t) => t.toLowerCase());
+                return [...activeFilters].every((fKey) => {
+                  const f = RECIPE_FILTERS.find((rf) => rf.key === fKey);
+                  return f && tags.some((t) => f.tags.includes(t));
+                });
+              });
 
           if (recipes.length === 0) return (
             <div className="text-center py-20 text-[var(--color-text-secondary)]">

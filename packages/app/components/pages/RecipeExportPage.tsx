@@ -224,11 +224,12 @@ export default function RecipeExportPage({ kitchen }: Props) {
                     key={tag}
                     type="button"
                     onClick={() => selectByTag(tag)}
-                    className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                      activeTags.has(tag)
-                        ? 'bg-[var(--color-accent)] text-[var(--color-bg-body)] border-[var(--color-accent)]'
-                        : 'bg-[var(--color-accent-subtle)] text-secondary border-[var(--color-border-card)] hover:underline'
-                    }`}
+                    aria-pressed={activeTags.has(tag)}
+                    className="text-xs px-2.5 py-1 rounded-full border-2 transition-colors"
+                    style={activeTags.has(tag)
+                      ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-bg-body)', borderColor: 'var(--color-accent)', fontWeight: 700 }
+                      : { backgroundColor: 'var(--color-accent-subtle)', color: 'var(--color-text-secondary)', borderColor: 'var(--color-border-card)' }
+                    }
                   >
                     {tag} <span className="opacity-60">{count}</span>
                   </button>

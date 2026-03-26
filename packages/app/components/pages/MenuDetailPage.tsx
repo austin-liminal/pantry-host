@@ -285,11 +285,11 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
                 type="button"
                 onClick={() => toggleFilter(f.key)}
                 aria-pressed={active}
-                className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
-                  active
-                    ? 'bg-accent border-accent text-[var(--color-bg-body)]'
-                    : 'border-[var(--color-border-card)] text-[var(--color-text-secondary)] hover:border-accent hover:text-accent'
-                }`}
+                className="text-xs font-medium px-3 py-1.5 rounded-full border-2 transition-colors"
+                style={active
+                  ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-bg-body)', borderColor: 'var(--color-accent)', fontWeight: 700 }
+                  : { borderColor: 'var(--color-border-card)', color: 'var(--color-text-secondary)' }
+                }
               >
                 {f.label}
               </button>
