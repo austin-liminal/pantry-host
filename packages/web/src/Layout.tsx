@@ -42,8 +42,7 @@ export default function Layout() {
         <div className="flex items-center justify-between">
           {isHome ? (
             <span
-              className="text-2xl font-bold tracking-tight"
-              style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
+              className="text-2xl font-bold tracking-tight font-serif"
             >
               Pantry Host
             </span>
@@ -51,8 +50,7 @@ export default function Layout() {
             <NavLink
               to="/"
               onClick={(e) => handleNavClick(e, '/')}
-              className="text-2xl font-bold tracking-tight hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-              style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
+              className="text-2xl font-bold tracking-tight hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 font-serif"
               aria-label="Pantry Host — home"
             >
               Pantry Host
@@ -74,10 +72,9 @@ export default function Layout() {
                       onClick={(e) => handleNavClick(e, to)}
                       aria-current={active ? 'page' : undefined}
                       className={[
-                        'text-base font-semibold tracking-wide uppercase transition-colors',
+                        'text-base font-semibold tracking-wide uppercase transition-colors font-serif',
                         active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                       ].join(' ')}
-                      style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
                     >
                       {label}
                     </NavLink>
@@ -90,9 +87,9 @@ export default function Layout() {
 
         {/* Random quote (mobile only — fills dead space in 100svh cover) */}
         {quote && (
-          <blockquote className="my-auto px-2 sm:hidden text-[var(--color-text-secondary)] text-lg italic max-w-[36ch] pretty" style={{ opacity: 0.7, fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}>
+          <blockquote className="my-auto px-2 sm:hidden text-[var(--color-text-secondary)] text-lg italic max-w-[36ch] pretty font-serif" style={{ opacity: 0.7 }}>
             <p>&ldquo;{quote.text}&rdquo;</p>
-            <footer className="mt-2 text-sm not-italic text-[var(--color-text-secondary)]" style={{ fontFamily: 'system-ui, sans-serif' }}>— {quote.author}</footer>
+            <footer className="mt-2 text-sm not-italic text-[var(--color-text-secondary)] font-sans">— {quote.author}</footer>
           </blockquote>
         )}
 
@@ -108,10 +105,9 @@ export default function Layout() {
                     onClick={(e) => handleNavClick(e, to)}
                     aria-current={active ? 'page' : undefined}
                     className={[
-                      'block text-3xl font-bold tracking-tight transition-colors',
+                      'block text-3xl font-bold tracking-tight transition-colors font-serif',
                       active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                     ].join(' ')}
-                    style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
                   >
                     {label}
                   </NavLink>

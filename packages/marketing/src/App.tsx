@@ -14,8 +14,7 @@ function Header() {
       <a href="/" className="inline-flex items-center gap-2 text-[var(--color-accent)] hover:underline">
         <Plant size={24} weight="light" />
         <span
-          className="text-xl font-bold text-[var(--color-text-primary)]"
-          style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
+          className="text-xl font-bold text-[var(--color-text-primary)] font-serif"
         >
           Pantry Host
         </span>

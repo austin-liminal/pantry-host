@@ -16,12 +16,11 @@ export default function Hero() {
       <div>
         <h1
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight"
-          style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
         >
           There&rsquo;s already enough of your data in&nbsp;the&nbsp;cloud.
         </h1>
-        <p className="pretty mt-6 text-xl sm:text-2xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed" style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}>
-          Pantry&nbsp;Host is a self-hosted, privacy-first kitchen companion for managing recipes, ingredients, cookware, and grocery lists.<br /><em className="not-italic font-semibold text-[var(--color-text-primary)]" style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}>All on your&nbsp;own&nbsp;hardware</em>.
+        <p className="pretty mt-6 text-xl sm:text-2xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed font-serif">
+          Pantry&nbsp;Host is a self-hosted, privacy-first kitchen companion for managing recipes, ingredients, cookware, and grocery lists.<br /><em className="not-italic font-semibold text-[var(--color-text-primary)]">All on your&nbsp;own&nbsp;hardware</em>.
         </p>
       </div>
       <div className="flex-1" />

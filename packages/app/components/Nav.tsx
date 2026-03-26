@@ -55,12 +55,11 @@ export default function Nav() {
       {/* Site identity */}
       <div className="flex items-center justify-between">
         {currentPath === '/' || currentPath === '' ? (
-          <span className="text-2xl font-bold tracking-tight font-serif" style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}>Pantry Host</span>
+          <span className="text-2xl font-bold tracking-tight font-serif">Pantry Host</span>
         ) : (
           <a
             href="/#stage"
             className="text-2xl font-bold tracking-tight font-serif hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
             aria-label="Pantry Host — home"
           >
             Pantry Host
@@ -85,7 +84,6 @@ export default function Nav() {
                       'text-base font-semibold tracking-wide uppercase transition-colors font-serif',
                       active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                     ].join(' ')}
-                    style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
                   >
                     {label}
                   </a>
@@ -119,7 +117,6 @@ export default function Nav() {
                     'block text-3xl font-bold tracking-tight transition-colors font-serif',
                     active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
                   ].join(' ')}
-                  style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
                 >
                   {label}
                 </a>

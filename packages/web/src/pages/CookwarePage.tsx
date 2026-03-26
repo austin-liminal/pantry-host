@@ -40,7 +40,6 @@ export default function CookwarePage() {
     <div>
       <h1
         className="text-3xl font-bold mb-6"
-        style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
       >
         Cookware
       </h1>

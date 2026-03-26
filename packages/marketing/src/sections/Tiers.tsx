@@ -63,7 +63,6 @@ export default function Tiers() {
       <h2
         id="getting-started"
         className="text-3xl sm:text-4xl font-bold text-center mb-12 scroll-mt-20"
-        style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
       >
         Three ways to&nbsp;run&nbsp;it.<br /> Zero ways to&nbsp;pay.
       </h2>
@@ -81,7 +80,6 @@ export default function Tiers() {
             </p>
             <h3
               className="text-3xl font-bold"
-              style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
             >
               {tier.name}
             </h3>

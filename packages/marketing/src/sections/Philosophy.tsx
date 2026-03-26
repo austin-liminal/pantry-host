@@ -8,7 +8,6 @@ export default function Philosophy() {
       </div>
       <h2
         className="text-3xl sm:text-4xl font-bold mb-8"
-        style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
       >
         No subscription&nbsp;needed
       </h2>

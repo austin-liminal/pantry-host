@@ -181,7 +181,6 @@ export default function AccessibilityPreferences() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <h1
           className="text-2xl sm:text-3xl font-bold mb-2"
-          style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol" }}
         >
           Accessibility Preferences
         </h1>
@@ -240,7 +239,7 @@ export default function AccessibilityPreferences() {
             >
               <div className="max-w-5xl mx-auto">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-semibold flex items-center gap-2" style={{ fontFamily: "Iowan Old Style, Apple Garamond, Baskerville, Times New Roman, Droid Serif, Times, Source Serif Pro, serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol", color: s.text }}>
+                <h2 className="text-lg font-semibold flex items-center gap-2 font-serif" style={{ color: s.text }}>
                   {PALETTE_LABELS[palette]} &mdash; {mode === 'light' ? 'Light' : 'Dark'}
                   {isActive && (
                     <span
