@@ -17,6 +17,8 @@ export default function App({ Component, pageProps }: AppProps) {
     // Flush is triggered by API coming back online, not navigator.online —
     // so it works when returning home from the grocery store (5G → home wifi)
     registerFlush(flush);
+    // Flush any mutations queued while offline on startup
+    flush().catch(console.error);
   }, []);
 
   return (
