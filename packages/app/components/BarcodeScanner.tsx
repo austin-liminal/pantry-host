@@ -61,7 +61,11 @@ export default function BarcodeScanner({ onScan, onError, cooldownMs = 2000 }: P
           return;
         }
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
+          video: {
+            facingMode: 'environment',
+            focusMode: { ideal: 'continuous' },
+            focusDistance: { ideal: 0.3 },  // ~1 foot for close-up barcode scanning
+          } as MediaTrackConstraints,
         });
         if (stopped) { stream.getTracks().forEach((t) => t.stop()); return; }
 
