@@ -192,12 +192,17 @@ self.addEventListener('fetch', (event) => {
           if (cached) return cached;
           // Not in cache — fetch, stamp, store, return.
           return fetch(request).then((response) => {
-            const clone = response.clone();
-            stampResponse(clone).then((stamped) => {
-              cache.put(request, stamped);
-              // Only purge stale bundles, not uploads
-              if (url.pathname.startsWith('/_rex/')) purgeStaleAssets(cache);
-            });
+            // Only cache successful responses — a 404 or 5xx for an
+            // immutable URL would be stuck in cache forever since we
+            // serve cache-first and never revalidate.
+            if (response.ok) {
+              const clone = response.clone();
+              stampResponse(clone).then((stamped) => {
+                cache.put(request, stamped);
+                // Only purge stale bundles, not uploads
+                if (url.pathname.startsWith('/_rex/')) purgeStaleAssets(cache);
+              });
+            }
             return response;
           });
         })

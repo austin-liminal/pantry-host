@@ -694,7 +694,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
         </div>
 
         {favoritedRecipes.length > 0 && (
-          <div>
+          <div className="mt-10">
             <h2 className="text-xl font-bold mb-3">Your Favorites</h2>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
               {favoritedRecipes.map((r) => (
