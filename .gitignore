@@ -6,6 +6,7 @@ node_modules
 .env*.local
 *.pem
 .claude/settings.local.json
+.claude/worktrees/
 dist
 packages/app/public/uploads/
 CLAUDE.local.md
