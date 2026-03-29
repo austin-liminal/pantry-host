@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Monitor, Sun, Moon } from '@phosphor-icons/react';
+import { Monitor, Sun, Moon, Code } from '@phosphor-icons/react';
 import {
   getThemePreference,
   setThemePreference,
@@ -191,6 +191,7 @@ const CREDITS: { name: string; href: string; Logo: React.FC<{ size?: number }> }
   { name: 'Open Food Facts', href: 'https://world.openfoodfacts.org/', Logo: LogoOpenFoodFacts },
   { name: 'Cloudflare', href: 'https://www.cloudflare.com/', Logo: LogoCloudflare },
   { name: 'Anthropic', href: 'https://www.anthropic.com/', Logo: LogoAnthropic },
+  { name: 'markup.tips', href: 'https://markup.tips/#stage', Logo: ({ size = 24 }) => <Code size={size} aria-hidden="true" /> },
 ];
 
 export default function Footer() {
