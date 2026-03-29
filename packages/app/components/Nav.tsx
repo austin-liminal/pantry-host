@@ -66,33 +66,34 @@ export default function Nav() {
           </a>
         )}
 
-        {/* Desktop nav */}
-        <nav
-          aria-label="Main navigation"
-          className="hidden sm:block absolute right-6 top-1/2 -translate-y-1/2"
-        >
-          <ul className="flex gap-8" role="list">
-            {links.map(({ href, label }) => {
-              const active = currentPath === href || (href !== '/' && currentPath.startsWith(href.split('#')[0]));
-              return (
-                <li key={label}>
-                  <a
-                    href={`${href}#stage`}
-                    onClick={(e) => handleNavClick(e, href)}
-                    aria-current={active ? 'page' : undefined}
-                    className={[
-                      'text-base font-semibold tracking-wide uppercase transition-colors font-serif',
-                      active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
-                    ].join(' ')}
-                  >
-                    {label}
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
       </div>
+
+      {/* Desktop/phablet nav — stacks below branding at sm, inline at lg */}
+      <nav
+        aria-label="Main navigation"
+        className="hidden sm:block mt-3 lg:mt-0 lg:absolute lg:right-6 lg:top-1/2 lg:-translate-y-1/2"
+      >
+        <ul className="flex flex-wrap gap-x-8 gap-y-2 sm:justify-end lg:justify-start" role="list">
+          {links.map(({ href, label }) => {
+            const active = currentPath === href || (href !== '/' && currentPath.startsWith(href.split('#')[0]));
+            return (
+              <li key={label}>
+                <a
+                  href={`${href}#stage`}
+                  onClick={(e) => handleNavClick(e, href)}
+                  aria-current={active ? 'page' : undefined}
+                  className={[
+                    'text-base font-semibold tracking-wide uppercase transition-colors font-serif',
+                    active ? 'text-accent' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]',
+                  ].join(' ')}
+                >
+                  {label}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
 
       {/* Random quote (mobile only — fills dead space in 100svh cover) */}
       {quote && (

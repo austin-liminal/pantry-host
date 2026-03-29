@@ -274,10 +274,13 @@ export default function Footer() {
             <span className="font-medium">Accessibility:</span> We strive to meet Level AA of the latest WCAG accessibility guidelines so that Pantry Host is as accessible to everyone as&nbsp;possible.
           </p>
           <p className="mt-1.5 legible text-zinc-500 dark:text-zinc-400 pretty">
-            <span className="font-medium">Privacy:</span> Pantry Host stores all data locally on your machine&nbsp;&mdash; nothing is sent to external servers. No accounts, no tracking, no analytics. If you choose to enable AI features, requests are sent directly to the Anthropic API using your own key and are not stored or used for&nbsp;training.
+            <span className="font-medium">Privacy:</span> Pantry Host stores all data locally on your machine. Nothing is sent to external servers. No accounts, no tracking, no analytics. If you choose to enable AI features, requests are sent directly to the Anthropic API using your own key and are not stored or used for&nbsp;training.
           </p>
           <p className="mt-1.5 legible text-zinc-500 dark:text-zinc-400 pretty">
-            Optionally enhanced by <a href="https://claude.ai/download" className="underline text-secondary">Claude&nbsp;Code</a>&nbsp;&mdash; import recipes from any URL, generate new ones from what you have on hand, and manage your pantry conversationally. AI features require an API key and are entirely&nbsp;opt&#8209;in.
+            Optionally enhanced by <a href="https://claude.ai/download" className="underline text-secondary">Claude&nbsp;Code</a>. Import recipes from any URL, generate new ones from what you have on hand, and manage your pantry conversationally. AI features require an API key and are entirely&nbsp;opt&#8209;in.
+          </p>
+          <p className="mt-1.5 legible text-zinc-500 dark:text-zinc-400 pretty">
+            <span className="font-medium">Globalization:</span> Pantry Host is currently available in English. We&rsquo;re exploring <a href="https://github.com/jpdevries/pantry-host/discussions/15" className="underline text-secondary" rel="noopener noreferrer nofollow">community&#8209;led translations&nbsp;&mdash; join the&nbsp;discussion</a>.
           </p>
 
           {/* Theme toggle + GitHub */}
