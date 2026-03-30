@@ -29,7 +29,7 @@ const EDIT_QUERY = `
   query EditRecipe($id: String!, $kitchenSlug: String) {
     recipe(id: $id) {
       id title description instructions servings prepTime cookTime
-      tags requiredCookware photoUrl
+      tags requiredCookware { id name } photoUrl
       ingredients { ingredientName quantity unit sourceRecipeId }
     }
     recipes { id title source tags }
