@@ -220,7 +220,7 @@ export default function RecipesIndexPage({ kitchen }: Props) {
           );
 
           return (
-            <ul role="list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6">
+            <ul role="list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
               {filtered.map((r) => (
                 <li key={r.id} className="grid grid-rows-[subgrid] row-span-5">
                   <RecipeCard recipe={r} recipesBase={base} />
