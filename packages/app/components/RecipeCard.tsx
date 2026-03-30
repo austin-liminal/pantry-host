@@ -87,7 +87,7 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
       ) : <div />}
 
       {/* Row 2: Title + cart button */}
-      <div className="px-4 pt-4 flex items-start justify-between gap-2">
+      <div className="px-4 pt-2 flex items-start justify-between gap-2">
         <a
           href={`${recipesBase}/${recipe.slug ?? recipe.id}#stage`}
           className="font-bold text-base leading-snug hover:text-accent transition-colors line-clamp-2"
@@ -165,9 +165,9 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
       </div>
 
       {/* Row 4: Tags */}
-      <div className="px-4 pb-4 self-end">
+      <div className="px-4 pb-3 self-end">
         {visibleTags.length > 0 && (
-          <div className="pt-3 flex flex-wrap gap-1">
+          <div className="pt-1 flex flex-wrap gap-1">
             {visibleTags.slice(0, 4).map((t) => (
               <span key={t} className="tag">{t}</span>
             ))}

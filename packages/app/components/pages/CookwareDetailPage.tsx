@@ -91,9 +91,9 @@ export default function CookwareDetailPage({ id, kitchen }: Props) {
                   No recipes require this cookware yet.
                 </p>
               ) : (
-                <ul role="list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
+                <ul role="list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6">
                   {item.recipes.map((r) => (
-                    <li key={r.id} className="grid grid-rows-[subgrid] row-span-5">
+                    <li key={r.id} className="grid grid-rows-[subgrid] row-span-4 mb-4">
                       <RecipeCard recipe={r} recipesBase={recipesBase} />
                     </li>
                   ))}
