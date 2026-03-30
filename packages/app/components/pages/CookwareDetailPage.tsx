@@ -20,6 +20,7 @@ interface CookwareItem {
   id: string;
   name: string;
   brand: string | null;
+  notes: string | null;
   tags: string[];
   recipes: Recipe[];
 }
@@ -27,7 +28,7 @@ interface CookwareItem {
 const COOKWARE_ITEM_QUERY = `
   query CookwareItem($id: String!) {
     cookwareItem(id: $id) {
-      id name brand tags
+      id name brand notes tags
       recipes { id slug title cookTime prepTime servings source tags photoUrl queued }
     }
   }
@@ -78,6 +79,9 @@ export default function CookwareDetailPage({ id, kitchen }: Props) {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {item.tags.map((t) => <span key={t} className="tag">{t}</span>)}
                 </div>
+              )}
+              {item.notes && (
+                <p className="mt-4 text-sm text-[var(--color-text-secondary)] whitespace-pre-line legible pretty">{item.notes}</p>
               )}
             </div>
 
