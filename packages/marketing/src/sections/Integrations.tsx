@@ -99,7 +99,7 @@ export default function Integrations() {
             Connect via MCP
           </a>
           <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-5 flex-1">
-            Message your kitchen from apps like WhatsApp, Telegram, Discord, Slack, Signal, or iMessage&nbsp;&mdash; or use iOS Siri Shortcuts for hands&#8209;free&nbsp;voice. Connect any agent gateway that supports <abbr title="Model Context Protocol">MCP</abbr>, such as OpenClaw or&nbsp;IronClaw.
+            Message your kitchen from apps like WhatsApp, Telegram, Discord, Slack, Signal, iMessage, or iOS Siri Shortcuts for hands&#8209;free&nbsp;voice. Connect any agent gateway that supports <abbr title="Model Context Protocol">MCP</abbr>, such as OpenClaw or&nbsp;IronClaw.
           </p>
           <ThoughtBubble className="mt-auto">
             <p>What spices are on&nbsp;hand?</p>
