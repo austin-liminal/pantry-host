@@ -213,7 +213,7 @@ ironclaw mcp test pantry-host
 **Step 4:** Configure the LLM provider. IronClaw defaults to its own LLM gateway — switch to Anthropic with your own API key:
 
 ```bash
-ironclaw models set-provider anthropic --model claude-haiku-4-20250514
+ironclaw models set-provider anthropic --model claude-haiku-4-5-20251001
 ```
 
 Add your API key to `~/.ironclaw/.env`:
@@ -285,38 +285,64 @@ ironclaw logs            # view logs
 
 For non-MCP integrators, the GraphQL API is available directly at `http://localhost:4001/graphql`. See `packages/app/lib/schema/index.ts` for the full schema.
 
-### Siri Shortcut (iOS, via Telegram)
+### Siri Shortcut (iOS, hands-free with voice response)
 
-If you have IronClaw + Telegram set up, you can add a Siri Shortcut for hands-free pantry management. No code required — just two steps in the iOS Shortcuts app.
+With IronClaw running, you can ask Siri about your pantry and hear the answer spoken back. This requires a small relay server that bridges iOS Shortcuts to IronClaw's gateway API.
 
 ```
-"Hey Siri, add to pantry"
-  → iOS Shortcut (Ask for Input + HTTP POST)
-    → Telegram Bot API
-      → IronClaw → MCP → GraphQL → Postgres
+"Hey Siri, Pantry" → dictate
+  → iOS Shortcut → Relay (:3004) → IronClaw gateway (:3001)
+    → Claude Haiku → MCP (:5001) → GraphQL (:4001) → Postgres
+      → response → Siri speaks it
 ```
 
-**Step 1:** Find your Telegram chat ID. Message your bot, then visit:
+**Step 1:** Deploy the relay server. Copy `telegram-relay.ts` to your Pantry Host machine and run it:
+
+```bash
+# Set environment
+export GATEWAY_URL=http://localhost:3001
+export GATEWAY_TOKEN=<your-ironclaw-gateway-auth-token>
+export RELAY_PORT=3004
+
+# Start with pm2
+pm2 start start-telegram-relay.sh --name telegram-relay
 ```
-https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+
+The relay POSTs your message to IronClaw's `/api/chat/send` endpoint, polls `/api/chat/history` for the completed response, and returns it synchronously as JSON.
+
+Find your gateway token in IronClaw's config: `ironclaw config list | grep gateway_auth_token`
+
+**Step 2:** Expose the relay on your tailnet (or LAN):
+
+```bash
+tailscale serve --bg --https=3004 http://localhost:3004
 ```
-Look for `result[0].message.chat.id`.
 
-**Step 2:** Create a Shortcut in the iOS Shortcuts app:
+> **Important:** Start the relay process *before* adding the Tailscale serve, as Tailscale serve binds the target port.
 
-1. **Ask for Input** — Type: Text, Prompt: "What do you want to add?"
-2. **Get Contents of URL** — Method: POST, URL: `https://api.telegram.org/bot<BOT_TOKEN>/sendMessage`, Body: JSON with `chat_id` = your chat ID and `text` = the input from step 1
-3. **Add to Siri** — Phrase: "Add to pantry"
+**Step 3:** Create an iOS Shortcut with 5 actions:
 
-That's it. Siri dictates your message, the Shortcut sends it to your Telegram bot, IronClaw picks it up and routes it to the right MCP tool. Works for any pantry command — add, remove, search, queue recipes.
+1. **Ask for Input** — Type: Text, Prompt: "What do you want to tell your pantry?"
+2. **URL** — `https://<your-tailscale-hostname>:3004`
+3. **Get Contents of URL** — URL: from step 2, Method: POST, Body: JSON, field `text` = Ask Each Time
+4. **Get Dictionary Value** — Key: `response`, from: Contents of URL
+5. **Speak Text** — input: Dictionary Value
 
-**Bonus:** Create hardcoded shortcuts for common actions (no voice input needed):
+Name the shortcut **"Pantry"** and trigger it with **"Hey Siri, Pantry"**.
 
-| Shortcut | Hardcoded text |
-|----------|---------------|
-| "Out of coffee" | `"we're out of coffee"` |
+**Example queries:**
+- "How many eggs do I have?" → "44 eggs."
+- "What dairy do we have?" → categorized list of dairy items
+- "Add 2 lbs chicken thighs" → adds to pantry
+- "Queue the chicken marsala" → queues the recipe
+
+**Bonus:** Create single-purpose shortcuts with hardcoded text (skip the Ask for Input step):
+
+| Shortcut name | Hardcoded `text` |
+|---------------|-----------------|
 | "Pantry status" | `"what's running low?"` |
 | "What's for dinner" | `"what can I make for dinner?"` |
+| "Grocery check" | `"what's on the grocery list?"` |
 
 ## Community Integration Ideas
 
