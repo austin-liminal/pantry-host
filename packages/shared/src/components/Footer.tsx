@@ -174,6 +174,26 @@ function LogoAnthropic({ size = 24 }: { size?: number }) {
   );
 }
 
+function LogoTailscale({ size = 24 }: { size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="25 27 74 67" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <title>Tailscale</title>
+      {/* Top row — faded */}
+      <circle cx="45.63" cy="40.63" r="6.63" opacity="0.35" />
+      <circle cx="65.52" cy="40.63" r="6.63" opacity="0.35" />
+      <circle cx="85.41" cy="40.63" r="6.63" opacity="0.35" />
+      {/* Middle row — full */}
+      <circle cx="45.63" cy="60.52" r="6.63" />
+      <circle cx="65.52" cy="60.52" r="6.63" />
+      <circle cx="85.41" cy="60.52" r="6.63" />
+      {/* Bottom row — mixed */}
+      <circle cx="45.63" cy="80.41" r="6.63" opacity="0.35" />
+      <circle cx="65.52" cy="80.41" r="6.63" />
+      <circle cx="85.41" cy="80.41" r="6.63" opacity="0.35" />
+    </svg>
+  );
+}
+
 const CREDITS: { name: string; href: string; Logo: React.FC<{ size?: number }> }[] = [
   { name: 'JP DeVries', href: 'https://devries.jp', Logo: LogoJP },
   { name: 'HTML5', href: 'https://html.spec.whatwg.org/', Logo: LogoHTML5 },
@@ -191,6 +211,7 @@ const CREDITS: { name: string; href: string; Logo: React.FC<{ size?: number }> }
   { name: 'Open Food Facts', href: 'https://world.openfoodfacts.org/', Logo: LogoOpenFoodFacts },
   { name: 'Cloudflare', href: 'https://www.cloudflare.com/', Logo: LogoCloudflare },
   { name: 'Anthropic', href: 'https://www.anthropic.com/', Logo: LogoAnthropic },
+  { name: 'Tailscale', href: 'https://tailscale.com/', Logo: LogoTailscale },
   { name: 'markup.tips', href: 'https://markup.tips/#stage', Logo: ({ size = 24 }) => <Code size={size} aria-hidden="true" /> },
 ];
 
