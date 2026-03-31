@@ -65,54 +65,58 @@ export default function Integrations() {
           </div>
         ))}
       </div>
-      {/* OpenClaw subsection */}
-      <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6 sm:p-8 text-center mb-6">
-        <div className="flex justify-center mb-3 opacity-60">
-          <svg fill="currentColor" viewBox="0 0 24 24" width={28} height={28} aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-            {clients.find(c => c.name === 'OpenClaw')?.paths?.map((d, i) => <path key={i} d={d} fillRule="evenodd" clipRule="evenodd" />)}
-          </svg>
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
+        {/* Text your pantry */}
+        <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6 sm:p-8 text-center">
+          <div className="flex justify-center mb-3 opacity-60">
+            <svg fill="currentColor" viewBox="0 0 24 24" width={28} height={28} aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+              {clients.find(c => c.name === 'OpenClaw')?.paths?.map((d, i) => <path key={i} d={d} fillRule="evenodd" clipRule="evenodd" />)}
+            </svg>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-bold mb-4">
+            Text your&nbsp;pantry
+          </h3>
+          <a
+            href="https://github.com/jpdevries/pantry-host/blob/main/INTEGRATIONS.md#remote-http"
+            target="_pantry-host_docs_integrations"
+            rel="noopener noreferrer"
+            className="inline-block px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-body)] hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer mb-5"
+          >
+            Connect via MCP
+          </a>
+          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-5">
+            Message your kitchen from apps like WhatsApp, Telegram, Discord, Slack, Signal, or iMessage&nbsp;&mdash; or use iOS Siri Shortcuts for hands&#8209;free&nbsp;voice. Connect any agent gateway that supports <abbr title="Model Context Protocol">MCP</abbr>, such as OpenClaw or&nbsp;IronClaw.
+          </p>
+          <div className="text-xs text-[var(--color-text-secondary)] space-y-1 italic">
+            <p>&ldquo;How many eggs do we&nbsp;have?&rdquo;</p>
+            <p>&ldquo;What can I make for&nbsp;dinner?&rdquo;</p>
+            <p>&ldquo;Add milk to the&nbsp;list.&rdquo;</p>
+          </div>
         </div>
-        <h3 className="text-xl sm:text-2xl font-bold mb-4">
-          Text your&nbsp;pantry
-        </h3>
-        <a
-          href="https://github.com/jpdevries/pantry-host/blob/main/INTEGRATIONS.md#remote-http"
-          target="_pantry-host_docs_integrations"
-          rel="noopener noreferrer"
-          className="inline-block px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-body)] hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer mb-5"
-        >
-          Connect via MCP
-        </a>
-        <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-5">
-          Message your kitchen from apps like WhatsApp, Telegram, Discord, Slack, Signal, or iMessage&nbsp;&mdash; or use iOS Siri Shortcuts for hands&#8209;free&nbsp;voice. Connect any agent gateway that supports <abbr title="Model Context Protocol">MCP</abbr>, such as OpenClaw or&nbsp;IronClaw.
-        </p>
-        <div className="text-xs text-[var(--color-text-secondary)] space-y-1 italic">
-          <p>&ldquo;How many eggs do we&nbsp;have?&rdquo;</p>
-          <p>&ldquo;What can I make for&nbsp;dinner?&rdquo;</p>
-          <p>&ldquo;Add milk to the&nbsp;list.&rdquo;</p>
-        </div>
-      </div>
-      {/* IronClaw + Siri subsection */}
-      <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6 sm:p-8 text-center mb-6">
-        <div className="flex justify-center mb-3 opacity-60">
-          <Microphone size={28} weight="light" />
-        </div>
-        <h3 className="text-xl sm:text-2xl font-bold mb-4">
-          &ldquo;Hey Siri,&nbsp;Pantry&rdquo;
-        </h3>
-        <a
-          href="https://github.com/jpdevries/pantry-host/blob/main/INTEGRATIONS.md#siri-shortcut-ios-hands-free-with-voice-response"
-          target="_pantry-host_docs_ironclaw"
-          rel="noopener noreferrer"
-          className="inline-block px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-body)] hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer mb-5"
-        >
-          Set up iOS Shortcut
-        </a>
-        <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-5">
-          Ask Siri about your kitchen and hear the answer spoken&nbsp;back. Fully hands&#8209;free via a lightweight relay on your&nbsp;LAN.
-        </p>
-        <div className="text-xs text-[var(--color-text-secondary)] space-y-1 italic">
-          <p>&ldquo;What&rsquo;s in the&nbsp;freezer?&rdquo;</p>
+        {/* Hey Siri, Pantry */}
+        <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6 sm:p-8 text-center">
+          <div className="flex justify-center mb-3 opacity-60">
+            <Microphone size={28} weight="light" />
+          </div>
+          <h3 className="text-xl sm:text-2xl font-bold mb-4">
+            &ldquo;Hey Siri,&nbsp;Pantry&rdquo;
+          </h3>
+          <a
+            href="https://github.com/jpdevries/pantry-host/blob/main/INTEGRATIONS.md#siri-shortcut-ios-hands-free-with-voice-response"
+            target="_pantry-host_docs_ironclaw"
+            rel="noopener noreferrer"
+            className="inline-block px-5 py-2.5 text-sm font-semibold rounded-lg bg-[var(--color-accent)] text-[var(--color-bg-body)] hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer mb-5"
+          >
+            Set up iOS Shortcut
+          </a>
+          <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-5">
+            Ask Siri about your kitchen and hear the answer spoken&nbsp;back. Fully hands&#8209;free via a lightweight relay on your&nbsp;LAN.<br />Add ingredients, search recipes, check what&rsquo;s running low. All by&nbsp;voice.
+          </p>
+          <div className="text-xs text-[var(--color-text-secondary)] space-y-1 italic">
+            <p>&ldquo;What&rsquo;s in the&nbsp;freezer?&rdquo;</p>
+            <p>&ldquo;Add oat milk to the&nbsp;pantry.&rdquo;</p>
+            <p>&ldquo;Queue the chicken&nbsp;marsala.&rdquo;</p>
+          </div>
         </div>
       </div>
       {/* Logos from @lobehub/icons-static-svg (MIT) — rendered monochrome via fill="currentColor" */}
