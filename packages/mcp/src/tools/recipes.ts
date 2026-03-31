@@ -15,8 +15,9 @@ const RECIPE_FULL = `${RECIPE_SUMMARY} instructions ingredients { ingredientName
 export function registerRecipeTools(server: McpServer) {
   server.tool(
     'search_recipes',
-    'Search recipes. Filter by tags, required cookware, or queued status.',
+    'Search recipes. Filter by title, tags, required cookware, or queued status.',
     {
+      title: z.string().optional().describe('Search by recipe title (partial match, case-insensitive)'),
       tags: z.array(z.string()).optional().describe('Filter by recipe tags (OR match)'),
       cookware: z.array(z.string()).optional().describe('Filter by required cookware (OR match)'),
       queued: z.boolean().optional().describe('Filter by queued status'),
@@ -25,8 +26,8 @@ export function registerRecipeTools(server: McpServer) {
     async (args) => {
       const cookwareIds = args.cookware?.length ? await resolveCookwareIds(args.cookware) : undefined;
       const data = await gql<{ recipes: unknown[] }>(
-        `query($tags: [String!], $cookware: [String!], $queued: Boolean, $kitchenSlug: String) {
-          recipes(tags: $tags, cookware: $cookware, queued: $queued, kitchenSlug: $kitchenSlug) { ${RECIPE_SUMMARY} }
+        `query($title: String, $tags: [String!], $cookware: [String!], $queued: Boolean, $kitchenSlug: String) {
+          recipes(title: $title, tags: $tags, cookware: $cookware, queued: $queued, kitchenSlug: $kitchenSlug) { ${RECIPE_SUMMARY} }
         }`,
         { ...args, cookware: cookwareIds },
       );

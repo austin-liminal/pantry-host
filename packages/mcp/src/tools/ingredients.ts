@@ -7,17 +7,18 @@ const INGREDIENT_FIELDS = `id name category quantity unit alwaysOnHand tags crea
 export function registerIngredientTools(server: McpServer) {
   server.tool(
     'search_pantry',
-    'Search pantry ingredients. Optionally filter by tags or kitchen.',
+    'Search pantry ingredients. Optionally filter by name, tags, or kitchen.',
     {
+      name: z.string().optional().describe('Search by ingredient name (partial match, case-insensitive)'),
       tags: z.array(z.string()).optional().describe('Filter by ingredient tags (AND match)'),
       kitchenSlug: z.string().optional().describe('Kitchen slug (default: home)'),
     },
-    async ({ tags, kitchenSlug }) => {
+    async ({ name, tags, kitchenSlug }) => {
       const data = await gql<{ ingredients: unknown[] }>(
-        `query($tags: [String!], $kitchenSlug: String) {
-          ingredients(tags: $tags, kitchenSlug: $kitchenSlug) { ${INGREDIENT_FIELDS} }
+        `query($name: String, $tags: [String!], $kitchenSlug: String) {
+          ingredients(name: $name, tags: $tags, kitchenSlug: $kitchenSlug) { ${INGREDIENT_FIELDS} }
         }`,
-        { tags, kitchenSlug },
+        { name, tags, kitchenSlug },
       );
       return { content: [{ type: 'text' as const, text: JSON.stringify(data.ingredients, null, 2) }] };
     },

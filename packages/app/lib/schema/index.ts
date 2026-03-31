@@ -253,9 +253,15 @@ async function uniqueMenuSlug(title: string, excludeId?: string): Promise<string
 builder.queryField('ingredients', (t) =>
   t.field({
     type: [IngredientType],
-    args: { tags: t.arg.stringList(), kitchenSlug: t.arg.string() },
-    resolve: async (_, { tags, kitchenSlug }) => {
+    args: { name: t.arg.string(), tags: t.arg.stringList(), kitchenSlug: t.arg.string() },
+    resolve: async (_, { name, tags, kitchenSlug }) => {
       const kitchenId = await resolveKitchenId(kitchenSlug);
+      if (name && tags?.length) {
+        return sql`SELECT * FROM ingredients WHERE kitchen_id = ${kitchenId} AND name ILIKE ${'%' + name + '%'} AND tags @> ${sql.array(tags)} ORDER BY name`;
+      }
+      if (name) {
+        return sql`SELECT * FROM ingredients WHERE kitchen_id = ${kitchenId} AND name ILIKE ${'%' + name + '%'} ORDER BY name`;
+      }
       if (tags && tags.length > 0) {
         return sql`SELECT * FROM ingredients WHERE kitchen_id = ${kitchenId} AND tags @> ${sql.array(tags)} ORDER BY name`;
       }
@@ -267,9 +273,12 @@ builder.queryField('ingredients', (t) =>
 builder.queryField('recipes', (t) =>
   t.field({
     type: [RecipeType],
-    args: { tags: t.arg.stringList(), cookware: t.arg.stringList(), queued: t.arg.boolean(), kitchenSlug: t.arg.string() },
-    resolve: async (_, { tags, cookware, queued, kitchenSlug }) => {
+    args: { title: t.arg.string(), tags: t.arg.stringList(), cookware: t.arg.stringList(), queued: t.arg.boolean(), kitchenSlug: t.arg.string() },
+    resolve: async (_, { title, tags, cookware, queued, kitchenSlug }) => {
       const kitchenId = await resolveKitchenId(kitchenSlug);
+      if (title) {
+        return sql`SELECT * FROM recipes WHERE kitchen_id = ${kitchenId} AND title ILIKE ${'%' + title + '%'} ORDER BY created_at DESC`;
+      }
       if (tags?.length && cookware?.length) {
         return sql`SELECT DISTINCT r.* FROM recipes r JOIN recipe_cookware rc ON rc.recipe_id = r.id WHERE r.kitchen_id = ${kitchenId} AND r.tags && ${sql.array(tags)} AND rc.cookware_id = ANY(${sql.array(cookware)}) ORDER BY r.created_at DESC`;
       }

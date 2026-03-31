@@ -285,6 +285,39 @@ ironclaw logs            # view logs
 
 For non-MCP integrators, the GraphQL API is available directly at `http://localhost:4001/graphql`. See `packages/app/lib/schema/index.ts` for the full schema.
 
+### Siri Shortcut (iOS, via Telegram)
+
+If you have IronClaw + Telegram set up, you can add a Siri Shortcut for hands-free pantry management. No code required — just two steps in the iOS Shortcuts app.
+
+```
+"Hey Siri, add to pantry"
+  → iOS Shortcut (Ask for Input + HTTP POST)
+    → Telegram Bot API
+      → IronClaw → MCP → GraphQL → Postgres
+```
+
+**Step 1:** Find your Telegram chat ID. Message your bot, then visit:
+```
+https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+```
+Look for `result[0].message.chat.id`.
+
+**Step 2:** Create a Shortcut in the iOS Shortcuts app:
+
+1. **Ask for Input** — Type: Text, Prompt: "What do you want to add?"
+2. **Get Contents of URL** — Method: POST, URL: `https://api.telegram.org/bot<BOT_TOKEN>/sendMessage`, Body: JSON with `chat_id` = your chat ID and `text` = the input from step 1
+3. **Add to Siri** — Phrase: "Add to pantry"
+
+That's it. Siri dictates your message, the Shortcut sends it to your Telegram bot, IronClaw picks it up and routes it to the right MCP tool. Works for any pantry command — add, remove, search, queue recipes.
+
+**Bonus:** Create hardcoded shortcuts for common actions (no voice input needed):
+
+| Shortcut | Hardcoded text |
+|----------|---------------|
+| "Out of coffee" | `"we're out of coffee"` |
+| "Pantry status" | `"what's running low?"` |
+| "What's for dinner" | `"what can I make for dinner?"` |
+
 ## Community Integration Ideas
 
 We keep the MCP server solid — the community builds the bridges. Here are opportunities:
