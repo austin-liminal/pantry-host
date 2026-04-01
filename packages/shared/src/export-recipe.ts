@@ -275,3 +275,117 @@ ${articles.join('\n')}
 export function recipeBookToDataURI(recipes: ExportableRecipe[]): string {
   return 'data:text/html;charset=utf-8,' + encodeURIComponent(generateRecipeBookHTML(recipes));
 }
+
+// ── ICS / Calendar Export ──
+
+/** Escape text for ICS DESCRIPTION/SUMMARY fields */
+function icsEsc(s: string): string {
+  return s
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n');
+}
+
+/** Fold ICS lines to 75-octet max per RFC 5545 */
+function icsFold(line: string): string {
+  const parts: string[] = [];
+  while (line.length > 75) {
+    parts.push(line.slice(0, 75));
+    line = ' ' + line.slice(75);
+  }
+  parts.push(line);
+  return parts.join('\r\n');
+}
+
+function icsTimestamp(date: Date): string {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+}
+
+/**
+ * Generate an .ics calendar event for a recipe.
+ * DTSTART defaults to now — the user repositions it in their calendar app.
+ * Event duration is based on prepTime + cookTime.
+ */
+export function generateRecipeICS(recipe: ExportableRecipe): string {
+  const now = new Date();
+  const totalMinutes = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0) || 60;
+  const end = new Date(now.getTime() + totalMinutes * 60_000);
+  const uid = `recipe-${recipe.slug || recipe.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${now.getTime()}@pantryhost.app`;
+
+  // Build structured DESCRIPTION
+  const descParts: string[] = [];
+
+  const meta: string[] = [];
+  if (recipe.servings) meta.push(`Servings: ${recipe.servings}`);
+  if (recipe.prepTime) meta.push(`Prep: ${recipe.prepTime} min`);
+  if (recipe.cookTime) meta.push(`Cook: ${recipe.cookTime} min`);
+  if (meta.length) descParts.push(meta.join(' | '));
+
+  if (recipe.description) descParts.push(recipe.description);
+
+  if (recipe.ingredients.length) {
+    descParts.push('INGREDIENTS');
+    for (const ing of recipe.ingredients) {
+      descParts.push(`- ${formatIngredient(ing)}`);
+    }
+  }
+
+  const steps = parseInstructionSteps(recipe.instructions);
+  if (steps.length) {
+    descParts.push('');
+    descParts.push('INSTRUCTIONS');
+    steps.forEach((s, i) => descParts.push(`${i + 1}. ${s}`));
+  }
+
+  if (recipe.requiredCookware.length) {
+    descParts.push('');
+    descParts.push(`Cookware: ${recipe.requiredCookware.join(', ')}`);
+  }
+
+  descParts.push('');
+  descParts.push('Exported from Pantry Host — https://pantryhost.app');
+
+  const description = icsEsc(descParts.join('\n'));
+
+  const lines: string[] = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Pantry Host//Recipe Calendar//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${icsTimestamp(now)}`,
+    `DTSTART:${icsTimestamp(now)}`,
+    `DTEND:${icsTimestamp(end)}`,
+    icsFold(`SUMMARY:${icsEsc(recipe.title)}`),
+    icsFold(`DESCRIPTION:${description}`),
+  ];
+
+  if (recipe.tags.length) {
+    lines.push(icsFold(`CATEGORIES:${recipe.tags.map(icsEsc).join(',')}`));
+  }
+
+  const url = recipe.sourceUrl || (recipe.slug ? `https://pantryhost.app/recipes/${recipe.slug}` : null);
+  if (url) lines.push(icsFold(`URL:${url}`));
+
+  if (recipe.photoUrl && recipe.photoUrl.startsWith('http')) {
+    const fmtType = recipe.photoUrl.endsWith('.png') ? 'image/png' : 'image/jpeg';
+    lines.push(icsFold(`ATTACH;FMTTYPE=${fmtType}:${recipe.photoUrl}`));
+  }
+
+  if (recipe.prepTime) lines.push(`X-RECIPE-PREP-TIME:${recipe.prepTime} min`);
+  if (recipe.cookTime) lines.push(`X-RECIPE-COOK-TIME:${recipe.cookTime} min`);
+  if (recipe.servings) lines.push(`X-RECIPE-SERVINGS:${recipe.servings}`);
+  if (recipe.requiredCookware.length) lines.push(icsFold(`X-RECIPE-COOKWARE:${recipe.requiredCookware.map(icsEsc).join(',')}`));
+
+  lines.push('END:VEVENT');
+  lines.push('END:VCALENDAR');
+
+  return lines.join('\r\n');
+}
+
+export function recipeToICSDataURI(recipe: ExportableRecipe): string {
+  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(generateRecipeICS(recipe));
+}

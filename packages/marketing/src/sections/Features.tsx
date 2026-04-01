@@ -45,7 +45,7 @@ const features = [
 
 export default function Features() {
   return (
-    <section className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
+    <section id="features" className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
       <div className="flex justify-center mb-4 opacity-60">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width={32} height={32} fill="none" stroke="currentColor" strokeWidth={46} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M992,272.99s-212.22-214.32-230.52-214.32H583.6" />

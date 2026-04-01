@@ -47,7 +47,7 @@ const clients: { name: string; paths?: string[]; viewBox?: string }[] = [
 
 export default function Integrations() {
   return (
-    <section className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
+    <section id="integrations" className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
       <div className="flex justify-center mb-4 opacity-60">
         <TreeStructure size={32} weight="light" />
       </div>

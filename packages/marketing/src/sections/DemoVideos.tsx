@@ -4,7 +4,7 @@ import LazyVideo from '../components/LazyVideo';
 
 export default function DemoVideos() {
   return (
-    <section className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
+    <section id="demo" className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
       <div className="flex flex-col items-center mb-10">
         <div className="opacity-60 mb-4">
           <ShoppingCart size={32} weight="light" />

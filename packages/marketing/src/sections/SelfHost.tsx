@@ -16,7 +16,7 @@ function IconRaspberryPi({ size = 32 }: { size?: number }) {
 
 export function Docker() {
   return (
-    <section className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
+    <section id="docker" className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
       <div className="flex justify-center mb-4 opacity-60">
         <IconDocker />
       </div>
@@ -52,7 +52,7 @@ export function Docker() {
 
 export function RaspberryPi() {
   return (
-    <section className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
+    <section id="raspberry-pi" className="px-4 sm:px-6 py-16 sm:py-24 max-w-5xl mx-auto">
       <div className="flex justify-center mb-4 opacity-60">
         <IconRaspberryPi />
       </div>

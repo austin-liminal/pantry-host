@@ -3,13 +3,13 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { gql } from '@/lib/gql';
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
-import { ArrowsOut, ArrowsIn, Trash, Heart, Printer, Circle, CheckCircle } from '@phosphor-icons/react';
+import { ArrowsOut, ArrowsIn, Trash, Heart, Printer, Circle, CheckCircle, CalendarPlus } from '@phosphor-icons/react';
 import { enqueue } from '@/lib/offlineQueue';
 import RecipeCard from '@/components/RecipeCard';
 import { Leaf } from '@phosphor-icons/react';
 import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
 import ResponsiveImage from '@/components/ResponsiveImage';
-import { recipeToDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
+import { recipeToDataURI, recipeToICSDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
 import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface RecipeIngredient {
@@ -681,8 +681,16 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                 </svg>
                 Export HTML
               </a>
+              <a
+                href={recipeToICSDataURI({ ...recipe, requiredCookware: recipe.requiredCookware.map((c) => c.name), photoUrl: exportPhotoUrl })}
+                download={`${recipe.slug || 'recipe'}.ics`}
+                className="inline-flex items-center gap-2 btn-secondary text-sm"
+              >
+                <CalendarPlus size={18} aria-hidden />
+                Add to Calendar
+              </a>
             </div>
-            <p className="text-sm text-[var(--color-text-secondary)] mt-3">Print this recipe or export it as a standalone HTML file to share with a friend.</p>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-3">Print this recipe, export it as HTML to share with a friend, or add it to your calendar for meal planning.</p>
           </section>
         </div>
 

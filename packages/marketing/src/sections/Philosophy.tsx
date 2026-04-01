@@ -2,7 +2,7 @@ import { HandHeart } from '@phosphor-icons/react';
 
 export default function Philosophy() {
   return (
-    <section className="px-4 sm:px-6 py-16 sm:py-24 max-w-3xl mx-auto text-center">
+    <section id="philosophy" className="px-4 sm:px-6 py-16 sm:py-24 max-w-3xl mx-auto text-center">
       <div className="flex justify-center mb-6 text-[var(--color-text-secondary)]">
         <HandHeart size={36} weight="light" />
       </div>
@@ -18,7 +18,7 @@ export default function Philosophy() {
         you&nbsp;want&nbsp;it.
       </p>
       <p className="mt-6 text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed italic">
-        If you feel the need to pay, please consider donating to your local food&nbsp;bank.
+        If you find Pantry Host useful and are inclined to pay, please consider <a href="https://www.pantryhost.app/donate" target="_blank" rel="noopener noreferrer">donating to your local food&nbsp;bank</a>.
       </p>
     </section>
   );
