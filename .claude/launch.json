@@ -4,43 +4,49 @@
     {
       "name": "pantry-host",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "set -a && source .env.local && export DEFAULT_THEME=claude && set +a && npx @limlabs/rex dev --root packages/app --host 0.0.0.0"],
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && set -a && source .env.local && export DEFAULT_THEME=claude && set +a && npx @limlabs/rex dev --root packages/app --host 0.0.0.0"],
       "port": 3000
     },
     {
       "name": "graphql-server",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd packages/app && set -a && source ../../.env.local && set +a && npx tsx graphql-server.ts"],
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && cd packages/app && set -a && source ../../.env.local && set +a && npx tsx graphql-server.ts"],
+      "port": 4001
+    },
+    {
+      "name": "graphql-server-local",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && cd packages/app && set -a && source ../../.env.local && export DATABASE_URL=postgres://jpdevries@localhost:5432/pantry_host && set +a && npx tsx graphql-server.ts"],
       "port": 4001
     },
     {
       "name": "marketing",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd packages/marketing && npx vite --port 5173"],
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && cd packages/marketing && npx vite --port 5173"],
       "port": 5173
     },
     {
       "name": "web",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd packages/web && npx vite --port 5174"],
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && cd packages/web && npx vite --port 5174"],
       "port": 5174
     },
     {
       "name": "mcp-server",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd packages/mcp && set -a && source ../../.env.local && set +a && npx tsx src/index.ts --http"],
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && cd packages/mcp && set -a && source ../../.env.local && set +a && npx tsx src/index.ts --http"],
       "port": 5001
     },
     {
       "name": "pantry-host-prod",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "set -a && source .env.local && export DEFAULT_THEME=claude && set +a && cd packages/app && rex build && rex start --host 0.0.0.0"],
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && set -a && source .env.local && export DEFAULT_THEME=claude && set +a && cd packages/app && rex build && rex start --host 0.0.0.0"],
       "port": 3000
     },
     {
       "name": "graphql-server-prod",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd packages/app && set -a && source ../../.env.local && export DATABASE_URL=postgres://j7@100.125.77.118:5432/pantry_host && set +a && npx tsx graphql-server.ts"],
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && cd packages/app && set -a && source ../../.env.local && export DATABASE_URL=postgres://j7@100.125.77.118:5432/pantry_host && set +a && npx tsx graphql-server.ts"],
       "port": 4001
     }
   ]

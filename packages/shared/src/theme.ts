@@ -9,7 +9,9 @@
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado';
+export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado'
+  | 'marrakech' | 'provencal' | 'kaiseki' | 'tuscany'
+  | 'oaxacan' | 'pompeii' | 'nordic' | 'ottoman';
 
 const THEME_KEY = 'theme-preference';
 const HC_KEY = 'high-contrast';

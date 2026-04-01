@@ -23,6 +23,14 @@ const PALETTE_OPTIONS: { value: ThemePalette; label: string }[] = [
 { value: 'rebecca', label: 'Rebecca Purple' },
   { value: 'claude', label: 'Claude' },
   { value: 'avocado', label: 'Avocado' },
+  { value: 'marrakech', label: 'Moroccan' },
+  { value: 'provencal', label: 'Proven\u00e7al' },
+  { value: 'kaiseki', label: 'Kaiseki' },
+  { value: 'tuscany', label: 'Tuscany' },
+  { value: 'oaxacan', label: 'Oaxacan' },
+  { value: 'pompeii', label: 'Pompeii' },
+  { value: 'nordic', label: 'Nordic' },
+  { value: 'ottoman', label: 'Ottoman' },
 ];
 
 function LogoJP({ size = 24 }: { size?: number }) {

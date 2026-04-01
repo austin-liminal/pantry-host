@@ -9,13 +9,19 @@
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado';
+export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado'
+  | 'marrakech' | 'provencal' | 'kaiseki' | 'tuscany'
+  | 'oaxacan' | 'pompeii' | 'nordic' | 'ottoman';
 
 const THEME_KEY = 'theme-preference';
 const HC_KEY = 'high-contrast';
 const PALETTE_KEY = 'theme-palette';
 
-const PALETTE_CLASSES = ['theme-rose', 'theme-rebecca', 'theme-claude', 'theme-avocado'] as const;
+const PALETTE_CLASSES = [
+  'theme-rose', 'theme-rebecca', 'theme-claude', 'theme-avocado',
+  'theme-marrakech', 'theme-provencal', 'theme-kaiseki', 'theme-tuscany',
+  'theme-oaxacan', 'theme-pompeii', 'theme-nordic', 'theme-ottoman',
+] as const;
 
 export function getThemePreference(): ThemePreference {
   if (typeof window === 'undefined') return 'system';
@@ -97,6 +103,14 @@ export function applyTheme() {
   if (palette === 'rebecca') el.classList.add('theme-rebecca');
   if (palette === 'claude') el.classList.add('theme-claude');
   if (palette === 'avocado') el.classList.add('theme-avocado');
+  if (palette === 'marrakech') el.classList.add('theme-marrakech');
+  if (palette === 'provencal') el.classList.add('theme-provencal');
+  if (palette === 'kaiseki') el.classList.add('theme-kaiseki');
+  if (palette === 'tuscany') el.classList.add('theme-tuscany');
+  if (palette === 'oaxacan') el.classList.add('theme-oaxacan');
+  if (palette === 'pompeii') el.classList.add('theme-pompeii');
+  if (palette === 'nordic') el.classList.add('theme-nordic');
+  if (palette === 'ottoman') el.classList.add('theme-ottoman');
 }
 
 let listenerRegistered = false;

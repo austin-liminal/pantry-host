@@ -223,6 +223,326 @@
     --color-ring-offset: #332A32;
   }
 
+  /* ── Moroccan palette (light) ── */
+  body[data-theme="marrakech"] {
+    --color-bg-body: #f5ede0;
+    --color-bg-card: #ffffff;
+    --color-border-card: #8a7050;
+    --color-text-secondary: #8b4513;
+    --color-accent: #9b2335;
+    --color-accent-hover: #7a1c2a;
+    --color-accent-subtle: #f0e0c8;
+    --color-bg-nav: #f5ede0;
+    --color-ring-focus: #b8860b;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="marrakech"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #1c1410;
+      --color-bg-card: #2d2218;
+      --color-border-card: #907050;
+      --color-text-secondary: #dba86a;
+      --color-accent: #e8a84c;
+      --color-accent-hover: #f0c070;
+      --color-accent-subtle: #302010;
+      --color-bg-nav: #1c1410;
+      --color-ring-focus: #e8a84c;
+      --color-ring-offset: #1c1410;
+    }
+  }
+  body[data-theme="marrakech"][data-color-scheme="dark"] {
+    --color-bg-body: #1c1410;
+    --color-bg-card: #2d2218;
+    --color-border-card: #907050;
+    --color-text-secondary: #dba86a;
+    --color-accent: #e8a84c;
+    --color-accent-hover: #f0c070;
+    --color-accent-subtle: #302010;
+    --color-bg-nav: #1c1410;
+    --color-ring-focus: #e8a84c;
+    --color-ring-offset: #1c1410;
+  }
+
+  /* ── Provençal palette (light) ── */
+  body[data-theme="provencal"] {
+    --color-bg-body: #f5f0e8;
+    --color-bg-card: #ffffff;
+    --color-border-card: #8a8468;
+    --color-text-secondary: #5c6838;
+    --color-accent: #6b4c8a;
+    --color-accent-hover: #573d78;
+    --color-accent-subtle: #ece5d8;
+    --color-bg-nav: #f5f0e8;
+    --color-ring-focus: #6b4c8a;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="provencal"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #161418;
+      --color-bg-card: #241e28;
+      --color-border-card: #786888;
+      --color-text-secondary: #c8b898;
+      --color-accent: #c8a0d8;
+      --color-accent-hover: #d8b8e8;
+      --color-accent-subtle: #221828;
+      --color-bg-nav: #161418;
+      --color-ring-focus: #c8a0d8;
+      --color-ring-offset: #161418;
+    }
+  }
+  body[data-theme="provencal"][data-color-scheme="dark"] {
+    --color-bg-body: #161418;
+    --color-bg-card: #241e28;
+    --color-border-card: #786888;
+    --color-text-secondary: #c8b898;
+    --color-accent: #c8a0d8;
+    --color-accent-hover: #d8b8e8;
+    --color-accent-subtle: #221828;
+    --color-bg-nav: #161418;
+    --color-ring-focus: #c8a0d8;
+    --color-ring-offset: #161418;
+  }
+
+  /* ── Kaiseki palette (light) ── */
+  body[data-theme="kaiseki"] {
+    --color-bg-body: #f4f1ec;
+    --color-bg-card: #ffffff;
+    --color-border-card: #8a8070;
+    --color-text-secondary: #5a6848;
+    --color-accent: #2d6040;
+    --color-accent-hover: #1e4830;
+    --color-accent-subtle: #e8e4d8;
+    --color-bg-nav: #f4f1ec;
+    --color-ring-focus: #c06030;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="kaiseki"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #141210;
+      --color-bg-card: #201e1a;
+      --color-border-card: #786858;
+      --color-text-secondary: #b8c098;
+      --color-accent: #88c498;
+      --color-accent-hover: #a0d8b0;
+      --color-accent-subtle: #1c1a18;
+      --color-bg-nav: #141210;
+      --color-ring-focus: #d08050;
+      --color-ring-offset: #141210;
+    }
+  }
+  body[data-theme="kaiseki"][data-color-scheme="dark"] {
+    --color-bg-body: #141210;
+    --color-bg-card: #201e1a;
+    --color-border-card: #786858;
+    --color-text-secondary: #b8c098;
+    --color-accent: #88c498;
+    --color-accent-hover: #a0d8b0;
+    --color-accent-subtle: #1c1a18;
+    --color-bg-nav: #141210;
+    --color-ring-focus: #d08050;
+    --color-ring-offset: #141210;
+  }
+
+  /* ── Tuscany palette (light) ── */
+  body[data-theme="tuscany"] {
+    --color-bg-body: #f5f0e0;
+    --color-bg-card: #ffffff;
+    --color-border-card: #8a7858;
+    --color-text-secondary: #5c6030;
+    --color-accent: #8b4520;
+    --color-accent-hover: #703818;
+    --color-accent-subtle: #ede5d0;
+    --color-bg-nav: #f5f0e0;
+    --color-ring-focus: #8b4520;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="tuscany"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #18150e;
+      --color-bg-card: #282418;
+      --color-border-card: #787050;
+      --color-text-secondary: #c8b888;
+      --color-accent: #d8a070;
+      --color-accent-hover: #e8b888;
+      --color-accent-subtle: #201c14;
+      --color-bg-nav: #18150e;
+      --color-ring-focus: #d8a070;
+      --color-ring-offset: #18150e;
+    }
+  }
+  body[data-theme="tuscany"][data-color-scheme="dark"] {
+    --color-bg-body: #18150e;
+    --color-bg-card: #282418;
+    --color-border-card: #787050;
+    --color-text-secondary: #c8b888;
+    --color-accent: #d8a070;
+    --color-accent-hover: #e8b888;
+    --color-accent-subtle: #201c14;
+    --color-bg-nav: #18150e;
+    --color-ring-focus: #d8a070;
+    --color-ring-offset: #18150e;
+  }
+
+  /* ── Oaxacan palette (light) ── */
+  body[data-theme="oaxacan"] {
+    --color-bg-body: #f4f0e8;
+    --color-bg-card: #ffffff;
+    --color-border-card: #787898;
+    --color-text-secondary: #4a4878;
+    --color-accent: #b84820;
+    --color-accent-hover: #a03c18;
+    --color-accent-subtle: #e8e0d0;
+    --color-bg-nav: #f4f0e8;
+    --color-ring-focus: #2d5a40;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="oaxacan"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #141018;
+      --color-bg-card: #201828;
+      --color-border-card: #786890;
+      --color-text-secondary: #d0a868;
+      --color-accent: #e8a048;
+      --color-accent-hover: #f0b868;
+      --color-accent-subtle: #1c1420;
+      --color-bg-nav: #141018;
+      --color-ring-focus: #58b878;
+      --color-ring-offset: #141018;
+    }
+  }
+  body[data-theme="oaxacan"][data-color-scheme="dark"] {
+    --color-bg-body: #141018;
+    --color-bg-card: #201828;
+    --color-border-card: #786890;
+    --color-text-secondary: #d0a868;
+    --color-accent: #e8a048;
+    --color-accent-hover: #f0b868;
+    --color-accent-subtle: #1c1420;
+    --color-bg-nav: #141018;
+    --color-ring-focus: #58b878;
+    --color-ring-offset: #141018;
+  }
+
+  /* ── Pompeii palette (light) ── */
+  body[data-theme="pompeii"] {
+    --color-bg-body: #f2ede4;
+    --color-bg-card: #ffffff;
+    --color-border-card: #887868;
+    --color-text-secondary: #6a5040;
+    --color-accent: #983028;
+    --color-accent-hover: #7c2820;
+    --color-accent-subtle: #eae0d0;
+    --color-bg-nav: #f2ede4;
+    --color-ring-focus: #983028;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="pompeii"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #161210;
+      --color-bg-card: #241e1a;
+      --color-border-card: #786050;
+      --color-text-secondary: #c8a888;
+      --color-accent: #e08870;
+      --color-accent-hover: #e8a090;
+      --color-accent-subtle: #1e1810;
+      --color-bg-nav: #161210;
+      --color-ring-focus: #e08870;
+      --color-ring-offset: #161210;
+    }
+  }
+  body[data-theme="pompeii"][data-color-scheme="dark"] {
+    --color-bg-body: #161210;
+    --color-bg-card: #241e1a;
+    --color-border-card: #786050;
+    --color-text-secondary: #c8a888;
+    --color-accent: #e08870;
+    --color-accent-hover: #e8a090;
+    --color-accent-subtle: #1e1810;
+    --color-bg-nav: #161210;
+    --color-ring-focus: #e08870;
+    --color-ring-offset: #161210;
+  }
+
+  /* ── Nordic palette (light) ── */
+  body[data-theme="nordic"] {
+    --color-bg-body: #f0f2f4;
+    --color-bg-card: #ffffff;
+    --color-border-card: #808890;
+    --color-text-secondary: #506070;
+    --color-accent: #385880;
+    --color-accent-hover: #2c4868;
+    --color-accent-subtle: #e4e8ec;
+    --color-bg-nav: #f0f2f4;
+    --color-ring-focus: #a83030;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="nordic"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #10141a;
+      --color-bg-card: #1a2028;
+      --color-border-card: #607080;
+      --color-text-secondary: #a0b0c0;
+      --color-accent: #88b0d0;
+      --color-accent-hover: #a0c0e0;
+      --color-accent-subtle: #141820;
+      --color-bg-nav: #10141a;
+      --color-ring-focus: #d86060;
+      --color-ring-offset: #10141a;
+    }
+  }
+  body[data-theme="nordic"][data-color-scheme="dark"] {
+    --color-bg-body: #10141a;
+    --color-bg-card: #1a2028;
+    --color-border-card: #607080;
+    --color-text-secondary: #a0b0c0;
+    --color-accent: #88b0d0;
+    --color-accent-hover: #a0c0e0;
+    --color-accent-subtle: #141820;
+    --color-bg-nav: #10141a;
+    --color-ring-focus: #d86060;
+    --color-ring-offset: #10141a;
+  }
+
+  /* ── Ottoman palette (light) ── */
+  body[data-theme="ottoman"] {
+    --color-bg-body: #f0ede8;
+    --color-bg-card: #ffffff;
+    --color-border-card: #707880;
+    --color-text-secondary: #3a5858;
+    --color-accent: #186858;
+    --color-accent-hover: #105048;
+    --color-accent-subtle: #e0e8e0;
+    --color-bg-nav: #f0ede8;
+    --color-ring-focus: #a87820;
+    --color-ring-offset: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="ottoman"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #0e1418;
+      --color-bg-card: #182028;
+      --color-border-card: #507870;
+      --color-text-secondary: #c8b070;
+      --color-accent: #d4a840;
+      --color-accent-hover: #e0c060;
+      --color-accent-subtle: #141c20;
+      --color-bg-nav: #0e1418;
+      --color-ring-focus: #58b8a0;
+      --color-ring-offset: #0e1418;
+    }
+  }
+  body[data-theme="ottoman"][data-color-scheme="dark"] {
+    --color-bg-body: #0e1418;
+    --color-bg-card: #182028;
+    --color-border-card: #507870;
+    --color-text-secondary: #c8b070;
+    --color-accent: #d4a840;
+    --color-accent-hover: #e0c060;
+    --color-accent-subtle: #141c20;
+    --color-bg-nav: #0e1418;
+    --color-ring-focus: #58b8a0;
+    --color-ring-offset: #0e1418;
+  }
+
   body[data-high-contrast] {
     --color-bg-body: #ffffff;
     --color-bg-card: #ffffff;

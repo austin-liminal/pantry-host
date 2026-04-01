@@ -5,10 +5,13 @@
  *   - <button aria-label="{Mode} theme"> for light/dark/system
  */
 
-export type Palette = 'default' | 'rose' | 'rebecca' | 'claude';
+export type Palette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado'
+  | 'marrakech' | 'provencal' | 'kaiseki' | 'tuscany'
+  | 'oaxacan' | 'pompeii' | 'nordic' | 'ottoman';
 export type Mode = 'light' | 'dark';
 
-export const PALETTES: Palette[] = ['default', 'rose', 'rebecca', 'claude'];
+export const PALETTES: Palette[] = ['default', 'rose', 'rebecca', 'claude', 'avocado',
+  'marrakech', 'provencal', 'kaiseki', 'tuscany', 'oaxacan', 'pompeii', 'nordic', 'ottoman'];
 export const MODES: Mode[] = ['light', 'dark'];
 
 /** Maps Mode to the aria-label text on the footer radio buttons */
