@@ -22,6 +22,7 @@ const PALETTE_OPTIONS: { value: ThemePalette; label: string }[] = [
   { value: 'rose', label: 'Rosé' },
 { value: 'rebecca', label: 'Rebecca Purple' },
   { value: 'claude', label: 'Claude' },
+  { value: 'avocado', label: 'Avocado' },
 ];
 
 function LogoJP({ size = 24 }: { size?: number }) {

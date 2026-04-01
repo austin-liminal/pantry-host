@@ -9,13 +9,13 @@
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude';
+export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado';
 
 const THEME_KEY = 'theme-preference';
 const HC_KEY = 'high-contrast';
 const PALETTE_KEY = 'theme-palette';
 
-const PALETTE_CLASSES = ['theme-rose', 'theme-rebecca', 'theme-claude'] as const;
+const PALETTE_CLASSES = ['theme-rose', 'theme-rebecca', 'theme-claude', 'theme-avocado'] as const;
 
 export function getThemePreference(): ThemePreference {
   if (typeof window === 'undefined') return 'system';
@@ -96,6 +96,7 @@ export function applyTheme() {
   if (palette === 'rose') el.classList.add('theme-rose');
   if (palette === 'rebecca') el.classList.add('theme-rebecca');
   if (palette === 'claude') el.classList.add('theme-claude');
+  if (palette === 'avocado') el.classList.add('theme-avocado');
 }
 
 let listenerRegistered = false;

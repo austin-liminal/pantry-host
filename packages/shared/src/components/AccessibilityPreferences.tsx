@@ -131,6 +131,32 @@ const DEFAULTS: PaletteDefaults = {
     '--color-ring-focus': '#e8956d',
     '--color-ring-offset': '#1a1915',
   },
+  'avocado-light': {
+    '--color-bg-body': '#f5f3eb',
+    '--color-bg-card': '#ffffff',
+    '--color-border-card': '#8c8668',
+    '--color-text-primary': '#09090b',
+    '--color-text-secondary': '#4a5a20',
+    '--color-accent': '#3d5c0f',
+    '--color-accent-hover': '#345010',
+    '--color-accent-subtle': '#e8e6d0',
+    '--color-bg-nav': '#f5f3eb',
+    '--color-ring-focus': '#c05a0e',
+    '--color-ring-offset': '#ffffff',
+  },
+  'avocado-dark': {
+    '--color-bg-body': '#332A32',
+    '--color-bg-card': '#443c48',
+    '--color-border-card': '#5a5060',
+    '--color-text-primary': '#fafafa',
+    '--color-text-secondary': '#b5c882',
+    '--color-accent': '#95bc48',
+    '--color-accent-hover': '#a8d055',
+    '--color-accent-subtle': '#2a3028',
+    '--color-bg-nav': '#332A32',
+    '--color-ring-focus': '#E66E11',
+    '--color-ring-offset': '#332A32',
+  },
 };
 
 const PALETTE_LABELS: Record<ThemePalette, string> = {
@@ -138,9 +164,10 @@ const PALETTE_LABELS: Record<ThemePalette, string> = {
   rose: 'Ros\u00e9',
   rebecca: 'Rebecca Purple',
   claude: 'Claude',
+  avocado: 'Avocado',
 };
 
-const PALETTES: ThemePalette[] = ['default', 'rose', 'rebecca', 'claude'];
+const PALETTES: ThemePalette[] = ['default', 'rose', 'rebecca', 'claude', 'avocado'];
 const MODES: ('light' | 'dark')[] = ['light', 'dark'];
 
 export default function AccessibilityPreferences() {

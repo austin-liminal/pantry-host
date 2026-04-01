@@ -198,6 +198,48 @@
     --color-ring-offset: #1a1915;
   }
 
+  /* ── Avocado palette (light) ── */
+  body[data-theme="avocado"] {
+    --color-bg-body: #f5f3eb;        /* warm green-cream */
+    --color-bg-card: #ffffff;
+    --color-border-card: #8c8668;    /* olive border */
+    --color-text-secondary: #4a5a20; /* dark olive — AA on cream */
+    --color-accent: #3d5c0f;         /* darkened avocado — AA on cream */
+    --color-accent-hover: #345010;   /* deeper avocado */
+    --color-accent-subtle: #e8e6d0;  /* light olive wash */
+    --color-bg-nav: #f5f3eb;
+    --color-ring-focus: #c05a0e;     /* darkened burnt orange */
+    --color-ring-offset: #ffffff;
+  }
+  /* Avocado dark (system) */
+  @media (prefers-color-scheme: dark) {
+    body[data-theme="avocado"]:not([data-color-scheme="light"]) {
+      --color-bg-body: #332A32;
+      --color-bg-card: #443c48;
+      --color-border-card: #5a5060;
+      --color-text-secondary: #b5c882;
+      --color-accent: #95bc48;
+      --color-accent-hover: #a8d055;
+      --color-accent-subtle: #2a3028;
+      --color-bg-nav: #332A32;
+      --color-ring-focus: #E66E11;
+      --color-ring-offset: #332A32;
+    }
+  }
+  /* Avocado dark (forced) */
+  body[data-theme="avocado"][data-color-scheme="dark"] {
+    --color-bg-body: #332A32;
+    --color-bg-card: #443c48;
+    --color-border-card: #5a5060;
+    --color-text-secondary: #b5c882;
+    --color-accent: #95bc48;
+    --color-accent-hover: #a8d055;
+    --color-accent-subtle: #2a3028;
+    --color-bg-nav: #332A32;
+    --color-ring-focus: #E66E11;
+    --color-ring-offset: #332A32;
+  }
+
   /* ── High Contrast: black-on-white ── */
   body[data-high-contrast] {
     --color-bg-body: #ffffff;

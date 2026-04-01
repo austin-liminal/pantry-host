@@ -9,7 +9,7 @@
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude';
+export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado';
 
 const THEME_KEY = 'theme-preference';
 const HC_KEY = 'high-contrast';
