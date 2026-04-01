@@ -367,7 +367,7 @@ export function generateRecipeICS(recipe: ExportableRecipe): string {
     lines.push(icsFold(`CATEGORIES:${recipe.tags.map(icsEsc).join(',')}`));
   }
 
-  const url = recipe.sourceUrl || (recipe.slug ? `https://pantryhost.app/recipes/${recipe.slug}` : null);
+  const url = recipe.sourceUrl || null;
   if (url) lines.push(icsFold(`URL:${url}`));
 
   if (recipe.photoUrl && recipe.photoUrl.startsWith('http')) {
