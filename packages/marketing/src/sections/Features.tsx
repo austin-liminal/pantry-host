@@ -113,6 +113,8 @@ export default function Features() {
             loop
             playsInline
             controls
+            poster="/videos/posters/siri.jpg"
+            preload="metadata"
             className="w-full rounded-xl shadow-2xl border border-[var(--color-border-card)]"
           >
             <source src="/videos/siri.webm" type="video/webm" />
@@ -129,6 +131,8 @@ export default function Features() {
             loop
             playsInline
             controls
+            poster="/videos/posters/barcode.jpg"
+            preload="metadata"
             className="w-full rounded-xl shadow-2xl border border-[var(--color-border-card)]"
           >
             <source src="/videos/barcode.webm" type="video/webm" />

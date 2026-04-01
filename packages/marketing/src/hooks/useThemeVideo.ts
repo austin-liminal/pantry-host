@@ -33,7 +33,9 @@ export function useThemeVideo(videoName: string) {
   }, []);
 
   return {
+    prefix,
     webm: `/videos/${prefix}-${videoName}.webm`,
     mp4: `/videos/${prefix}-${videoName}.mp4`,
+    poster: `/videos/posters/${prefix}-${videoName}.jpg`,
   };
 }

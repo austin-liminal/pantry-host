@@ -111,5 +111,7 @@ export default {
 function contentType(key: string): string {
   if (key.endsWith('.webm')) return 'video/webm';
   if (key.endsWith('.mp4')) return 'video/mp4';
+  if (key.endsWith('.jpg') || key.endsWith('.jpeg')) return 'image/jpeg';
+  if (key.endsWith('.png')) return 'image/png';
   return 'application/octet-stream';
 }
