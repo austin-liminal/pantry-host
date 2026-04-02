@@ -1,42 +1,46 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { generateRecipeICS } from '@pantry-host/shared/export-recipe';
-
-const GRAPHQL_URL = process.env.GRAPHQL_URL || 'http://localhost:4001/graphql';
-
-const RECIPE_QUERY = `
-  query Recipe($slug: String!) {
-    recipe(slug: $slug) {
-      title slug description instructions
-      servings prepTime cookTime tags
-      source sourceUrl photoUrl
-      requiredCookware { name }
-      ingredients { ingredientName quantity unit }
-    }
-  }
-`;
+import sql from '@/lib/db';
+import { generateRecipeICS, type ExportableRecipe } from '@pantry-host/shared/export-recipe';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const slug = req.query.slug as string;
   if (!slug) return res.status(400).send('Missing slug parameter');
 
   try {
-    const gqlRes = await fetch(GRAPHQL_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: RECIPE_QUERY, variables: { slug } }),
-    });
+    const [row] = await sql`SELECT * FROM recipes WHERE slug = ${slug}`;
+    if (!row) return res.status(404).send('Recipe not found');
 
-    const json = await gqlRes.json() as { data?: { recipe: any }; errors?: { message: string }[] };
+    const ingredients = await sql`
+      SELECT ingredient_name, quantity, unit
+      FROM recipe_ingredients
+      WHERE recipe_id = ${row.id}
+      ORDER BY sort_order
+    `;
 
-    if (json.errors?.length) {
-      return res.status(500).send(`GraphQL error: ${json.errors[0].message}`);
-    }
+    const cookware = await sql`
+      SELECT c.name FROM cookware c
+      JOIN recipe_cookware rc ON rc.cookware_id = c.id
+      WHERE rc.recipe_id = ${row.id}
+    `;
 
-    if (!json.data?.recipe) return res.status(404).send('Recipe not found');
-
-    const recipe = {
-      ...json.data.recipe,
-      requiredCookware: json.data.recipe.requiredCookware.map((c: { name: string }) => c.name),
+    const recipe: ExportableRecipe = {
+      title: row.title,
+      slug: row.slug,
+      description: row.description,
+      instructions: row.instructions,
+      servings: row.servings,
+      prepTime: row.prep_time,
+      cookTime: row.cook_time,
+      tags: row.tags || [],
+      source: row.source,
+      sourceUrl: row.source_url,
+      photoUrl: row.photo_url,
+      requiredCookware: cookware.map((c: { name: string }) => c.name),
+      ingredients: ingredients.map((i: { ingredient_name: string; quantity: number | null; unit: string | null }) => ({
+        ingredientName: i.ingredient_name,
+        quantity: i.quantity,
+        unit: i.unit,
+      })),
     };
 
     const ics = generateRecipeICS(recipe);
