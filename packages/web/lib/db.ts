@@ -128,11 +128,11 @@ async function getDB(): Promise<PGlite> {
   }
 
   initPromise = (async () => {
-    db = new PGlite('idb://pantryhost');
-    await db.waitReady;
+    const instance = new PGlite('idb://pantryhost');
+    await instance.waitReady;
 
     // Check if schema already exists
-    const result = await db.query(
+    const result = await instance.query(
       `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'kitchens') as exists`
     );
     const exists = (result.rows[0] as { exists: boolean }).exists;
@@ -144,23 +144,26 @@ async function getDB(): Promise<PGlite> {
         .map(s => s.trim())
         .filter(s => s.length > 0);
       for (const stmt of statements) {
-        await db.query(stmt + ';');
+        await instance.query(stmt + ';');
       }
     } else {
       // Ensure home kitchen exists
-      await db.query(
+      await instance.query(
         `INSERT INTO kitchens (slug, name) VALUES ('home', 'Home') ON CONFLICT (slug) DO NOTHING`
       );
       // Migrations for existing databases
-      await db.query(`ALTER TABLE cookware ADD COLUMN IF NOT EXISTS notes TEXT`);
-      await db.query(`CREATE TABLE IF NOT EXISTS recipe_cookware (
+      await instance.query(`ALTER TABLE cookware ADD COLUMN IF NOT EXISTS notes TEXT`);
+      await instance.query(`CREATE TABLE IF NOT EXISTS recipe_cookware (
         recipe_id   UUID NOT NULL REFERENCES recipes(id)  ON DELETE CASCADE,
         cookware_id UUID NOT NULL REFERENCES cookware(id) ON DELETE CASCADE,
         PRIMARY KEY (recipe_id, cookware_id)
       )`);
-      await db.query(`CREATE INDEX IF NOT EXISTS idx_recipe_cookware_recipe   ON recipe_cookware(recipe_id)`);
-      await db.query(`CREATE INDEX IF NOT EXISTS idx_recipe_cookware_cookware ON recipe_cookware(cookware_id)`);
+      await instance.query(`CREATE INDEX IF NOT EXISTS idx_recipe_cookware_recipe   ON recipe_cookware(recipe_id)`);
+      await instance.query(`CREATE INDEX IF NOT EXISTS idx_recipe_cookware_cookware ON recipe_cookware(cookware_id)`);
     }
+
+    // Only expose db after schema is fully initialized
+    db = instance;
   })();
 
   await initPromise;

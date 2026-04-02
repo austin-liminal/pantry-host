@@ -415,7 +415,7 @@ export default function Footer() {
                 </a>
               ))}
             </div>
-            <div className="mt-4 text-[10px] leading-relaxed text-[var(--color-text-secondary)] max-w-prose pretty" style={{ opacity: 0.7 }}>
+            <div className="mt-4 legible text-zinc-500 dark:text-zinc-400 max-w-prose pretty">
               <p className="mb-2">Pantry Host is created and maintained by JP DeVries. Built on a lean web standards stack — HTML5, CSS3, and modern JavaScript APIs — enhanced by React, Node.js, PostgreSQL, and GraphQL. The front end fully leverages native browser capabilities before adding dependencies. A service worker handles offline caching and an &ldquo;away from pantry&rdquo; mode for use on the go.</p>
               <p className="mb-2">Source code is authored in TypeScript, primarily via Claude Code. Rex, a Rust-based Next.js alternative by Liminal Labs, powers the server-side rendering. Packages are built with either Vite or Rex. Witness, also by Liminal Labs, automates screencasts, screenshots, and smoke tests. Open Food Facts provides barcode lookup data. A single Docker command is offered for containerized setup.</p>
               <p className="mb-2">The self-hosted, privacy-first architecture relies on Tailscale for secure remote access and guest sharing over the local network. Pantry Host is designed to work as a Claude Code project and runs within the Claude Code preview using a dedicated &ldquo;Claude&rdquo; theme.</p>
