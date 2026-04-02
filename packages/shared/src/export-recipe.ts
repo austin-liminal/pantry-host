@@ -309,7 +309,9 @@ function icsTimestamp(date: Date): string {
  */
 export function generateRecipeICS(recipe: ExportableRecipe): string {
   const now = new Date();
-  const uid = `recipe-${recipe.slug || recipe.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${now.getTime()}@pantryhost.app`;
+  // Stable UID — same recipe always produces the same UID so calendar apps
+  // update the existing event instead of creating duplicates on re-export.
+  const uid = `recipe-${recipe.slug || recipe.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}@pantryhost.app`;
 
   // Build structured DESCRIPTION
   const descParts: string[] = [];
@@ -349,7 +351,15 @@ export function generateRecipeICS(recipe: ExportableRecipe): string {
   // Use VEVENT with an all-day date. VTODO is not supported by iOS
   // Calendar's webcal:// handler. All-day event for today — the user
   // drags it to the correct date in their calendar app.
-  const today = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  // Timed event at 6pm today with duration = prep + cook time.
+  // User drags the block to their actual cooking time.
+  const totalMinutes = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0) || 30;
+  const start = new Date(now);
+  start.setHours(18, 0, 0, 0); // 6pm local
+  const durationH = Math.floor(totalMinutes / 60);
+  const durationM = totalMinutes % 60;
+  const duration = `PT${durationH ? durationH + 'H' : ''}${durationM ? durationM + 'M' : ''}`;
+
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -359,8 +369,8 @@ export function generateRecipeICS(recipe: ExportableRecipe): string {
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${icsTimestamp(now)}`,
-    `DTSTART;VALUE=DATE:${today}`,
-    `DTEND;VALUE=DATE:${today}`,
+    `DTSTART:${icsTimestamp(start)}`,
+    `DURATION:${duration}`,
     icsFold(`SUMMARY:${icsEsc(recipe.title)}`),
     icsFold(`DESCRIPTION:${description}`),
   ];
