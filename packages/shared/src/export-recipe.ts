@@ -401,28 +401,27 @@ export function recipeToICSDataURI(recipe: ExportableRecipe): string {
  * downloads are blocked. Creates a temporary link, clicks it, then cleans up.
  */
 /**
- * Download an ICS file. Uses window.open() with a Blob URL which triggers
- * iOS Safari's native "Add to Calendar" flow. Falls back to <a download>
- * for desktop browsers.
+ * Download an ICS file. On iOS Safari, navigates to a server endpoint
+ * that returns text/calendar (the only method iOS supports). On desktop,
+ * uses a Blob URL with <a download>.
  */
-export function downloadRecipeICS(recipe: ExportableRecipe): void {
+export function downloadRecipeICS(recipe: ExportableRecipe, apiBase = ''): void {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  if (isIOS && recipe.slug) {
+    // iOS Safari requires a real HTTP response with text/calendar content type.
+    window.location.href = `${apiBase}/api/recipe-ics?slug=${encodeURIComponent(recipe.slug)}`;
+    return;
+  }
+
   const ics = generateRecipeICS(recipe);
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-
-  // iOS Safari doesn't support <a download> or data URIs for .ics files.
-  // window.open() with a blob URL triggers the native calendar prompt.
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if (isIOS) {
-    window.open(url);
-  } else {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${recipe.slug || 'recipe'}.ics`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${recipe.slug || 'recipe'}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
