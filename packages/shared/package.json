@@ -13,6 +13,7 @@
     "./dailyQuote": "./src/dailyQuote.ts",
     "./components/Footer": "./src/components/Footer.tsx",
     "./components/AccessibilityPreferences": "./src/components/AccessibilityPreferences.tsx",
+    "./components/Modal": "./src/components/Modal.tsx",
     "./types": "./src/types/index.ts",
     "./adapters/*": "./src/adapters/*.ts",
     "./export-recipe": "./src/export-recipe.ts"

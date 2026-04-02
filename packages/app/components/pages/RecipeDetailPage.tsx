@@ -10,6 +10,7 @@ import { Leaf } from '@phosphor-icons/react';
 import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { recipeToDataURI, recipeToICSDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
+import Modal from '@pantry-host/shared/components/Modal';
 import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface RecipeIngredient {
@@ -722,58 +723,54 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
         </div>
       </aside>
 
-      {showPantryUpdate && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center" role="dialog" aria-modal="true" aria-label="Update pantry quantities">
-          <div className="bg-body w-full sm:max-w-lg sm:rounded-lg max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-card)] shrink-0">
-              <h2 className="font-bold text-lg">Update Pantry</h2>
-              <button type="button" onClick={() => setShowPantryUpdate(false)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-1" aria-label="Close">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1 divide-y divide-[var(--color-border-card)]">
-              {pantryItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
-                  <span className="flex-1 text-sm truncate">{item.name}</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    defaultValue={item.quantity ?? 0}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      setPantryEdits((prev) => {
-                        const next = new Map(prev);
-                        if (val === item.quantity) next.delete(item.id);
-                        else next.set(item.id, isNaN(val) ? 0 : val);
-                        return next;
-                      });
-                    }}
-                    aria-label={`Quantity for ${item.name}`}
-                    className="field-input w-20 text-right tabular-nums"
-                  />
-                  <span className="text-xs text-[var(--color-text-secondary)] w-10">{item.unit ?? ''}</span>
-                </div>
-              ))}
-              {pantryItems.length === 0 && (
-                <p className="px-4 py-6 text-sm text-[var(--color-text-secondary)] text-center">No pantry items with tracked quantities.</p>
-              )}
-            </div>
-            <div className="flex gap-3 p-4 border-t border-[var(--color-border-card)] shrink-0">
-              <button type="button" onClick={() => setShowPantryUpdate(false)} className="btn-secondary flex-1">Skip</button>
-              <button
-                type="button"
-                onClick={handleSavePantry}
-                disabled={savingPantry || pantryEdits.size === 0}
-                aria-busy={savingPantry}
-                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {savingPantry ? 'Saving…' : `Save${pantryEdits.size > 0 ? ` (${pantryEdits.size})` : ''}`}
-              </button>
-            </div>
-          </div>
+      <Modal open={showPantryUpdate} onClose={() => setShowPantryUpdate(false)} title="Update pantry quantities">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-card)] shrink-0">
+          <h2 className="font-bold text-lg">Update Pantry</h2>
+          <button type="button" onClick={() => setShowPantryUpdate(false)} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-1" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
-      )}
+        <div className="overflow-y-auto flex-1 divide-y divide-[var(--color-border-card)]">
+          {pantryItems.map((item) => (
+            <div key={item.id} className="flex items-center gap-3 px-4 py-2.5">
+              <span className="flex-1 text-sm truncate">{item.name}</span>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                defaultValue={item.quantity ?? 0}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setPantryEdits((prev) => {
+                    const next = new Map(prev);
+                    if (val === item.quantity) next.delete(item.id);
+                    else next.set(item.id, isNaN(val) ? 0 : val);
+                    return next;
+                  });
+                }}
+                aria-label={`Quantity for ${item.name}`}
+                className="field-input w-20 text-right tabular-nums"
+              />
+              <span className="text-xs text-[var(--color-text-secondary)] w-10">{item.unit ?? ''}</span>
+            </div>
+          ))}
+          {pantryItems.length === 0 && (
+            <p className="px-4 py-6 text-sm text-[var(--color-text-secondary)] text-center">No pantry items with tracked quantities.</p>
+          )}
+        </div>
+        <div className="flex gap-3 p-4 border-t border-[var(--color-border-card)] shrink-0">
+          <button type="button" onClick={() => setShowPantryUpdate(false)} className="btn-secondary flex-1">Skip</button>
+          <button
+            type="button"
+            onClick={handleSavePantry}
+            disabled={savingPantry || pantryEdits.size === 0}
+            aria-busy={savingPantry}
+            className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {savingPantry ? 'Saving…' : `Save${pantryEdits.size > 0 ? ` (${pantryEdits.size})` : ''}`}
+          </button>
+        </div>
+      </Modal>
     </>
   );
 }

@@ -3,6 +3,7 @@ import BarcodeScanner, { ScannedProduct } from './BarcodeScanner';
 import { gql } from '@/lib/gql';
 import { enqueue } from '@/lib/offlineQueue';
 import { UNIT_GROUPS, CATEGORIES } from '@pantry-host/shared/constants';
+import Modal from '@pantry-host/shared/components/Modal';
 
 interface BatchItem extends ScannedProduct {
   key: string;
@@ -90,7 +91,7 @@ export default function BatchScanSession({ onComplete, onCancel }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-body flex flex-col" role="dialog" aria-modal="true" aria-label="Batch scan groceries">
+    <Modal open={true} onClose={onCancel} title="Batch scan groceries" fullScreen>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border-card)] shrink-0">
         <h2 className="text-[var(--color-text-primary)] font-bold text-lg">
@@ -262,6 +263,6 @@ export default function BatchScanSession({ onComplete, onCancel }: Props) {
           </div>
         </div>
       )}
-    </div>
+    </Modal>
   );
 }
