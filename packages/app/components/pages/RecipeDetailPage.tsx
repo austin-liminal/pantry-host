@@ -713,6 +713,16 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
               href={`/api/recipe-ics?slug=${recipe.slug}`}
               download={`${recipe.slug || 'recipe'}.ics`}
               className="inline-flex items-center gap-2 btn-secondary text-sm"
+              onClick={(e) => {
+                // iOS Safari can't download ICS files. Use webcal:// protocol
+                // which triggers the native Calendar app directly.
+                if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                  e.preventDefault();
+                  const url = new URL(`/api/recipe-ics?slug=${recipe.slug}`, window.location.origin);
+                  url.protocol = window.location.protocol === 'https:' ? 'webcals:' : 'webcal:';
+                  window.location.href = url.toString();
+                }
+              }}
             >
               <CalendarPlus size={18} aria-hidden />
               Add to Calendar
