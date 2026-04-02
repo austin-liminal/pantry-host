@@ -743,7 +743,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
         <div className="py-16">
           <div className="flex justify-center mb-3 opacity-60"><ShareNetwork size={24} weight="light" aria-hidden /></div>
           <h2 id="share-heading" className="text-xl font-bold mb-3 md:text-center">Share {recipe.title}</h2>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-6 md:text-center very legible pretty md:mx-auto">Print this recipe, export it as HTML to share with a friend, or add it to your calendar for meal planning.</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-10 md:text-center very legible pretty md:mx-auto">Print this recipe, export it as HTML to share with a friend, or add it to your calendar for meal planning.</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <button
               type="button"
@@ -876,7 +876,15 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                   </div>
                 </details>
               )}
-              <div className="mt-6 md:text-center">
+              <div className="mt-6 md:text-center flex items-center justify-center gap-3">
+                <button
+                  type="reset"
+                  disabled={pendingCount === 0}
+                  onClick={() => setMenuSelections({})}
+                  className="btn-secondary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Reset
+                </button>
                 <button
                   type="submit"
                   disabled={savingMenus || pendingCount === 0}
