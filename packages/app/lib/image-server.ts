@@ -4,6 +4,7 @@
  */
 import sharp from 'sharp';
 import path from 'path';
+import { existsSync, copyFileSync } from 'fs';
 
 /** Widths to generate for responsive images. Heights are 16:9. */
 const VARIANT_WIDTHS = [400, 800, 1200] as const;
@@ -28,6 +29,30 @@ function heightFor(width: number): number {
  * @param uploadsDir - Absolute path to the uploads directory
  * @param uuid - The UUID used for the original filename (without extension)
  */
+/**
+ * Copy the 400px JPEG variant to a friendly {slug}.jpg filename.
+ * Used by ICS calendar exports so iOS Calendar shows a readable name.
+ * Retries up to 5 times (1s apart) in case processing is still running.
+ */
+export async function copyFriendlyPhoto(
+  photoUrl: string,
+  slug: string,
+  uploadsDir: string,
+): Promise<void> {
+  if (!photoUrl.startsWith('/uploads/') || !slug) return;
+  const uuid = photoUrl.replace('/uploads/', '').replace(/\.[^.]+$/, '');
+  const src = path.join(uploadsDir, `${uuid}-400.jpg`);
+  const dest = path.join(uploadsDir, `${slug}.jpg`);
+
+  for (let i = 0; i < 5; i++) {
+    if (existsSync(src)) {
+      copyFileSync(src, dest);
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+}
+
 export async function processUploadedImage(
   inputPath: string,
   uploadsDir: string,

@@ -1,6 +1,8 @@
 import SchemaBuilder from '@pothos/core';
+import { join } from 'path';
 import sql from '@/lib/db';
 import { generateRecipes as aiGenerateRecipes } from '@/lib/claude';
+import { copyFriendlyPhoto } from '@/lib/image-server';
 
 const builder = new SchemaBuilder({});
 
@@ -539,6 +541,12 @@ async function insertRecipe(
     `;
   }
 
+  // Copy 400px JPEG to {slug}.jpg for friendly calendar export filenames
+  if (recipe.photo_url?.startsWith('/uploads/')) {
+    const uploadsDir = join(process.cwd(), 'public', 'uploads');
+    copyFriendlyPhoto(recipe.photo_url, recipe.slug, uploadsDir).catch(() => {});
+  }
+
   return recipe;
 }
 
@@ -638,6 +646,12 @@ builder.mutationField('updateRecipe', (t) =>
             )}
           `;
         }
+      }
+
+      // Copy 400px JPEG to {slug}.jpg for friendly calendar export filenames
+      if (recipe.photo_url?.startsWith('/uploads/')) {
+        const uploadsDir = join(process.cwd(), 'public', 'uploads');
+        copyFriendlyPhoto(recipe.photo_url, recipe.slug, uploadsDir).catch(() => {});
       }
 
       return recipe;

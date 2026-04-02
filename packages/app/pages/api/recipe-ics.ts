@@ -12,14 +12,11 @@ function resolvePhotoUrl(photoUrl: string | null, slug: string | null, req: Next
   // Already absolute
   if (photoUrl.startsWith('http')) return photoUrl;
 
-  // Local upload — construct absolute URL to the optimized 400px variant
-  if (photoUrl.startsWith('/uploads/')) {
+  // Local upload — use the friendly {slug}.jpg copy (created by copyFriendlyPhoto)
+  if (photoUrl.startsWith('/uploads/') && slug) {
     const proto = req.headers['x-forwarded-proto'] || (req.headers.host?.includes('localhost') ? 'http' : 'https');
     const host = req.headers.host;
-    if (host) {
-      const uuid = photoUrl.replace('/uploads/', '').replace(/\.[^.]+$/, '');
-      return `${proto}://${host}/uploads/${uuid}-400.jpg`;
-    }
+    if (host) return `${proto}://${host}/uploads/${slug}.jpg`;
   }
 
   return null;
