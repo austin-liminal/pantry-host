@@ -4,7 +4,7 @@
  */
 import sharp from 'sharp';
 import path from 'path';
-import { existsSync, copyFileSync } from 'fs';
+import fs from 'fs';
 
 /** Widths to generate for responsive images. Heights are 16:9. */
 const VARIANT_WIDTHS = [400, 800, 1200] as const;
@@ -45,8 +45,8 @@ export async function copyFriendlyPhoto(
   const dest = path.join(uploadsDir, `${slug}.jpg`);
 
   for (let i = 0; i < 5; i++) {
-    if (existsSync(src)) {
-      copyFileSync(src, dest);
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, dest);
       return;
     }
     await new Promise((r) => setTimeout(r, 1000));
