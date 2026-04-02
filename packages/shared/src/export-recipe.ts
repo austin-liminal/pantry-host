@@ -356,6 +356,7 @@ export function generateRecipeICS(recipe: ExportableRecipe): string {
   const totalMinutes = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0) || 30;
   const start = new Date(now);
   start.setHours(18, 0, 0, 0); // 6pm local
+  if (start <= now) start.setDate(start.getDate() + 1); // Past 6pm? Use tomorrow
   const durationH = Math.floor(totalMinutes / 60);
   const durationM = totalMinutes % 60;
   const duration = `PT${durationH ? durationH + 'H' : ''}${durationM ? durationM + 'M' : ''}`;
