@@ -910,6 +910,37 @@ builder.mutationField('deleteMenu', (t) =>
   }),
 );
 
+builder.mutationField('toggleRecipeInMenu', (t) =>
+  t.field({
+    type: MenuType,
+    args: {
+      menuId: t.arg.string({ required: true }),
+      recipeId: t.arg.string({ required: true }),
+      course: t.arg.string(),
+    },
+    resolve: async (_, { menuId, recipeId, course }) => {
+      const [existing] = await sql`
+        SELECT id FROM menu_recipes WHERE menu_id = ${menuId} AND recipe_id = ${recipeId}
+      `;
+      if (existing) {
+        await sql`DELETE FROM menu_recipes WHERE id = ${existing.id}`;
+      } else {
+        await sql`
+          INSERT INTO menu_recipes (menu_id, recipe_id, course, sort_order)
+          VALUES (
+            ${menuId},
+            ${recipeId},
+            ${course ?? 'other'},
+            COALESCE((SELECT MAX(sort_order) + 1 FROM menu_recipes WHERE menu_id = ${menuId}), 0)
+          )
+        `;
+      }
+      const [menu] = await sql`SELECT * FROM menus WHERE id = ${menuId}`;
+      return menu;
+    },
+  }),
+);
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export { builder };

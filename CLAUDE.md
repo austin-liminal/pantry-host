@@ -193,9 +193,9 @@ Exposes the PantryHost GraphQL API as MCP (Model Context Protocol) tools so exte
 - **Dual transport**: stdio (Claude Desktop) via default, HTTP on port 5001 via `--http` flag
 - **Optional auth**: Set `MCP_API_KEY` env var to require `Authorization: Bearer` for HTTP transport
 
-### Tools (28 total)
+### Tools (29 total)
 - **Read (9):** search_pantry, search_recipes, get_recipe, list_cookware, get_cookware, list_kitchens, get_kitchen, list_menus, get_menu
-- **Write (14):** add_ingredient, add_ingredients, update_ingredient, remove_ingredient, create_recipe, update_recipe, delete_recipe, mark_recipe_cooked, queue_recipe, add_cookware, update_cookware, delete_cookware, create_menu, update_menu, delete_menu
+- **Write (15):** add_ingredient, add_ingredients, update_ingredient, remove_ingredient, create_recipe, update_recipe, delete_recipe, mark_recipe_cooked, queue_recipe, add_cookware, update_cookware, delete_cookware, create_menu, update_menu, delete_menu, toggle_recipe_in_menu
 - **AI (1):** generate_recipes (requires `AI_API_KEY` on the GraphQL server)
 
 ### Resources

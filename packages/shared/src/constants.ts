@@ -103,3 +103,34 @@ export const COMMON_COOKWARE = [
   'Waffle Iron',
   'Wok',
 ];
+
+// ── Menu course classification ──
+
+export const COURSE_TAGS: Record<string, string[]> = {
+  appetizer: ['appetizer', 'apps', 'starter', 'charcuterie'],
+  breakfast: ['breakfast', 'brunch', 'pancakes', 'eggs'],
+  'main-course': ['main-course', 'dinner', 'entree', 'lunch'],
+  side: ['side', 'sides'],
+  beverage: ['beverage', 'drink', 'coffee', 'tea', 'chai', 'smoothies', 'shakes', 'milk', 'creamer', 'mixology'],
+  dessert: ['dessert', 'sweets', 'baking'],
+};
+
+export const COURSE_LABELS: Record<string, string> = {
+  appetizer: 'Appetizers',
+  breakfast: 'Breakfast',
+  'main-course': 'Main Course',
+  side: 'Sides',
+  beverage: 'Beverages',
+  dessert: 'Dessert',
+  baby: 'Baby',
+  other: 'Other',
+};
+
+/** Auto-classify a recipe's course from its tags. */
+export function classifyRecipeCourse(tags: string[]): string {
+  const lower = tags.map((t) => t.toLowerCase());
+  for (const [course, courseTags] of Object.entries(COURSE_TAGS)) {
+    if (lower.some((t) => courseTags.includes(t))) return course;
+  }
+  return 'other';
+}

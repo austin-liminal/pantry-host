@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
 import { enqueue } from '@/lib/offlineQueue';
-import { MENU_CATEGORIES } from '@pantry-host/shared/constants';
+import { MENU_CATEGORIES, COURSE_TAGS, COURSE_LABELS, classifyRecipeCourse } from '@pantry-host/shared/constants';
 
 interface RecipeOption {
   id: string;
@@ -30,31 +30,8 @@ const UPDATE_MENU = `mutation UpdateMenu($id: String!, $title: String, $descript
   updateMenu(id: $id, title: $title, description: $description, active: $active, category: $category, recipes: $recipes) { id slug }
 }`;
 
-const COURSE_TAGS: Record<string, string[]> = {
-  appetizer: ['appetizer', 'apps', 'starter', 'charcuterie'],
-  breakfast: ['breakfast', 'brunch', 'pancakes', 'eggs'],
-  'main-course': ['main-course', 'dinner', 'entree', 'lunch'],
-  side: ['side', 'sides'],
-  beverage: ['beverage', 'drink', 'coffee', 'tea', 'chai', 'smoothies', 'shakes', 'milk', 'creamer', 'mixology'],
-  dessert: ['dessert', 'sweets', 'baking'],
-};
-
-const COURSE_LABELS: Record<string, string> = {
-  appetizer: 'Appetizers',
-  breakfast: 'Breakfast',
-  'main-course': 'Main Course',
-  side: 'Sides',
-  beverage: 'Beverages',
-  dessert: 'Dessert',
-  other: 'Other',
-};
-
 function classifyRecipe(recipe: RecipeOption): string {
-  const tags = recipe.tags.map((t) => t.toLowerCase());
-  for (const [course, courseTags] of Object.entries(COURSE_TAGS)) {
-    if (tags.some((t) => courseTags.includes(t))) return course;
-  }
-  return 'other';
+  return classifyRecipeCourse(recipe.tags);
 }
 
 interface Props {

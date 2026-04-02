@@ -86,6 +86,25 @@ export function registerMenuTools(server: McpServer) {
   );
 
   server.tool(
+    'toggle_recipe_in_menu',
+    'Add or remove a recipe from a menu. If the recipe is already in the menu, it is removed. If not, it is added with an auto-classified course based on recipe tags.',
+    {
+      menuId: z.string().describe('Menu ID'),
+      recipeId: z.string().describe('Recipe ID'),
+      course: z.string().optional().describe('Course override (e.g. appetizer, breakfast, main-course, side, beverage, dessert). Auto-classified from recipe tags if omitted.'),
+    },
+    async ({ menuId, recipeId, course }) => {
+      const data = await gql<{ toggleRecipeInMenu: unknown }>(
+        `mutation($menuId: String!, $recipeId: String!, $course: String) {
+          toggleRecipeInMenu(menuId: $menuId, recipeId: $recipeId, course: $course) { ${MENU_FULL} }
+        }`,
+        { menuId, recipeId, course },
+      );
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data.toggleRecipeInMenu, null, 2) }] };
+    },
+  );
+
+  server.tool(
     'delete_menu',
     'Delete a menu.',
     { id: z.string().describe('Menu ID') },

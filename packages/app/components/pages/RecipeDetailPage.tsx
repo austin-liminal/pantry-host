@@ -3,11 +3,11 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { gql } from '@/lib/gql';
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
-import { ArrowsOut, ArrowsIn, Trash, Heart, Printer, Circle, CheckCircle, CalendarPlus, LinkSimple } from '@phosphor-icons/react';
+import { ArrowsOut, ArrowsIn, Trash, Heart, Printer, Circle, CheckCircle, CalendarPlus, LinkSimple, ForkKnife } from '@phosphor-icons/react';
 import { enqueue } from '@/lib/offlineQueue';
 import RecipeCard from '@/components/RecipeCard';
 import { Leaf } from '@phosphor-icons/react';
-import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
+import { HIDDEN_TAGS, classifyRecipeCourse } from '@pantry-host/shared/constants';
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { recipeToDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
 import Modal from '@pantry-host/shared/components/Modal';
@@ -85,6 +85,10 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const [owner, setOwner] = useState(false);
   const [lanIP, setLanIP] = useState<string | null>(null);
   const [guestLinkCopied, setGuestLinkCopied] = useState(false);
+  const [menus, setMenus] = useState<{ id: string; slug: string; title: string; category: string | null; recipeIds: string[] }[]>([]);
+  const [menuSelections, setMenuSelections] = useState<Record<string, boolean>>({});
+  const [savingMenus, setSavingMenus] = useState(false);
+  const [menuStatus, setMenuStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [ageVerified, setAgeVerified] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('age-verified') === 'true';
     return false;
@@ -134,6 +138,14 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
     // Reads from a static JSON file generated at build/start time.
     if (isOwner()) {
       fetch('/network-info.json').then(r => r.json()).then(d => { if (d.ip) setLanIP(d.ip); }).catch(() => {});
+
+      // Fetch menus for "Add to a Menu" section
+      gql<{ menus: { id: string; slug: string; title: string; category: string | null; recipes: { recipe: { id: string } }[] }[] }>(
+        `{ menus { id slug title category recipes { recipe { id } } } }`
+      ).then(data => {
+        const mapped = data.menus.map(m => ({ id: m.id, slug: m.slug, title: m.title, category: m.category, recipeIds: m.recipes.map(r => r.recipe.id) }));
+        setMenus(mapped);
+      }).catch(() => {});
     }
   }, []);
 
@@ -268,6 +280,38 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
       }
     } finally {
       setTogglingQueue(false);
+    }
+  }
+
+  async function handleSaveMenus(e: React.FormEvent) {
+    e.preventDefault();
+    if (!recipe) return;
+    setSavingMenus(true);
+    const course = classifyRecipeCourse(recipe.tags);
+    try {
+      for (const [menuId, shouldBeIn] of Object.entries(menuSelections)) {
+        const menu = menus.find(m => m.id === menuId);
+        if (!menu) continue;
+        const isIn = menu.recipeIds.includes(recipe.id);
+        if (shouldBeIn === isIn) continue; // No change needed
+        await gql(`mutation($menuId:String!,$recipeId:String!,$course:String){toggleRecipeInMenu(menuId:$menuId,recipeId:$recipeId,course:$course){id}}`, { menuId, recipeId: recipe.id, course });
+      }
+      // Update local state to reflect changes
+      setMenus((prev) => prev.map(m => {
+        const sel = menuSelections[m.id];
+        if (sel === undefined) return m;
+        const isIn = m.recipeIds.includes(recipe.id);
+        if (sel && !isIn) return { ...m, recipeIds: [...m.recipeIds, recipe.id] };
+        if (!sel && isIn) return { ...m, recipeIds: m.recipeIds.filter(id => id !== recipe.id) };
+        return m;
+      }));
+      setMenuSelections({});
+      setMenuStatus({ type: 'success', message: 'Your menus have been updated.' });
+      setTimeout(() => setMenuStatus(null), 5000);
+    } catch {
+      setMenuStatus({ type: 'error', message: 'Failed to update menus. Please try again.' });
+    } finally {
+      setSavingMenus(false);
     }
   }
 
@@ -709,7 +753,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
               Print Recipe
             </button>
             <a
-              href={recipeToDataURI({ ...recipe, requiredCookware: recipe.requiredCookware.map((c) => c.name), photoUrl: exportPhotoUrl })}
+              href={recipeToDataURI({ ...recipe, requiredCookware: recipe.requiredCookware.map((c) => c.name).filter(Boolean), photoUrl: exportPhotoUrl })}
               download={`${recipe.slug || 'recipe'}.html`}
               className="flex flex-col md:flex-row items-center gap-1 md:gap-2 btn-secondary text-sm justify-self-center border-0 bg-transparent md:border md:border-[var(--color-border-card)] md:bg-transparent"
             >
@@ -757,6 +801,103 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
             )}
           </div>
         </div>
+
+        <hr style={{ borderColor: 'var(--color-border-card)' }} />
+
+        {owner && menus.length > 0 && recipe && (() => {
+          // Ordered buckets: menus matching these slugs/titles show in this order.
+          // Anything not matched goes in "Show all menus" details.
+          const KNOWN_ORDER = [
+            // Row 1: special
+            'baby', 'social',
+            // Row 2: categories
+            'todays-specials', 'daily', 'this-week',
+            // Row 3: meals
+            'breakfast', 'lunch', 'dinner', 'dessert',
+            // Row 4: courses
+            'appetizer', 'main-course', 'side', 'beverage',
+            // Row 5: days
+            'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
+          ];
+          const slugLower = (m: typeof menus[number]) => m.slug?.toLowerCase() || m.title.toLowerCase();
+          const knownMenus = KNOWN_ORDER
+            .map(key => menus.find(m => slugLower(m) === key))
+            .filter((m): m is typeof menus[number] => !!m);
+          const knownIds = new Set(knownMenus.map(m => m.id));
+          const otherMenus = menus.filter(m => !knownIds.has(m.id));
+          const pendingCount = Object.keys(menuSelections).length;
+
+          function renderCheckbox(menu: typeof menus[number]) {
+            const currentlyIn = menu.recipeIds.includes(recipe!.id);
+            const pending = menuSelections[menu.id];
+            const checked = pending !== undefined ? pending : currentlyIn;
+            return (
+              <label
+                key={menu.id}
+                className={`inline-flex items-center gap-2 text-sm cursor-pointer transition-colors px-2 py-1.5 ${checked ? 'text-accent' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => {
+                    const val = e.target.checked;
+                    setMenuSelections((prev) => {
+                      const next = { ...prev };
+                      if (val === currentlyIn) delete next[menu.id];
+                      else next[menu.id] = val;
+                      return next;
+                    });
+                  }}
+                  className="w-4 h-4 accent-accent"
+                />
+                {menu.title}
+              </label>
+            );
+          }
+
+          return (
+            <form onSubmit={handleSaveMenus} className="py-16">
+              <div className="flex justify-center mb-3 opacity-60"><ForkKnife size={24} weight="light" aria-hidden /></div>
+              <h2 className="text-xl font-bold mb-3 md:text-center">Add to a Menu</h2>
+              <p className="text-sm text-[var(--color-text-secondary)] mb-6 md:text-center legible pretty md:mx-auto">
+                Select which menus this recipe should appear on.
+              </p>
+              <div className="flex flex-wrap gap-3 md:justify-center">
+                {knownMenus.map(renderCheckbox)}
+              </div>
+              {otherMenus.length > 0 && (
+                <details className="mt-4 md:text-center">
+                  <summary className="text-sm text-[var(--color-text-secondary)] cursor-pointer hover:underline">
+                    Show all menus
+                  </summary>
+                  <div className="flex flex-wrap gap-3 md:justify-center mt-3">
+                    {otherMenus.map(renderCheckbox)}
+                  </div>
+                </details>
+              )}
+              <div className="mt-6 md:text-center">
+                <button
+                  type="submit"
+                  disabled={savingMenus || pendingCount === 0}
+                  aria-busy={savingMenus}
+                  className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save Menu Changes
+                </button>
+                {menuStatus && (
+                  <p
+                    role={menuStatus.type === 'error' ? 'alert' : 'status'}
+                    aria-live="polite"
+                    className={`mt-3 text-sm font-semibold ${menuStatus.type === 'error' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}`}
+                  >
+                    {menuStatus.message}
+                  </p>
+                )}
+              </div>
+            </form>
+          );
+        })()}
+
         </div>
       </aside>
 
