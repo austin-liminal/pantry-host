@@ -78,6 +78,7 @@ export default function RecipeImportPage() {
 
     const ids = Array.from(selected);
     let done = 0;
+    let failed = 0;
 
     for (const id of ids) {
       try {
@@ -97,14 +98,23 @@ export default function RecipeImportPage() {
         });
       } catch (err) {
         console.error(`Failed to import recipe ${id}:`, err);
+        failed++;
       }
       done++;
       setImportProgress({ done, total: ids.length });
+      // Rate-limit courtesy: pause between fetches
+      if (done < ids.length) await new Promise((r) => setTimeout(r, 1200));
     }
 
     setImporting(false);
     setImportProgress(null);
-    navigate('/recipes#stage');
+    if (failed > 0 && failed === ids.length) {
+      setError(`All ${failed} imports failed. The Cooklang Federation may be rate-limiting requests — try again in a minute.`);
+    } else if (failed > 0) {
+      setError(`${done - failed} of ${ids.length} recipes imported. ${failed} failed (rate limit). Try importing the rest in a minute.`);
+    } else {
+      navigate('/recipes#stage');
+    }
   }
 
   return (

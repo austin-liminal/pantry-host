@@ -193,6 +193,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
     setClError(null);
     const ids = Array.from(clSelected);
     let done = 0;
+    let failed = 0;
     for (const id of ids) {
       try {
         const full = await getFederationRecipe(id);
@@ -212,13 +213,21 @@ export default function RecipeImportPage({ kitchen }: Props) {
         });
       } catch (err) {
         console.error(`Failed to import recipe ${id}:`, err);
+        failed++;
       }
       done++;
       setClImportProgress({ done, total: ids.length });
+      if (done < ids.length) await new Promise((r) => setTimeout(r, 1200));
     }
     setClImporting(false);
     setClImportProgress(null);
-    router.push(`${recipesBase}#stage`);
+    if (failed > 0 && failed === ids.length) {
+      setClError(`All ${failed} imports failed. The Cooklang Federation may be rate-limiting requests \u2014 try again in a minute.`);
+    } else if (failed > 0) {
+      setClError(`${done - failed} of ${ids.length} recipes imported. ${failed} failed (rate limit). Try importing the rest in a minute.`);
+    } else {
+      router.push(`${recipesBase}#stage`);
+    }
   }
 
   useEffect(() => {
