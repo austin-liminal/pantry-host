@@ -116,7 +116,7 @@ export default function IngredientsPage({ kitchen }: Props) {
 
       {sortedCategories.length > 1 && (
         <nav aria-label="Pantry categories" className="sticky top-0 z-10 bg-body-translucent backdrop-blur pt-4 pb-2 overflow-x-auto overflow-y-hidden">
-          <ul className="flex gap-2 whitespace-nowrap pb-1 px-4 md:px-8 max-w-4xl mx-auto" role="list">
+          <ul className="flex gap-2 whitespace-nowrap pb-1 px-4 md:px-8" role="list">
             {sortedCategories.map((cat) => (
               <li key={cat}>
                 <a
@@ -125,7 +125,7 @@ export default function IngredientsPage({ kitchen }: Props) {
                     const el = document.getElementById(`cat-${cat}`);
                     if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth' }); history.replaceState(null, '', `#cat-${cat}`); }
                   }}
-                  className="text-xs font-medium uppercase tracking-wide px-3 py-1.5 rounded-full border border-[var(--color-border-card)] text-[var(--color-text-secondary)] hover:text-accent hover:border-accent transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide px-3 py-1.5 rounded-full border border-[var(--color-border-card)] text-[var(--color-text-secondary)] hover:text-accent hover:border-accent transition-colors whitespace-nowrap"
                 >
                   {cat} <span className="tabular-nums text-[var(--color-text-secondary)]">{grouped[cat].length}</span>
                 </a>

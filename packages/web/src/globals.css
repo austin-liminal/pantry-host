@@ -673,3 +673,202 @@
 .credits-details[open] .credits-chevron {
   transform: rotate(180deg);
 }
+
+/* ── Component classes (shared with self-hosted app) ───────────────────────── */
+
+@layer components {
+  /* Btn base */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    border: 1px solid transparent;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    border: 1px solid transparent;
+    min-height: 44px;
+    min-width: 44px;
+    background-color: var(--color-accent);
+    color: var(--color-bg-body);
+    cursor: pointer;
+  }
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+  }
+  .btn-primary:hover {
+    text-decoration: underline;
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    border: 1px solid var(--color-border-card);
+    min-height: 44px;
+    min-width: 44px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+  }
+  .btn-secondary:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+  }
+  .btn-secondary:hover {
+    text-decoration: underline;
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    border: 1px solid transparent;
+    min-height: 44px;
+    min-width: 44px;
+    background-color: #dc2626;
+    color: #ffffff;
+    cursor: pointer;
+  }
+  .btn-danger:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 2px;
+  }
+  .btn-danger:hover {
+    background-color: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    body:not([data-color-scheme="light"]) .btn-danger {
+      background-color: #ef4444;
+    }
+    body:not([data-color-scheme="light"]) .btn-danger:hover {
+      background-color: #f87171;
+    }
+  }
+  body[data-color-scheme="dark"] .btn-danger {
+    background-color: #ef4444;
+  }
+  body[data-color-scheme="dark"] .btn-danger:hover {
+    background-color: #f87171;
+  }
+
+  .add-to-list-cta {
+    color: currentColor;
+    border: 1px solid currentColor;
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+  }
+  .add-to-list-cta:hover,
+  .add-to-list-cta:focus {
+    opacity: 1;
+  }
+  .add-to-list-cta.is-active {
+    opacity: 1;
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-bg-body);
+  }
+
+  /* Form elements */
+  .field-label {
+    display: block;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--color-text-primary);
+  }
+
+  .field-input {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border-card);
+    color: var(--color-text-primary);
+    min-height: 44px;
+  }
+  .field-input:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 0;
+  }
+
+  .field-select {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5rem;
+    background-color: var(--color-bg-card);
+    border: 1px solid var(--color-border-card);
+    color: var(--color-text-primary);
+    min-height: 44px;
+    appearance: none;
+  }
+  .field-select:focus-visible {
+    outline: 2px solid var(--color-ring-focus);
+    outline-offset: 0;
+  }
+
+  /* Tag pill */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+    background-color: var(--color-bg-body);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border-card);
+  }
+
+  /* Card */
+  .card {
+    border: 1px solid var(--color-border-card);
+    background-color: var(--color-bg-card);
+    transition: border-color 0.15s;
+  }
+  .card:hover {
+    border-color: var(--color-text-secondary);
+  }
+
+  /* High contrast: thicker borders */
+  body[data-high-contrast] .card,
+  body[data-high-contrast] .tag,
+  body[data-high-contrast] .field-input {
+    border-width: 2px;
+  }
+}

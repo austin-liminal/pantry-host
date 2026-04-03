@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { recipeToDataURI, downloadRecipeICS, imageToDataURI } from '@pantry-host/shared/export-recipe';
+import { getFileURL } from '@/lib/storage-opfs';
+import { PencilSimple, Trash, Printer, CalendarPlus, Export } from '@phosphor-icons/react';
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -20,6 +22,7 @@ interface Recipe {
   cookTime: number | null;
   tags: string[];
   requiredCookware: { name: string }[];
+  photoUrl: string | null;
   queued: boolean;
   ingredients: RecipeIngredient[];
   createdAt: string;
@@ -28,7 +31,7 @@ interface Recipe {
 const RECIPE_QUERY = `query($id: String!) {
   recipe(id: $id) {
     id slug title description instructions servings prepTime cookTime
-    tags requiredCookware { name } queued createdAt
+    tags requiredCookware { name } photoUrl queued createdAt
     ingredients { ingredientName quantity unit }
   }
 }`;
@@ -39,19 +42,30 @@ export default function RecipeDetailPage() {
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [exportPhotoUrl, setExportPhotoUrl] = useState<string | null>(null);
+  const [displayPhotoUrl, setDisplayPhotoUrl] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  // Resolve local upload photos to base64 data URIs for export
+  // Resolve photo URLs for display and export
   useEffect(() => {
     const photoUrl = recipe?.photoUrl;
-    if (!photoUrl) { setExportPhotoUrl(null); return; }
-    if (!photoUrl.startsWith('/uploads/')) {
-      setExportPhotoUrl(photoUrl);
+    if (!photoUrl) { setExportPhotoUrl(null); setDisplayPhotoUrl(null); return; }
+    if (photoUrl.startsWith('opfs://')) {
+      const filename = photoUrl.replace('opfs://', '');
+      getFileURL(filename)
+        .then((blobUrl) => { setDisplayPhotoUrl(blobUrl); setExportPhotoUrl(blobUrl); })
+        .catch(() => { setDisplayPhotoUrl(null); setExportPhotoUrl(null); });
       return;
     }
-    const uuid = photoUrl.replace(/^\/uploads\//, '').replace(/\.\w+$/, '');
-    imageToDataURI(`/uploads/${uuid}-400.jpg`)
-      .then(setExportPhotoUrl)
-      .catch(() => setExportPhotoUrl(null));
+    if (photoUrl.startsWith('/uploads/')) {
+      setDisplayPhotoUrl(photoUrl);
+      const uuid = photoUrl.replace(/^\/uploads\//, '').replace(/\.\w+$/, '');
+      imageToDataURI(`/uploads/${uuid}-400.jpg`)
+        .then(setExportPhotoUrl)
+        .catch(() => setExportPhotoUrl(photoUrl));
+      return;
+    }
+    setDisplayPhotoUrl(photoUrl);
+    setExportPhotoUrl(photoUrl);
   }, [recipe?.photoUrl]);
 
   useEffect(() => {
@@ -63,7 +77,7 @@ export default function RecipeDetailPage() {
   }, [slug]);
 
   async function handleDelete() {
-    if (!recipe || !confirm('Delete this recipe?')) return;
+    if (!recipe) return;
     await gql(`mutation($id: String!) { deleteRecipe(id: $id) }`, { id: recipe.id });
     navigate('/recipes#stage');
   }
@@ -86,34 +100,58 @@ export default function RecipeDetailPage() {
         &larr; Back to recipes
       </Link>
 
-      <h1
-        className="text-3xl font-bold mb-2"
-      >
-        {recipe.title}
-      </h1>
+      {displayPhotoUrl && (
+        <div className="mb-4">
+          <img
+            src={displayPhotoUrl}
+            alt={recipe.title}
+            className="w-full max-h-72 object-cover rounded-xl border border-[var(--color-border-card)]"
+          />
+        </div>
+      )}
+
+      <h1 className="text-3xl font-bold mb-2">{recipe.title}</h1>
 
       {recipe.description && (
         <p className="text-[var(--color-text-secondary)] mb-4">{recipe.description}</p>
       )}
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-6">
         <button
           onClick={handleToggleQueue}
-          className="add-to-list-cta px-3 py-1.5 rounded-lg text-sm"
+          className={`add-to-list-cta px-3 py-1.5 rounded-lg text-sm${recipe.queued ? ' is-active' : ''}`}
         >
           {recipe.queued ? 'Remove from list' : 'Add to grocery list'}
         </button>
-        <button
-          onClick={handleDelete}
-          className="px-3 py-1.5 rounded-lg text-sm border border-red-300 text-red-600 hover:underline"
-          aria-label="Delete"
-        >
-          Delete
-        </button>
+        <div className="flex gap-2 ml-auto">
+          <Link
+            to={`/recipes/${slug}/edit`}
+            className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2"
+            aria-label="Edit"
+          >
+            <PencilSimple size={16} aria-hidden />
+          </Link>
+          {deleteConfirm ? (
+            <div className="flex gap-1 items-center">
+              <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
+              <button type="button" autoFocus onClick={handleDelete} className="btn-danger text-xs px-2 py-1" style={{ minHeight: 'auto' }}>Yes</button>
+              <button type="button" onClick={() => setDeleteConfirm(false)} className="btn-secondary text-xs px-2 py-1" style={{ minHeight: 'auto' }}>No</button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDeleteConfirm(true)}
+              className="text-[var(--color-text-secondary)] hover:text-red-500 p-2"
+              aria-label="Delete"
+            >
+              <Trash size={16} aria-hidden />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-5">
+        <div className="card rounded-xl p-5">
           <h2 className="font-semibold mb-3">Ingredients</h2>
           {recipe.ingredients.length === 0 ? (
             <p className="text-sm text-[var(--color-text-secondary)]">No ingredients listed.</p>
@@ -130,7 +168,7 @@ export default function RecipeDetailPage() {
           )}
         </div>
 
-        <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-5">
+        <div className="card rounded-xl p-5">
           <h2 className="font-semibold mb-3">Details</h2>
           <dl className="space-y-1.5 text-sm">
             {recipe.servings && <div><dt className="inline font-medium">Servings:</dt> <dd className="inline">{recipe.servings}</dd></div>}
@@ -140,16 +178,14 @@ export default function RecipeDetailPage() {
           {recipe.tags.length > 0 && (
             <div className="flex gap-1.5 mt-3 flex-wrap">
               {recipe.tags.map((tag) => (
-                <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-accent-subtle)] text-[var(--color-text-secondary)]">
-                  {tag}
-                </span>
+                <span key={tag} className="tag">{tag}</span>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-5">
+      <div className="mt-6 card rounded-xl p-5">
         <h2 className="font-semibold mb-3">Instructions</h2>
         <div className="text-sm whitespace-pre-wrap leading-relaxed">{recipe.instructions}</div>
       </div>
@@ -157,29 +193,25 @@ export default function RecipeDetailPage() {
       <div className="mt-6">
         <h2 className="font-semibold mb-3">Share the Love</h2>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border border-[var(--color-border-card)] hover:underline"
-          >
-            Print
+          <button type="button" onClick={() => window.print()} className="btn-secondary text-sm">
+            <Printer size={16} aria-hidden /> Print
           </button>
           <a
             href={recipeToDataURI({ ...recipe, requiredCookware: recipe.requiredCookware.map(c => c.name).filter(Boolean), source: '', sourceUrl: null, photoUrl: exportPhotoUrl })}
             download={`${recipe.slug || 'recipe'}.html`}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border border-[var(--color-border-card)] hover:underline"
+            className="btn-secondary text-sm"
           >
-            Export HTML
+            <Export size={16} aria-hidden /> Export HTML
           </a>
           <button
             type="button"
             onClick={() => downloadRecipeICS({ ...recipe, requiredCookware: recipe.requiredCookware.map(c => c.name).filter(Boolean), source: '', sourceUrl: null, photoUrl: exportPhotoUrl })}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm border border-[var(--color-border-card)] hover:underline"
+            className="btn-secondary text-sm"
           >
-            Add to Calendar
+            <CalendarPlus size={16} aria-hidden /> Add to Calendar
           </button>
         </div>
-        <p className="text-sm text-[var(--color-text-secondary)] mt-3">Print this recipe, export it as HTML to share with a friend, or add it to your calendar for meal planning.</p>
+        <p className="text-sm text-[var(--color-text-secondary)] mt-3 legible pretty">Print this recipe, export it as HTML to share with a friend, or add it to your calendar for meal planning.</p>
       </div>
     </div>
   );

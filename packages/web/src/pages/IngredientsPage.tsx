@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
 import { CATEGORIES } from '@pantry-host/shared/constants';
+import { Trash } from '@phosphor-icons/react';
+import BatchScanSession from '../components/BatchScanSession';
 
 interface Ingredient {
   id: string;
@@ -19,6 +21,13 @@ export default function IngredientsPage() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [isSecure, setIsSecure] = useState(false);
+
+  useEffect(() => {
+    setIsSecure(window.location.protocol === 'https:' || window.location.hostname === 'localhost');
+  }, []);
 
   async function load() {
     const { ingredients: list } = await gql<{ ingredients: Ingredient[] }>(QUERY);
@@ -42,6 +51,7 @@ export default function IngredientsPage() {
 
   async function handleDelete(id: string) {
     await gql(`mutation($id: String!) { deleteIngredient(id: $id) }`, { id });
+    setDeleteConfirm(null);
     load();
   }
 
@@ -53,11 +63,24 @@ export default function IngredientsPage() {
 
   return (
     <div>
-      <h1
-        className="text-3xl font-bold mb-6"
-      >
-        Pantry
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <h1 className="text-3xl font-bold">Pantry</h1>
+        <div className="flex gap-2">
+          {isSecure && (
+            <button type="button" onClick={() => setScanning(true)} className="btn-secondary">
+              Batch Scan
+            </button>
+          )}
+        </div>
+      </div>
+
+      {scanning && (
+        <BatchScanSession
+          open={scanning}
+          onComplete={() => { setScanning(false); load(); }}
+          onCancel={() => setScanning(false)}
+        />
+      )}
 
       <form onSubmit={handleAdd} className="flex gap-2 mb-6">
         <input
@@ -65,24 +88,19 @@ export default function IngredientsPage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Add ingredient..."
-          className="flex-1 px-3 py-2 rounded-lg border border-[var(--color-border-card)] bg-[var(--color-bg-card)] text-sm"
+          className="field-input flex-1"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-[var(--color-border-card)] bg-[var(--color-bg-card)] text-sm"
+          className="field-select w-auto"
         >
           <option value="">Category</option>
           {CATEGORIES.map((c) => (
             <option key={c} value={c}>{c}</option>
           ))}
         </select>
-        <button
-          type="submit"
-          className="px-4 py-2 rounded-lg text-sm font-semibold bg-[var(--color-accent)] text-[var(--color-bg-body)] hover:underline"
-        >
-          Add
-        </button>
+        <button type="submit" className="btn-primary">Add</button>
       </form>
 
       {loading ? (
@@ -101,24 +119,30 @@ export default function IngredientsPage() {
             <h2 className="font-semibold text-sm uppercase tracking-wider text-[var(--color-text-secondary)] mb-2">
               {cat}
             </h2>
-            <div className="space-y-1">
+            <ul className="divide-y divide-[var(--color-border-card)]">
               {items.map((ing) => (
-                <div
-                  key={ing.id}
-                  className="flex items-center justify-between rounded-lg border border-[var(--color-border-card)] bg-[var(--color-bg-card)] px-4 py-2"
-                >
-                  <span className="text-sm">{ing.name}</span>
-                  <button
-                    onClick={() => handleDelete(ing.id)}
-                    className="text-xs text-red-500 hover:underline"
-                    aria-label="Delete"
-                    aria-describedby={`ing-${ing.id}`}
-                  >
-                    Delete
-                  </button>
-                </div>
+                <li key={ing.id} className="flex items-center gap-3 py-3">
+                  <span id={`ing-${ing.id}`} className="flex-1 min-w-0 text-sm">{ing.name}</span>
+                  {deleteConfirm === ing.id ? (
+                    <div className="flex gap-1 items-center shrink-0">
+                      <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
+                      <button type="button" autoFocus onClick={() => handleDelete(ing.id)} className="btn-danger text-xs px-2 py-1" style={{ minHeight: 'auto' }} aria-label="Confirm delete" aria-describedby={`ing-${ing.id}`}>Yes</button>
+                      <button type="button" onClick={() => setDeleteConfirm(null)} className="btn-secondary text-xs px-2 py-1" style={{ minHeight: 'auto' }} aria-label="Cancel delete" aria-describedby={`ing-${ing.id}`}>No</button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm(ing.id)}
+                      className="text-[var(--color-text-secondary)] hover:text-red-500 p-2 shrink-0"
+                      aria-label="Delete"
+                      aria-describedby={`ing-${ing.id}`}
+                    >
+                      <Trash size={16} aria-hidden />
+                    </button>
+                  )}
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         ))
       )}

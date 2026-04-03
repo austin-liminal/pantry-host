@@ -137,7 +137,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
     // Fetch LAN IP for guest link (owner only).
     // Reads from a static JSON file generated at build/start time.
     if (isOwner()) {
-      fetch('/network-info.json').then(r => r.json()).then(d => { if (d.ip) setLanIP(d.ip); }).catch(() => {});
+      fetch('/network-info.json').then(r => r.json()).then(d => { if (d.hostname || d.ip) setLanIP(d.hostname || d.ip); }).catch(() => {});
 
       // Fetch menus for "Add to a Menu" section
       gql<{ menus: { id: string; slug: string; title: string; category: string | null; recipes: { recipe: { id: string } }[] }[] }>(

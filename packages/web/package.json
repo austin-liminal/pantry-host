@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@pantry-host/shared": "*",
     "@electric-sql/pglite": "^0.2.17",
+    "@pantry-host/shared": "*",
     "@phosphor-icons/react": "^2.1.10",
     "@pothos/core": "^4.6.0",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "graphql": "^16.10.0",
     "graphql-yoga": "^5.10.11",
     "react": "^19.2.4",
@@ -21,10 +24,10 @@
     "react-router-dom": "^7.1.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",
-    "@tailwindcss/vite": "^4.1.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.0"

@@ -1,21 +1,32 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
+import { getFileURL } from '@/lib/storage-opfs';
 import { storePhotoBlob, fetchAndStorePhoto } from '@/lib/photo-helpers';
 
-const CREATE_MUTATION = `mutation(
-  $title: String!,
+const RECIPE_QUERY = `query($id: String!) {
+  recipe(id: $id) {
+    id slug title description instructions servings prepTime cookTime
+    tags requiredCookware { id name } photoUrl
+    ingredients { ingredientName quantity unit }
+  }
+}`;
+
+const UPDATE_MUTATION = `mutation(
+  $id: String!,
+  $title: String,
   $description: String,
-  $instructions: String!,
+  $instructions: String,
   $servings: Int,
   $prepTime: Int,
   $cookTime: Int,
   $tags: [String!],
   $photoUrl: String,
   $requiredCookwareIds: [String!],
-  $ingredients: [RecipeIngredientInput!]!
+  $ingredients: [RecipeIngredientInput!]
 ) {
-  createRecipe(
+  updateRecipe(
+    id: $id,
     title: $title,
     description: $description,
     instructions: $instructions,
@@ -29,12 +40,37 @@ const CREATE_MUTATION = `mutation(
   ) { id slug }
 }`;
 
-export default function RecipeNewPage() {
+interface RecipeIngredient {
+  ingredientName: string;
+  quantity: number | null;
+  unit: string | null;
+}
+
+interface Recipe {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  instructions: string;
+  servings: number | null;
+  prepTime: number | null;
+  cookTime: number | null;
+  tags: string[];
+  requiredCookware: { id: string; name: string }[];
+  photoUrl: string | null;
+  ingredients: RecipeIngredient[];
+}
+
+export default function RecipeEditPage() {
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [servings, setServings] = useState('2');
+  const [servings, setServings] = useState('');
   const [prepTime, setPrepTime] = useState('');
   const [cookTime, setCookTime] = useState('');
   const [tags, setTags] = useState('');
@@ -52,6 +88,38 @@ export default function RecipeNewPage() {
       .then((d) => setCookwareItems(d.cookware))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!slug) return;
+    gql<{ recipe: Recipe | null }>(RECIPE_QUERY, { id: slug })
+      .then((d) => {
+        if (!d.recipe) return;
+        const r = d.recipe;
+        setRecipe(r);
+        setTitle(r.title);
+        setDescription(r.description ?? '');
+        setInstructions(r.instructions);
+        setServings(r.servings?.toString() ?? '');
+        setPrepTime(r.prepTime?.toString() ?? '');
+        setCookTime(r.cookTime?.toString() ?? '');
+        setTags(r.tags.join(', '));
+        setCookwareInput(r.requiredCookware.map((c) => c.name).join(', '));
+        setPhotoUrl(r.photoUrl ?? '');
+        setIngredientLines(
+          r.ingredients
+            .map((i) => [i.quantity, i.unit, i.ingredientName].filter(Boolean).join(' '))
+            .join('\n')
+        );
+        // Resolve photo preview
+        if (r.photoUrl?.startsWith('opfs://')) {
+          getFileURL(r.photoUrl.replace('opfs://', ''))
+            .then(setPhotoPreview)
+            .catch(() => {});
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [slug]);
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -94,7 +162,7 @@ export default function RecipeNewPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim() || !instructions.trim()) return;
+    if (!recipe || !title.trim() || !instructions.trim()) return;
     setSaving(true);
 
     const ingredients = ingredientLines
@@ -120,7 +188,8 @@ export default function RecipeNewPage() {
         finalPhotoUrl = path;
       }
 
-      const { createRecipe } = await gql<{ createRecipe: { slug: string } }>(CREATE_MUTATION, {
+      const { updateRecipe } = await gql<{ updateRecipe: { slug: string } }>(UPDATE_MUTATION, {
+        id: recipe.id,
         title: title.trim(),
         description: description.trim() || null,
         instructions: instructions.trim(),
@@ -134,7 +203,7 @@ export default function RecipeNewPage() {
           : [],
         ingredients,
       });
-      navigate(`/recipes/${createRecipe.slug}#stage`);
+      navigate(`/recipes/${updateRecipe.slug}#stage`);
     } catch (err) {
       console.error(err);
       setSaving(false);
@@ -143,13 +212,16 @@ export default function RecipeNewPage() {
 
   const previewSrc = photoPreview || (photoUrl && !photoUrl.startsWith('opfs://') ? photoUrl : '');
 
+  if (loading) return <div className="h-40 rounded-xl bg-[var(--color-bg-card)] animate-pulse" />;
+  if (!recipe) return <p className="text-[var(--color-text-secondary)]">Recipe not found.</p>;
+
   return (
     <div>
-      <Link to="/recipes" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
-        &larr; Back to recipes
+      <Link to={`/recipes/${slug}`} className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
+        &larr; Back to recipe
       </Link>
 
-      <h1 className="text-3xl font-bold mb-6">New Recipe</h1>
+      <h1 className="text-3xl font-bold mb-6">Edit Recipe</h1>
 
       <form onSubmit={handleSubmit} onPaste={handlePaste} className="space-y-4 max-w-2xl">
         <div>
@@ -288,13 +360,21 @@ export default function RecipeNewPage() {
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="btn-primary disabled:opacity-50"
-        >
-          {saving ? 'Saving\u2026' : 'Create recipe'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary disabled:opacity-50"
+          >
+            {saving ? 'Saving\u2026' : 'Save Changes'}
+          </button>
+          <Link
+            to={`/recipes/${slug}`}
+            className="btn-secondary"
+          >
+            Cancel
+          </Link>
+        </div>
       </form>
     </div>
   );
