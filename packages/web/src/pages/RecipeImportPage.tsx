@@ -13,13 +13,13 @@ import { MagnifyingGlass } from '@phosphor-icons/react';
 const CREATE_MUTATION = `mutation(
   $title: String!, $description: String, $instructions: String!,
   $servings: Int, $prepTime: Int, $cookTime: Int,
-  $tags: [String!], $photoUrl: String,
+  $tags: [String!], $photoUrl: String, $sourceUrl: String,
   $ingredients: [RecipeIngredientInput!]!
 ) {
   createRecipe(
     title: $title, description: $description, instructions: $instructions,
     servings: $servings, prepTime: $prepTime, cookTime: $cookTime,
-    tags: $tags, photoUrl: $photoUrl, ingredients: $ingredients
+    tags: $tags, photoUrl: $photoUrl, sourceUrl: $sourceUrl, ingredients: $ingredients
   ) { id slug }
 }`;
 
@@ -92,6 +92,7 @@ export default function RecipeImportPage() {
           cookTime: recipe.cookTime ?? null,
           tags: recipe.tags ?? [],
           photoUrl: recipe.photoUrl ?? null,
+          sourceUrl: recipe.sourceUrl ?? null,
           ingredients: recipe.ingredients,
         });
       } catch (err) {

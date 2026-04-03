@@ -206,6 +206,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
           cookTime: recipe.cookTime ?? null,
           tags: recipe.tags ?? [],
           photoUrl: recipe.photoUrl ?? null,
+          sourceUrl: recipe.sourceUrl ?? null,
           ingredients: recipe.ingredients,
           kitchenSlug: kitchen,
         });

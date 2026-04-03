@@ -24,6 +24,7 @@ interface Recipe {
   tags: string[];
   requiredCookware: { name: string }[];
   photoUrl: string | null;
+  sourceUrl: string | null;
   queued: boolean;
   ingredients: RecipeIngredient[];
   createdAt: string;
@@ -32,7 +33,7 @@ interface Recipe {
 const RECIPE_QUERY = `query($id: String!) {
   recipe(id: $id) {
     id slug title description instructions servings prepTime cookTime
-    tags requiredCookware { name } photoUrl queued createdAt
+    tags requiredCookware { name } photoUrl sourceUrl queued createdAt
     ingredients { ingredientName quantity unit }
   }
 }`;
@@ -182,6 +183,11 @@ export default function RecipeDetailPage() {
                 <span key={tag} className="tag">{tag}</span>
               ))}
             </div>
+          )}
+          {recipe.sourceUrl && (
+            <p className="mt-3 text-xs text-[var(--color-text-secondary)]">
+              Source: <a href={recipe.sourceUrl} className="underline" rel="noopener noreferrer" target="_blank">{recipe.sourceUrl.includes('github.com') ? recipe.sourceUrl.replace('https://github.com/', '').split('/').slice(0, 2).join('/') : new URL(recipe.sourceUrl).hostname}</a>
+            </p>
           )}
         </div>
       </div>
