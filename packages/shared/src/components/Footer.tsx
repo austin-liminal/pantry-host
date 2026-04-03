@@ -222,6 +222,18 @@ function LogoGitLFS({ size = 24 }: { size?: number }) {
   );
 }
 
+function LogoCooklang({ size = 24 }: { size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <title>Cooklang</title>
+      <path d="M60 96C79.8823 96 96 79.8823 96 60H24C24 79.8823 40.1177 96 60 96Z" opacity="0.6" />
+      <circle cx="36" cy="36" r="8" />
+      <circle cx="84" cy="36" r="8" />
+      <circle cx="60" cy="32" r="8" />
+    </svg>
+  );
+}
+
 const CREDITS: { name: string; href: string; Logo: React.FC<{ size?: number }> }[] = [
   { name: 'JP DeVries', href: 'https://devries.jp', Logo: LogoJP },
   { name: 'HTML5', href: 'https://html.spec.whatwg.org/', Logo: LogoHTML5 },
@@ -237,6 +249,7 @@ const CREDITS: { name: string; href: string; Logo: React.FC<{ size?: number }> }
   { name: 'PWA', href: 'https://web.dev/progressive-web-apps/', Logo: LogoPWA },
   { name: 'Docker', href: 'https://www.docker.com/', Logo: LogoDocker },
   { name: 'Open Food Facts', href: 'https://world.openfoodfacts.org/', Logo: LogoOpenFoodFacts },
+  { name: 'Cooklang', href: 'https://cooklang.org/', Logo: LogoCooklang },
   { name: 'Cloudflare', href: 'https://www.cloudflare.com/', Logo: LogoCloudflare },
   { name: 'Anthropic', href: 'https://www.anthropic.com/', Logo: LogoAnthropic },
   { name: 'Tailscale', href: 'https://tailscale.com/', Logo: LogoTailscale },
