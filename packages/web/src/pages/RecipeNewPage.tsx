@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { storePhotoBlob, fetchAndStorePhoto } from '@/lib/photo-helpers';
+import IngredientEditor, { resolveIngredients, type IngredientRow } from '../components/IngredientEditor';
 
 const CREATE_MUTATION = `mutation(
   $title: String!,
@@ -38,18 +39,25 @@ export default function RecipeNewPage() {
   const [prepTime, setPrepTime] = useState('');
   const [cookTime, setCookTime] = useState('');
   const [tags, setTags] = useState('');
-  const [ingredientLines, setIngredientLines] = useState('');
+  const [ingredientRows, setIngredientRows] = useState<IngredientRow[]>([
+    { ingredientName: '', quantity: '', unit: 'whole', sourceRecipeId: null },
+  ]);
+  const [ingredientError, setIngredientError] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState('');
   const [photoPreview, setPhotoPreview] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [cookwareInput, setCookwareInput] = useState('');
   const [cookwareItems, setCookwareItems] = useState<{ id: string; name: string }[]>([]);
+  const [allRecipes, setAllRecipes] = useState<{ id: string; slug: string; title: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     gql<{ cookware: { id: string; name: string }[] }>(`{ cookware { id name } }`)
       .then((d) => setCookwareItems(d.cookware))
+      .catch(() => {});
+    gql<{ recipes: { id: string; slug: string; title: string }[] }>(`{ recipes { id slug title } }`)
+      .then((d) => setAllRecipes(d.recipes))
       .catch(() => {});
   }, []);
 
@@ -95,25 +103,17 @@ export default function RecipeNewPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !instructions.trim()) return;
+
+    // Resolve @slug references and validate
+    const { ingredients, error } = resolveIngredients(ingredientRows, allRecipes);
+    if (error) {
+      setIngredientError(error);
+      return;
+    }
+
     setSaving(true);
 
-    const ingredients = ingredientLines
-      .split('\n')
-      .filter((l) => l.trim())
-      .map((line) => {
-        const match = line.match(/^(\d+\.?\d*)\s*(\w+)?\s+(.+)$/);
-        if (match) {
-          return {
-            ingredientName: match[3].trim(),
-            quantity: parseFloat(match[1]),
-            unit: match[2] || null,
-          };
-        }
-        return { ingredientName: line.trim() };
-      });
-
     try {
-      // If external URL, attempt to fetch and store in OPFS
       let finalPhotoUrl = photoUrl || null;
       if (finalPhotoUrl && !finalPhotoUrl.startsWith('opfs://')) {
         const { path } = await fetchAndStorePhoto(finalPhotoUrl);
@@ -266,16 +266,12 @@ export default function RecipeNewPage() {
           />
         </div>
 
-        <div>
-          <label className="field-label">Ingredients (one per line)</label>
-          <textarea
-            value={ingredientLines}
-            onChange={(e) => setIngredientLines(e.target.value)}
-            rows={6}
-            placeholder={"2 cups flour\n1 tsp salt\n3 eggs"}
-            className="field-input w-full font-mono"
-          />
-        </div>
+        <IngredientEditor
+          rows={ingredientRows}
+          onChange={setIngredientRows}
+          error={ingredientError}
+          onClearError={() => setIngredientError(null)}
+        />
 
         <div>
           <label className="field-label">Instructions</label>
