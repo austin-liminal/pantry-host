@@ -106,10 +106,8 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
     onChange([...rows, { ingredientName: '', quantity: '', unit: 'whole', sourceRecipeId: null }]);
   }
 
-  function addRecipeRow(recipeId: string) {
-    const recipe = recipes.find((r) => r.id === recipeId);
-    if (!recipe) return;
-    onChange([...rows, { ingredientName: recipe.title, quantity: '', unit: 'whole', sourceRecipeId: recipe.id }]);
+  function addRecipeRow() {
+    onChange([...rows, { ingredientName: '', quantity: '', unit: 'whole', sourceRecipeId: '__pick__' }]);
   }
 
   useEffect(() => {
@@ -174,9 +172,18 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
             {rows.map((row, idx) => (
               <li key={idx} className="flex flex-wrap items-start gap-2">
                 {row.sourceRecipeId ? (
-                  <span className="field-input flex-1 text-[var(--color-accent)]">
-                    @{recipes.find((r) => r.id === row.sourceRecipeId)?.slug || row.ingredientName}
-                  </span>
+                  <select
+                    value={row.sourceRecipeId === '__pick__' ? '' : (row.sourceRecipeId || '')}
+                    onChange={(e) => {
+                      const recipe = recipes.find((r) => r.id === e.target.value);
+                      if (recipe) updateRow(idx, { sourceRecipeId: recipe.id, ingredientName: recipe.title });
+                    }}
+                    aria-label={`Ingredient ${idx + 1}: select recipe`}
+                    className="field-select flex-1"
+                  >
+                    <option value="" disabled>Choose a recipe…</option>
+                    {recipes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
+                  </select>
                 ) : (
                   <input
                     type="text"
@@ -225,14 +232,7 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
           <div className="flex gap-3 mt-3">
             <button type="button" onClick={addRow} className="btn-secondary text-sm">+ Add ingredient</button>
             {recipes.length > 0 && (
-              <select
-                onChange={(e) => { if (e.target.value) { addRecipeRow(e.target.value); e.target.value = ''; } }}
-                className="field-select text-sm w-auto"
-                defaultValue=""
-              >
-                <option value="" disabled>+ Add recipe</option>
-                {recipes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-              </select>
+              <button type="button" onClick={addRecipeRow} className="btn-secondary text-sm">+ Add recipe as ingredient</button>
             )}
           </div>
         </div>
@@ -256,8 +256,12 @@ export function resolveIngredients(
   const unresolved: string[] = [];
 
   const ingredients = rows
-    .filter((r) => r.ingredientName.trim())
+    .filter((r) => r.ingredientName.trim() || r.sourceRecipeId)
     .map((r) => {
+      if (r.sourceRecipeId === '__pick__') {
+        unresolved.push('unselected recipe');
+        return { ingredientName: '', quantity: null, unit: null, sourceRecipeId: null };
+      }
       if (r.sourceRecipeId === '__pending__') {
         const recipe = slugMap.get(r.ingredientName);
         if (!recipe) {
