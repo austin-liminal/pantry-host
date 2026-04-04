@@ -18,7 +18,7 @@ import {
   type MealDBSearchResult,
   type MealDBCategory,
 } from '@pantry-host/shared/mealdb';
-import { MagnifyingGlass } from '@phosphor-icons/react';
+import { MagnifyingGlass, CookingPot } from '@phosphor-icons/react';
 
 const CREATE_MUTATION = `mutation(
   $title: String!, $description: String, $instructions: String!,
@@ -34,6 +34,81 @@ const CREATE_MUTATION = `mutation(
 }`;
 
 type Tab = 'cooklang' | 'mealdb';
+
+// ── Cooklang image cache + throttled fetcher ────────────────────────────────
+
+const clImageCache = new Map<number, string | null>();
+let clImageQueue: number[] = [];
+let clImageProcessing = false;
+let clImageListeners = new Set<() => void>();
+let clImageStopped = false;
+
+async function processClImageQueue() {
+  if (clImageProcessing) return;
+  clImageProcessing = true;
+  while (clImageQueue.length > 0 && !clImageStopped) {
+    const id = clImageQueue.shift()!;
+    if (clImageCache.has(id)) continue;
+    try {
+      const detail = await getFederationRecipe(id);
+      clImageCache.set(id, detail.image_url ?? null);
+    } catch {
+      clImageCache.set(id, null);
+      clImageStopped = true; // rate limited — stop fetching
+    }
+    clImageListeners.forEach((fn) => fn());
+    if (clImageQueue.length > 0 && !clImageStopped) {
+      await new Promise((r) => setTimeout(r, 1000)); // 1s throttle
+    }
+  }
+  clImageProcessing = false;
+}
+
+function useClImage(id: number): string | null | undefined {
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const listener = () => forceUpdate((n) => n + 1);
+    clImageListeners.add(listener);
+    if (!clImageCache.has(id) && !clImageQueue.includes(id)) {
+      clImageQueue.push(id);
+      clImageStopped = false;
+      processClImageQueue();
+    }
+    return () => { clImageListeners.delete(listener); };
+  }, [id]);
+  return clImageCache.get(id); // undefined = loading, null = no image, string = url
+}
+
+function CooklangCard({ result: r, selected, onToggle }: { result: FederationSearchResult; selected: boolean; onToggle: () => void }) {
+  const imageUrl = useClImage(r.id);
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = imageUrl && !imgFailed;
+  const showPlaceholder = imageUrl === null || imgFailed;
+  return (
+    <label className={`card overflow-hidden cursor-pointer transition-colors ${selected ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
+      {showImage && (
+        <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+          <img src={imageUrl} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={() => setImgFailed(true)} />
+        </div>
+      )}
+      {showPlaceholder && (
+        <div className="aspect-[16/9] flex items-center justify-center bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] opacity-30">
+          <CookingPot size={48} weight="light" aria-hidden />
+        </div>
+      )}
+      {imageUrl === undefined && (
+        <div className="h-2 bg-[var(--color-accent-subtle)] animate-pulse" />
+      )}
+      <div className="p-3 flex items-start gap-3">
+        <input type="checkbox" checked={selected} onChange={onToggle} className="mt-1 w-4 h-4 shrink-0" />
+        <div className="min-w-0">
+          <p className="font-semibold text-sm leading-snug">{r.title}</p>
+          {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
+        </div>
+      </div>
+    </label>
+  );
+}
 
 // ── Cooklang Tab ────────────────────────────────────────────────────────────
 
@@ -55,7 +130,7 @@ function CooklangTab({ navigate }: { navigate: ReturnType<typeof useNavigate> })
     else setLoadingMore(true);
     setError(null);
     try {
-      const data = await searchFederationRecipes(q.trim(), page, 12);
+      const data = await searchFederationRecipes(q.trim(), page, 8);
       setResults((prev) => append ? [...prev, ...data.results] : data.results);
       setPagination(data.pagination);
     } catch (err) {
@@ -111,20 +186,9 @@ function CooklangTab({ navigate }: { navigate: ReturnType<typeof useNavigate> })
       {results.length > 0 && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {results.map((r) => {
-              const isSel = selected.has(r.id);
-              return (
-                <label key={r.id} className={`card rounded-xl p-4 cursor-pointer transition-colors ${isSel ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
-                  <div className="flex items-start gap-3">
-                    <input type="checkbox" checked={isSel} onChange={() => { setSelected((p) => { const n = new Set(p); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }); }} className="mt-1 w-4 h-4 shrink-0" />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm leading-snug">{r.title}</p>
-                      {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
-                    </div>
-                  </div>
-                </label>
-              );
-            })}
+            {results.map((r) => (
+              <CooklangCard key={r.id} result={r} selected={selected.has(r.id)} onToggle={() => { setSelected((p) => { const n = new Set(p); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }); }} />
+            ))}
           </div>
           {pagination && pagination.page < pagination.total_pages && (
             <div className="text-center mb-6">

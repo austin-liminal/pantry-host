@@ -20,7 +20,81 @@ import {
   type MealDBSearchResult,
   type MealDBCategory,
 } from '@pantry-host/shared/mealdb';
-import { MagnifyingGlass } from '@phosphor-icons/react';
+import { MagnifyingGlass, CookingPot } from '@phosphor-icons/react';
+
+// ── Cooklang image cache + throttled fetcher ────────────────────────────────
+const clImageCache = new Map<number, string | null>();
+let clImageQueue: number[] = [];
+let clImageProcessing = false;
+let clImageListeners = new Set<() => void>();
+let clImageStopped = false;
+
+async function processClImageQueue() {
+  if (clImageProcessing) return;
+  clImageProcessing = true;
+  while (clImageQueue.length > 0 && !clImageStopped) {
+    const id = clImageQueue.shift()!;
+    if (clImageCache.has(id)) continue;
+    try {
+      const detail = await getFederationRecipe(id);
+      clImageCache.set(id, detail.image_url ?? null);
+    } catch {
+      clImageCache.set(id, null);
+      clImageStopped = true;
+    }
+    clImageListeners.forEach((fn) => fn());
+    if (clImageQueue.length > 0 && !clImageStopped) {
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }
+  clImageProcessing = false;
+}
+
+function useClImage(id: number): string | null | undefined {
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    const listener = () => forceUpdate((n) => n + 1);
+    clImageListeners.add(listener);
+    if (!clImageCache.has(id) && !clImageQueue.includes(id)) {
+      clImageQueue.push(id);
+      clImageStopped = false;
+      processClImageQueue();
+    }
+    return () => { clImageListeners.delete(listener); };
+  }, [id]);
+  return clImageCache.get(id);
+}
+
+function CooklangCard({ result: r, selected, onToggle }: { result: FederationSearchResult; selected: boolean; onToggle: () => void }) {
+  const imageUrl = useClImage(r.id);
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = imageUrl && !imgFailed;
+  const showPlaceholder = imageUrl === null || imgFailed;
+  return (
+    <label className={`card overflow-hidden cursor-pointer transition-colors ${selected ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
+      {showImage && (
+        <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+          <img src={imageUrl} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={() => setImgFailed(true)} />
+        </div>
+      )}
+      {showPlaceholder && (
+        <div className="aspect-[16/9] flex items-center justify-center bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] opacity-30">
+          <CookingPot size={48} weight="light" aria-hidden />
+        </div>
+      )}
+      {imageUrl === undefined && (
+        <div className="h-2 bg-[var(--color-accent-subtle)] animate-pulse" />
+      )}
+      <div className="p-3 flex items-start gap-3">
+        <input type="checkbox" checked={selected} onChange={onToggle} className="mt-1 w-4 h-4 shrink-0 accent-accent" />
+        <div className="min-w-0">
+          <p className="font-semibold text-sm leading-snug">{r.title}</p>
+          {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
+        </div>
+      </div>
+    </label>
+  );
+}
 
 interface ParsedRecipe {
   title?: string;
@@ -187,7 +261,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
     else setClLoadingMore(true);
     setClError(null);
     try {
-      const data = await searchFederationRecipes(q.trim(), page, 12);
+      const data = await searchFederationRecipes(q.trim(), page, 8);
       setClResults((prev) => append ? [...prev, ...data.results] : data.results);
       setClPagination(data.pagination);
     } catch (err) {
@@ -541,34 +615,9 @@ export default function RecipeImportPage({ kitchen }: Props) {
             {clResults.length > 0 && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  {clResults.map((r) => {
-                    const isSelected = clSelected.has(r.id);
-                    return (
-                      <label
-                        key={r.id}
-                        className={`card p-4 cursor-pointer transition-colors ${isSelected ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => clToggleSelect(r.id)}
-                            className="mt-1 w-4 h-4 shrink-0 accent-accent"
-                          />
-                          <div className="min-w-0">
-                            <p className="font-semibold text-sm leading-snug">{r.title}</p>
-                            {r.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {r.tags.slice(0, 4).map((t) => (
-                                  <span key={t} className="tag">{t}</span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
+                  {clResults.map((r) => (
+                    <CooklangCard key={r.id} result={r} selected={clSelected.has(r.id)} onToggle={() => clToggleSelect(r.id)} />
+                  ))}
                 </div>
 
                 {clPagination && clPagination.page < clPagination.total_pages && (
