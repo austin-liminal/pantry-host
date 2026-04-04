@@ -58,7 +58,7 @@ export default function Layout() {
         style={{ backgroundColor: 'var(--color-bg-nav)', color: 'var(--color-text-primary)' }}
       >
         {/* Site identity */}
-        <div className="flex items-center justify-between">
+        <div>
           {isHome ? (
             <span className="inline-flex items-center gap-2 text-2xl font-bold tracking-tight font-serif">
               <PantryHostLogo size={24} />
@@ -76,12 +76,12 @@ export default function Layout() {
             </NavLink>
           )}
 
-          {/* Desktop nav */}
+          {/* Desktop/phablet nav — stacks below branding at sm, inline at lg */}
           <nav
             aria-label="Main navigation"
-            className="hidden sm:block absolute right-6 top-1/2 -translate-y-1/2"
+            className="hidden sm:block mt-3 lg:mt-0 lg:absolute lg:right-6 lg:top-1/2 lg:-translate-y-1/2"
           >
-            <ul className="flex gap-8" role="list">
+            <ul className="flex flex-wrap gap-x-8 gap-y-2 sm:justify-end lg:justify-start" role="list">
               {NAV_ITEMS.map(({ to, label }) => {
                 const active = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
                 return (

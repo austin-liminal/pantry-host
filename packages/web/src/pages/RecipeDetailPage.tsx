@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { recipeToDataURI, downloadRecipeICS, imageToDataURI } from '@pantry-host/shared/export-recipe';
 import { downloadCooklang, stepPhotoBaseUrl } from '@pantry-host/shared/cooklang';
 import { getFileURL } from '@/lib/storage-opfs';
-import { PencilSimple, Trash, Printer, CalendarPlus, Export, Code, ShareNetwork } from '@phosphor-icons/react';
+import { PencilSimple, Trash, Printer, CalendarPlus, Export, Code, ShareNetwork, Rows, Columns, GridNine } from '@phosphor-icons/react';
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -38,7 +38,16 @@ const RECIPE_QUERY = `query($id: String!) {
   }
 }`;
 
+const GRID_OPTIONS = [
+  { cols: 3, Icon: GridNine, label: '3 columns' },
+  { cols: 2, Icon: Columns, label: '2 columns' },
+  { cols: 1, Icon: Rows, label: '1 column' },
+] as const;
+
 function StepPhotos({ instructions, sourceUrl }: { instructions: string; sourceUrl: string | null }) {
+  const [gridCols, setGridCols] = useState(3);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const errorCount = useRef(0);
   const base = sourceUrl ? stepPhotoBaseUrl(sourceUrl) : null;
   if (!base) return null;
 
@@ -46,9 +55,25 @@ function StepPhotos({ instructions, sourceUrl }: { instructions: string; sourceU
   if (steps.length === 0) return null;
 
   return (
-    <div className="mt-10">
-      <h2 className="text-xl font-bold mb-4">Step by Step</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="mt-10" ref={wrapperRef}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold">Step by Step</h2>
+        <div className="hidden md:flex items-center gap-1" role="radiogroup" aria-label="Grid columns">
+          {GRID_OPTIONS.map(({ cols, Icon, label }) => (
+            <button
+              key={cols}
+              type="button"
+              onClick={() => setGridCols(cols)}
+              aria-label={label}
+              aria-pressed={gridCols === cols}
+              className={`p-1.5 rounded transition-colors ${gridCols === cols ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+            >
+              <Icon size={18} weight={gridCols === cols ? 'bold' : 'light'} aria-hidden />
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
         {steps.map((step, i) => {
           const stepNum = i + 1;
           const photoUrl = `${encodeURI(base)}.${stepNum}.jpg`;
@@ -59,7 +84,13 @@ function StepPhotos({ instructions, sourceUrl }: { instructions: string; sourceU
                 src={photoUrl}
                 alt={`Step ${stepNum}`}
                 className="w-full aspect-[4/3] object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).closest('.card')!.style.display = 'none'; }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).closest('.card')!.style.display = 'none';
+                  errorCount.current++;
+                  if (errorCount.current >= steps.length && wrapperRef.current) {
+                    wrapperRef.current.style.display = 'none';
+                  }
+                }}
               />
               <div className="p-3">
                 <span className="text-xs font-bold text-[var(--color-text-secondary)]">Step {stepNum}</span>
@@ -277,7 +308,7 @@ export default function RecipeDetailPage() {
 
       <StepPhotos instructions={recipe.instructions} sourceUrl={recipe.sourceUrl} />
 
-      <div className="py-16">
+      <div className="py-16 no-print">
         <div className="flex justify-center mb-3 opacity-60"><ShareNetwork size={24} weight="light" aria-hidden /></div>
         <h2 className="text-xl font-bold mb-3 md:text-center">Share {recipe.title}</h2>
         <p className="text-sm text-[var(--color-text-secondary)] mb-10 md:text-center very legible pretty md:mx-auto">Print this recipe, export it as HTML to share with a friend, add it to your calendar for meal planning, or export as a Cooklang .cook file.</p>
