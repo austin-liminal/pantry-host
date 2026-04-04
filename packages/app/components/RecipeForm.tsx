@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { UNIT_GROUPS, COMMON_INGREDIENTS } from '@pantry-host/shared/constants';
+import IngredientEditor, { resolveIngredients, type IngredientRow } from '@pantry-host/shared/components/IngredientEditor';
 import { gql } from '@/lib/gql';
 import { enqueue } from '@/lib/offlineQueue';
 
@@ -27,6 +28,7 @@ interface RecipeData {
 
 interface ExistingRecipe {
   id: string;
+  slug?: string | null;
   title: string;
   source: string;
 }
@@ -420,82 +422,15 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
       </fieldset>
 
       {/* Ingredients */}
-      <fieldset className="mb-5">
-        <legend className="field-label">Ingredients</legend>
-        <ul ref={ingredientListRef} role="list" className="space-y-2 mb-3">
-          {ingredientRows.map((row, idx) => {
-            const isRecipeMode = row.sourceRecipeId !== null;
-            return (
-              <li key={idx} className="flex gap-2 items-start flex-wrap sm:flex-nowrap">
-                {/* Name input or recipe selector */}
-                {isRecipeMode ? (
-                  <select
-                    value={row.sourceRecipeId ?? ''}
-                    onChange={(e) => updateIngredient(idx, { sourceRecipeId: e.target.value || null })}
-                    aria-label={`Ingredient ${idx + 1}: select recipe`}
-                    className="field-select flex-1"
-                  >
-                    <option value="" disabled>Choose a recipe…</option>
-                    {recipeOptionGroups(existingRecipes)}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    list="form-ingredients"
-                    value={row.ingredientName}
-                    onChange={(e) => updateIngredient(idx, { ingredientName: e.target.value })}
-                    placeholder="Ingredient"
-                    aria-label={`Ingredient ${idx + 1} name`}
-                    className="field-input flex-1"
-                  />
-                )}
-
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={row.quantity}
-                  onChange={(e) => updateIngredient(idx, { quantity: e.target.value })}
-                  placeholder="Qty"
-                  aria-label={`Ingredient ${idx + 1} quantity`}
-                  className="field-input w-20"
-                />
-                <select
-                  value={row.unit}
-                  onChange={(e) => updateIngredient(idx, { unit: e.target.value })}
-                  aria-label={`Ingredient ${idx + 1} unit`}
-                  className="field-select w-28"
-                >
-                  {UNIT_GROUPS.map((g) => (
-                    <optgroup key={g.label} label={g.label}>
-                      {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => removeIngredient(idx)}
-                  aria-label={`Remove ingredient ${idx + 1}`}
-                  disabled={ingredientRows.length === 1}
-                  className="mt-1.5 text-[var(--color-text-secondary)] hover:text-red-500 p-2 disabled:opacity-30"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        <div className="flex gap-3">
-          <button type="button" onClick={addIngredient} className="btn-secondary text-sm">
-            + Add ingredient
-          </button>
-          {existingRecipes.length > 0 && (
-            <button type="button" onClick={addRecipeIngredient} className="btn-secondary text-sm">
-              + Add recipe as ingredient
-            </button>
-          )}
-        </div>
-      </fieldset>
+      <div className="mb-5">
+        <IngredientEditor
+          rows={ingredientRows}
+          onChange={setIngredientRows}
+          error={error}
+          onClearError={() => setError(null)}
+          recipes={existingRecipes.map((r) => ({ id: r.id, slug: r.slug ?? r.id, title: r.title }))}
+        />
+      </div>
 
       {/* Instructions */}
       <div className="mb-5">

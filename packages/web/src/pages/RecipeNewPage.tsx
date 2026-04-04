@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { storePhotoBlob, fetchAndStorePhoto } from '@/lib/photo-helpers';
-import IngredientEditor, { resolveIngredients, type IngredientRow } from '../components/IngredientEditor';
+import IngredientEditor, { resolveIngredients, type IngredientRow } from '@pantry-host/shared/components/IngredientEditor';
 
 const CREATE_MUTATION = `mutation(
   $title: String!,
@@ -271,6 +271,7 @@ export default function RecipeNewPage() {
           onChange={setIngredientRows}
           error={ingredientError}
           onClearError={() => setIngredientError(null)}
+          recipes={allRecipes}
         />
 
         <div>

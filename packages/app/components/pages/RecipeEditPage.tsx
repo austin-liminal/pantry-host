@@ -32,7 +32,7 @@ const EDIT_QUERY = `
       tags requiredCookware { id name } photoUrl
       ingredients { ingredientName quantity unit sourceRecipeId }
     }
-    recipes { id title source tags }
+    recipes { id slug title source tags }
     cookware(kitchenSlug: $kitchenSlug) { id name }
   }
 `;
@@ -43,13 +43,13 @@ export default function RecipeEditPage({ kitchen, recipeId }: Props) {
   const router = useRouter();
   const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [existingRecipes, setExistingRecipes] = useState<{ id: string; title: string; source: string }[]>([]);
+  const [existingRecipes, setExistingRecipes] = useState<{ id: string; slug?: string; title: string; source: string }[]>([]);
   const [cookwareItems, setCookwareItems] = useState<{ id: string; name: string }[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (!recipeId) return;
-    gql<{ recipe: Recipe | null; recipes: { id: string; title: string; source: string; tags: string[] }[]; cookware: { id: string; name: string }[] }>(
+    gql<{ recipe: Recipe | null; recipes: { id: string; slug: string; title: string; source: string; tags: string[] }[]; cookware: { id: string; name: string }[] }>(
       EDIT_QUERY, { id: recipeId, kitchenSlug: kitchen || 'home' }
     ).then((d) => {
         if (!d.recipe) return;

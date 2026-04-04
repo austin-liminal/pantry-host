@@ -6,7 +6,7 @@ import RecipeForm from '@/components/RecipeForm';
 interface Props { kitchen: string; }
 
 export default function RecipeNewPage({ kitchen }: Props) {
-  const [existingRecipes, setExistingRecipes] = useState<{ id: string; title: string; source: string }[]>([]);
+  const [existingRecipes, setExistingRecipes] = useState<{ id: string; slug?: string; title: string; source: string }[]>([]);
   const [cookwareItems, setCookwareItems] = useState<string[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
@@ -14,7 +14,7 @@ export default function RecipeNewPage({ kitchen }: Props) {
   useEffect(() => {
     const slug = kitchen || 'home';
     Promise.all([
-      gql<{ recipes: { id: string; title: string; source: string; tags: string[] }[] }>('{ recipes { id title source tags } }'),
+      gql<{ recipes: { id: string; slug: string; title: string; source: string; tags: string[] }[] }>('{ recipes { id slug title source tags } }'),
       gql<{ cookware: { name: string }[] }>(`query Cookware($kitchenSlug: String) { cookware(kitchenSlug: $kitchenSlug) { name } }`, { kitchenSlug: slug }),
     ]).then(([r, c]) => {
       setExistingRecipes(r.recipes);
