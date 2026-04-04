@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Monitor, Sun, Moon, Code } from '@phosphor-icons/react';
+import { Monitor, Sun, Moon, Code, BowlSteam } from '@phosphor-icons/react';
 import {
   getThemePreference,
   setThemePreference,
@@ -260,6 +260,7 @@ const CREDITS: { name: string; href: string; Logo: React.FC<{ size?: number }> }
   { name: 'Open Food Facts', href: 'https://world.openfoodfacts.org/', Logo: LogoOpenFoodFacts },
   { name: 'Cooklang', href: 'https://cooklang.org/', Logo: LogoCooklang },
   { name: 'TheMealDB', href: 'https://www.themealdb.com/', Logo: LogoTheMealDB },
+  { name: 'Public Domain Recipes', href: 'https://publicdomainrecipes.com/', Logo: ({ size = 24 }) => <BowlSteam size={size} aria-hidden="true" /> },
   { name: 'Cloudflare', href: 'https://www.cloudflare.com/', Logo: LogoCloudflare },
   { name: 'Anthropic', href: 'https://www.anthropic.com/', Logo: LogoAnthropic },
   { name: 'Tailscale', href: 'https://tailscale.com/', Logo: LogoTailscale },
@@ -440,7 +441,7 @@ export default function Footer() {
             </div>
             <div className="mt-4 legible text-zinc-500 dark:text-zinc-400 max-w-prose pretty">
               <p className="mb-2">Pantry Host is created and maintained by JP DeVries. Built on a lean web standards stack — HTML5, CSS3, and modern JavaScript APIs — enhanced by React, Node.js, PostgreSQL, and GraphQL. The front end fully leverages native browser capabilities before adding dependencies. A service worker handles offline caching and an &ldquo;away from pantry&rdquo; mode for use on the go.</p>
-              <p className="mb-2">Source code is authored in TypeScript, primarily via Claude Code. Rex, a Rust-based Next.js alternative by Liminal Labs, powers the server-side rendering. Packages are built with either Vite or Rex. Witness, also by Liminal Labs, automates screencasts, screenshots, and smoke tests. Open Food Facts provides barcode lookup data. The Cooklang Federation and TheMealDB provide federated recipe search and import. A single Docker command is offered for containerized setup.</p>
+              <p className="mb-2">Source code is authored in TypeScript, primarily via Claude Code. Rex, a Rust-based Next.js alternative by Liminal Labs, powers the server-side rendering. Packages are built with either Vite or Rex. Witness, also by Liminal Labs, automates screencasts, screenshots, and smoke tests. Open Food Facts provides barcode lookup data. The Cooklang Federation, TheMealDB, and Public Domain Recipes provide federated recipe search and import. A single Docker command is offered for containerized setup.</p>
               <p className="mb-2">The self-hosted, privacy-first architecture relies on Tailscale for secure remote access and guest sharing over the local network. Pantry Host is designed to work as a Claude Code project and runs within the Claude Code preview using a dedicated &ldquo;Claude&rdquo; theme.</p>
               <p>Logo mark illustration by Robb Sturtcman of Zia Art. HTML design patterns from markup.tips by JP DeVries. Site hosted on Cloudflare Pages.</p>
             </div>
