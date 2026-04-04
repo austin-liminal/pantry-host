@@ -18,6 +18,12 @@ import {
   type MealDBSearchResult,
   type MealDBCategory,
 } from '@pantry-host/shared/mealdb';
+import {
+  searchPublicDomainRecipes,
+  fetchPublicDomainRecipe,
+  getPublicDomainImageUrl,
+  type PDREntry,
+} from '@pantry-host/shared/publicdomainrecipes';
 import { MagnifyingGlass, CookingPot } from '@phosphor-icons/react';
 
 const CREATE_MUTATION = `mutation(
@@ -33,7 +39,7 @@ const CREATE_MUTATION = `mutation(
   ) { id slug }
 }`;
 
-type Tab = 'cooklang' | 'mealdb';
+type Tab = 'mealdb' | 'publicdomain' | 'cooklang';
 
 // ── Cooklang image cache + throttled fetcher ────────────────────────────────
 
@@ -361,6 +367,100 @@ function MealDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
   );
 }
 
+// ── Public Domain Tab ───────────────────────────────────────────────────────
+
+function PublicDomainTab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PDREntry[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setResults(searchPublicDomainRecipes(query).slice(0, 24));
+  }, [query]);
+
+  async function handleImport() {
+    if (selected.size === 0) return;
+    setImporting(true);
+    setImportProgress({ done: 0, total: selected.size });
+    setError(null);
+    const slugs = Array.from(selected);
+    let done = 0, failed = 0;
+    for (const slug of slugs) {
+      try {
+        const recipe = await fetchPublicDomainRecipe(slug);
+        await gql(CREATE_MUTATION, {
+          title: recipe.title, description: null, instructions: recipe.instructions,
+          servings: null, prepTime: null, cookTime: null,
+          tags: recipe.tags, photoUrl: recipe.imageUrl, sourceUrl: recipe.sourceUrl,
+          ingredients: recipe.ingredients,
+        });
+      } catch (err) { console.error(`Failed to import ${slug}:`, err); failed++; }
+      done++;
+      setImportProgress({ done, total: slugs.length });
+    }
+    setImporting(false); setImportProgress(null);
+    if (failed > 0 && failed === slugs.length) setError('All imports failed.');
+    else if (failed > 0) setError(`${done - failed} of ${slugs.length} imported. ${failed} failed.`);
+    else navigate('/recipes#stage');
+  }
+
+  return (
+    <>
+      <div className="relative mb-6">
+        <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search 408 public domain recipes..." className="field-input w-full pl-9" />
+      </div>
+
+      {error && <p role="alert" className="text-sm text-red-400 mb-4">{error}</p>}
+
+      {results.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {results.map((r) => {
+              const isSel = selected.has(r.slug);
+              return (
+                <label key={r.slug} className={`card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
+                  {r.hasImage ? (
+                    <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                      <img src={getPublicDomainImageUrl(r.slug)} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+                    </div>
+                  ) : (
+                    <div className="aspect-[16/9] flex items-center justify-center bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] opacity-30">
+                      <CookingPot size={48} weight="light" aria-hidden />
+                    </div>
+                  )}
+                  <div className="p-3 flex items-start gap-3">
+                    <input type="checkbox" checked={isSel} onChange={() => { setSelected((p) => { const n = new Set(p); n.has(r.slug) ? n.delete(r.slug) : n.add(r.slug); return n; }); }} className="mt-1 w-4 h-4 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm leading-snug">{r.title}</p>
+                      {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          {selected.size > 0 && (
+            <div className="sticky bottom-4 z-10 flex justify-center">
+              <button type="button" onClick={handleImport} disabled={importing} className="btn-primary shadow-lg">
+                {importing && importProgress ? `Importing ${importProgress.done}/${importProgress.total}\u2026` : `Import Selected (${selected.size})`}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {query.trim() && results.length === 0 && (
+        <p className="text-[var(--color-text-secondary)] text-sm text-center py-12">No recipes found for "{query}".</p>
+      )}
+    </>
+  );
+}
+
 // ── Main Import Page ────────────────────────────────────────────────────────
 
 export default function RecipeImportPage() {
@@ -390,6 +490,14 @@ export default function RecipeImportPage() {
         </button>
         <button
           role="tab"
+          aria-selected={tab === 'publicdomain'}
+          onClick={() => setTab('publicdomain')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'publicdomain' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+        >
+          Public Domain
+        </button>
+        <button
+          role="tab"
           aria-selected={tab === 'cooklang'}
           onClick={() => setTab('cooklang')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'cooklang' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
@@ -398,8 +506,9 @@ export default function RecipeImportPage() {
         </button>
       </div>
 
-      {tab === 'cooklang' && <CooklangTab navigate={navigate} />}
       {tab === 'mealdb' && <MealDBTab navigate={navigate} />}
+      {tab === 'publicdomain' && <PublicDomainTab navigate={navigate} />}
+      {tab === 'cooklang' && <CooklangTab navigate={navigate} />}
     </div>
   );
 }

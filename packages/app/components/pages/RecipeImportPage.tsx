@@ -20,6 +20,12 @@ import {
   type MealDBSearchResult,
   type MealDBCategory,
 } from '@pantry-host/shared/mealdb';
+import {
+  searchPublicDomainRecipes,
+  fetchPublicDomainRecipe,
+  getPublicDomainImageUrl,
+  type PDREntry,
+} from '@pantry-host/shared/publicdomainrecipes';
 import { MagnifyingGlass, CookingPot } from '@phosphor-icons/react';
 
 // ── Cooklang image cache + throttled fetcher ────────────────────────────────
@@ -238,7 +244,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const clDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Community tab state
-  type CommunityTab = 'cooklang' | 'mealdb';
+  type CommunityTab = 'cooklang' | 'mealdb' | 'publicdomain';
   const [communityTab, setCommunityTab] = useState<CommunityTab>('cooklang');
 
   // TheMealDB state
@@ -254,6 +260,43 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const mdDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => { getMealDBCategories().then(setMdCategories).catch(() => {}); }, []);
+
+  // Public Domain Recipes state
+  const [pdrQuery, setPdrQuery] = useState('');
+  const [pdrResults, setPdrResults] = useState<PDREntry[]>([]);
+  const [pdrSelected, setPdrSelected] = useState<Set<string>>(new Set());
+  const [pdrImporting, setPdrImporting] = useState(false);
+  const [pdrImportProgress, setPdrImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [pdrError, setPdrError] = useState<string | null>(null);
+
+  useEffect(() => { setPdrResults(searchPublicDomainRecipes(pdrQuery).slice(0, 24)); }, [pdrQuery]);
+
+  function pdrToggleSelect(slug: string) {
+    setPdrSelected((p) => { const n = new Set(p); n.has(slug) ? n.delete(slug) : n.add(slug); return n; });
+  }
+
+  async function handlePdrImport() {
+    if (pdrSelected.size === 0) return;
+    setPdrImporting(true); setPdrImportProgress({ done: 0, total: pdrSelected.size }); setPdrError(null);
+    const slugs = Array.from(pdrSelected);
+    let done = 0, failed = 0;
+    for (const slug of slugs) {
+      try {
+        const recipe = await fetchPublicDomainRecipe(slug);
+        await gql(CREATE_RECIPE, {
+          title: recipe.title, description: null, instructions: recipe.instructions,
+          servings: null, prepTime: null, cookTime: null,
+          tags: recipe.tags, photoUrl: recipe.imageUrl, sourceUrl: recipe.sourceUrl,
+          ingredients: recipe.ingredients, kitchenSlug: kitchen,
+        });
+      } catch (err) { console.error(`Failed to import ${slug}:`, err); failed++; }
+      done++; setPdrImportProgress({ done, total: slugs.length });
+    }
+    setPdrImporting(false); setPdrImportProgress(null);
+    if (failed > 0 && failed === slugs.length) setPdrError('All imports failed.');
+    else if (failed > 0) setPdrError(`${done - failed} of ${slugs.length} imported. ${failed} failed.`);
+    else router.push(`${recipesBase}#stage`);
+  }
 
   const clSearch = useCallback(async (q: string, page = 1, append = false) => {
     if (!q.trim()) { setClResults([]); setClPagination(null); return; }
@@ -587,6 +630,9 @@ export default function RecipeImportPage({ kitchen }: Props) {
               <button role="tab" aria-selected={communityTab === 'mealdb'} onClick={() => setCommunityTab('mealdb')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'mealdb' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
                 TheMealDB
               </button>
+              <button role="tab" aria-selected={communityTab === 'publicdomain'} onClick={() => setCommunityTab('publicdomain')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'publicdomain' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+                Public Domain
+              </button>
             </div>
 
             {communityTab === 'cooklang' && (<>
@@ -728,6 +774,57 @@ export default function RecipeImportPage({ kitchen }: Props) {
             )}
             {!mdSearching && (mdQuery.trim() || mdCategory) && mdResults.length === 0 && (
               <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">No results found.</p>
+            )}
+            </>)}
+
+            {communityTab === 'publicdomain' && (<>
+            <div className="relative mb-4">
+              <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
+              <input type="search" value={pdrQuery} onChange={(e) => setPdrQuery(e.target.value)} placeholder="Search 408 public domain recipes..." className="field-input w-full pl-9" />
+            </div>
+
+            {pdrError && <p role="alert" className="text-sm text-red-600 dark:text-red-400 mb-4">{pdrError}</p>}
+
+            {pdrResults.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {pdrResults.map((r) => {
+                    const isSel = pdrSelected.has(r.slug);
+                    return (
+                      <label key={r.slug} className={`card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
+                        {r.hasImage ? (
+                          <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                            <img src={getPublicDomainImageUrl(r.slug)} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
+                          </div>
+                        ) : (
+                          <div className="aspect-[16/9] flex items-center justify-center bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] opacity-30">
+                            <CookingPot size={48} weight="light" aria-hidden />
+                          </div>
+                        )}
+                        <div className="p-3 flex items-start gap-3">
+                          <input type="checkbox" checked={isSel} onChange={() => pdrToggleSelect(r.slug)} className="mt-1 w-4 h-4 shrink-0 accent-accent" />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm leading-snug">{r.title}</p>
+                            {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {pdrSelected.size > 0 && (
+                  <div className="text-center">
+                    <button type="button" onClick={handlePdrImport} disabled={pdrImporting} aria-busy={pdrImporting} className="btn-primary">
+                      {pdrImporting && pdrImportProgress ? `Importing ${pdrImportProgress.done}/${pdrImportProgress.total}\u2026` : `Import Selected (${pdrSelected.size})`}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {pdrQuery.trim() && pdrResults.length === 0 && (
+              <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">No recipes found for &ldquo;{pdrQuery}&rdquo;.</p>
             )}
             </>)}
 
