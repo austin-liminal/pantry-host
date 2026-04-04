@@ -222,6 +222,15 @@ function LogoGitLFS({ size = 24 }: { size?: number }) {
   );
 }
 
+function LogoTheMealDB({ size = 24 }: { size?: number }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="80 80 640 510" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <title>TheMealDB</title>
+      <path d="M427.2,358.2c11.8-9.5,24.5-16.6,39.2-19.7c2.9-.6,4.1-1.9,4.7-4.7c7.7-35.1,41.1-61.4,76.9-60.9c8.7.1,15.6,6.7,16,15.3c.4,8.3-6.3,15.7-15.2,15.9c-25.5.7-42.8,17.9-47,36.9c-.8,3.6-1.1,7.2-1.3,10.9c-.7,9.6-6.2,15.8-15.8,15.9c-29.1.2-55.8,27.1-61.8,51.6c-.9,3.7-1.4,7.4-2.1,11.5h92c.2-.3.3-.7.5-1c-5.3-2.3-10.5-5-15.9-6.9c-16.2-5.6-33.1-7.1-50.2-7.5c-9.9-.2-16.2-5-17.6-13c-1.7-9.5,4.1-16.9,15.2-18.9c-.2-6.5-2.9-11.7-7.3-16.2c-10.4-10.7-23.7-14.1-38-15.4c-4.4-.4-9.3-1.9-12.8-4.4c-5.1-3.6-6.5-9.6-4.7-15.7c1.9-6.5,6.6-10.9,13.2-11.3c26.9-1.6,64.2,11.7,77.3,43.7c1.4,3.4,2.2,7,3,10.6c.7,3.4.9,6.9,1.3,10.8c5.5,1.1,11.4,2.2,17.1,3.5c15.1,3.4,29.4,8.6,41.7,18.2c7.1,5.5,12.8,12.2,16.2,20.6c1,2.6,2.5,3.4,5.2,3.4h28.5c10.6,0,17.8,6.6,17.9,16c.1,9-6.7,15.3-17,15.8c-11.7.6-21.3,6.2-28.6,14.6c-11.6,13.2-22.3,27.3-33,41.3c-11.7,15.3-23.3,30.5-39.2,41.7c-12.3,8.6-25.9,13.4-41.1,13.4H183.2c-20.1,0-36.7-8.2-51.2-21.5c-15.6-14.3-27.3-31.8-39.8-48.6c-9-12.2-17.8-24.5-30.5-33.5c-6.6-4.6-13.7-7.3-21.8-7.5c-9-0.3-15.3-7-15.4-15.8c-.1-8.2,6.4-15.1,14.9-15.9h5c38.5,0,77,0,115.5,0h6.2c-1.4-15.4-2.7-30.3-4-45.2c-2.8-31.2-5.7-62.4-8.6-93.6c-3.2-35.5-6.5-71-9.7-106.5c-2.6-28.5-5.2-57.1-7.6-85.6c-.9-11.1,6.2-18.1,18.1-18.1h224c3.5,0,7,-.1,10.5,0c10.4.2,17.4,7.1,16.7,17.5c-1.2,16.8-2.9,33.5-4.4,50.3c-3.2,34.8-6.4,69.6-9.5,104.5c-3.5,38.8-7.1,77.6-10.6,116.5c-1.8,19.9-3.6,39.8-5.4,60.1h4.6c1.9-29.8,15.9-53.3,38.3-72.7zM268.5,463H101c10.2,13.7,19.8,26.9,29.7,39.8c6,7.8,12.2,15.5,18.8,22.7c10.4,11.2,22.9,16.9,38.9,16.9h297.9c46.2,0,92.3-.1,138.5.1c11.3.1,21.1-3.3,29.3-10.6c6-5.3,11.7-11,16.6-17.2c12.4-15.6,24.3-31.7,36.5-47.6c.8-1.1,1.6-2.2,2.6-3.4c-.8-.2-1.1-.4-1.4-.4H268.5zM257.5,114h-88.8l4.4,47.6h41.2v6.1c0,19.2-.2,38.3.1,57.5c.1,11.8,11.5,18.8,22.2,14.1c7.3-3.2,9.4-9.3,9.4-16.7v-55.5c0-1.7,0-3.5,0-5.8h120.3l1.4-47.3h-110.2z" />
+    </svg>
+  );
+}
+
 function LogoCooklang({ size = 24 }: { size?: number }) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width={size} height={size} fill="currentColor" aria-hidden="true">
@@ -250,6 +259,7 @@ const CREDITS: { name: string; href: string; Logo: React.FC<{ size?: number }> }
   { name: 'Docker', href: 'https://www.docker.com/', Logo: LogoDocker },
   { name: 'Open Food Facts', href: 'https://world.openfoodfacts.org/', Logo: LogoOpenFoodFacts },
   { name: 'Cooklang', href: 'https://cooklang.org/', Logo: LogoCooklang },
+  { name: 'TheMealDB', href: 'https://www.themealdb.com/', Logo: LogoTheMealDB },
   { name: 'Cloudflare', href: 'https://www.cloudflare.com/', Logo: LogoCloudflare },
   { name: 'Anthropic', href: 'https://www.anthropic.com/', Logo: LogoAnthropic },
   { name: 'Tailscale', href: 'https://tailscale.com/', Logo: LogoTailscale },
@@ -430,7 +440,7 @@ export default function Footer() {
             </div>
             <div className="mt-4 legible text-zinc-500 dark:text-zinc-400 max-w-prose pretty">
               <p className="mb-2">Pantry Host is created and maintained by JP DeVries. Built on a lean web standards stack — HTML5, CSS3, and modern JavaScript APIs — enhanced by React, Node.js, PostgreSQL, and GraphQL. The front end fully leverages native browser capabilities before adding dependencies. A service worker handles offline caching and an &ldquo;away from pantry&rdquo; mode for use on the go.</p>
-              <p className="mb-2">Source code is authored in TypeScript, primarily via Claude Code. Rex, a Rust-based Next.js alternative by Liminal Labs, powers the server-side rendering. Packages are built with either Vite or Rex. Witness, also by Liminal Labs, automates screencasts, screenshots, and smoke tests. Open Food Facts provides barcode lookup data. The Cooklang Federation provides federated recipe search and import. A single Docker command is offered for containerized setup.</p>
+              <p className="mb-2">Source code is authored in TypeScript, primarily via Claude Code. Rex, a Rust-based Next.js alternative by Liminal Labs, powers the server-side rendering. Packages are built with either Vite or Rex. Witness, also by Liminal Labs, automates screencasts, screenshots, and smoke tests. Open Food Facts provides barcode lookup data. The Cooklang Federation and TheMealDB provide federated recipe search and import. A single Docker command is offered for containerized setup.</p>
               <p className="mb-2">The self-hosted, privacy-first architecture relies on Tailscale for secure remote access and guest sharing over the local network. Pantry Host is designed to work as a Claude Code project and runs within the Claude Code preview using a dedicated &ldquo;Claude&rdquo; theme.</p>
               <p>Logo mark illustration by Robb Sturtcman of Zia Art. HTML design patterns from markup.tips by JP DeVries. Site hosted on Cloudflare Pages.</p>
             </div>
