@@ -255,7 +255,11 @@ function MealDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
                 <label key={r.idMeal} className={`card rounded-xl overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
                   {thumb && (
                     <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
-                      <img src={`${thumb}/preview`} alt={r.strMeal} className="w-full h-full object-cover" loading="lazy" />
+                      <picture>
+                        <source media="(prefers-reduced-data: reduce)" srcSet={`${thumb}/preview`} />
+                        <source media="(monochrome)" srcSet={`${thumb}/preview`} />
+                        <img src={`${thumb}/preview`} srcSet={`${thumb} 2x`} alt={r.strMeal} className="w-full h-full object-cover" loading="lazy" />
+                      </picture>
                     </div>
                   )}
                   <div className="p-3 flex items-start gap-3">
