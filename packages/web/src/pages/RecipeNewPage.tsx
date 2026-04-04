@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { storePhotoBlob, fetchAndStorePhoto } from '@/lib/photo-helpers';
 import IngredientEditor, { resolveIngredients, type IngredientRow } from '@pantry-host/shared/components/IngredientEditor';
+import FeaturedTags from '@pantry-host/shared/components/FeaturedTags';
 
 const CREATE_MUTATION = `mutation(
   $title: String!,
@@ -245,6 +246,7 @@ export default function RecipeNewPage() {
             placeholder="dinner, italian, quick"
             className="field-input w-full"
           />
+          <FeaturedTags tags={tags} onChange={setTags} />
         </div>
 
         <div>

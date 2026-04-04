@@ -4,12 +4,27 @@ import { gql } from '@/lib/gql';
 import { recipeToDataURI, downloadRecipeICS, imageToDataURI } from '@pantry-host/shared/export-recipe';
 import { downloadCooklang, stepPhotoBaseUrl } from '@pantry-host/shared/cooklang';
 import { getFileURL } from '@/lib/storage-opfs';
-import { PencilSimple, Trash, Printer, CalendarPlus, Export, Code, ShareNetwork, Rows, Columns, GridNine } from '@phosphor-icons/react';
+import { PencilSimple, Trash, Printer, CalendarPlus, Export, Code, ShareNetwork, Rows, Columns, GridNine, ArrowsOut, ArrowsIn } from '@phosphor-icons/react';
+
+/** Resolves opfs:// URLs to blob URLs for display */
+function OpfsImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [resolved, setResolved] = useState<string | null>(null);
+  useEffect(() => {
+    if (src.startsWith('opfs://')) {
+      getFileURL(src.replace('opfs://', '')).then(setResolved).catch(() => setResolved(null));
+    } else {
+      setResolved(src);
+    }
+  }, [src]);
+  if (!resolved) return null;
+  return <img src={resolved} alt={alt} className={className} loading="lazy" />;
+}
 
 interface RecipeIngredient {
   ingredientName: string;
   quantity: number | null;
   unit: string | null;
+  sourceRecipeId: string | null;
 }
 
 interface Recipe {
@@ -27,14 +42,27 @@ interface Recipe {
   sourceUrl: string | null;
   queued: boolean;
   ingredients: RecipeIngredient[];
+  usedIn: SubRecipe[];
   createdAt: string;
+}
+
+interface SubRecipe {
+  id: string;
+  slug: string | null;
+  title: string;
+  cookTime: number | null;
+  prepTime: number | null;
+  servings: number | null;
+  tags: string[];
+  photoUrl: string | null;
 }
 
 const RECIPE_QUERY = `query($id: String!) {
   recipe(id: $id) {
     id slug title description instructions servings prepTime cookTime
     tags requiredCookware { name } photoUrl sourceUrl queued createdAt
-    ingredients { ingredientName quantity unit }
+    ingredients { ingredientName quantity unit sourceRecipeId }
+    usedIn { id slug title cookTime prepTime servings tags photoUrl }
   }
 }`;
 
@@ -112,6 +140,34 @@ export default function RecipeDetailPage() {
   const [exportPhotoUrl, setExportPhotoUrl] = useState<string | null>(null);
   const [displayPhotoUrl, setDisplayPhotoUrl] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [subRecipes, setSubRecipes] = useState<SubRecipe[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [supportsFullscreen, setSupportsFullscreen] = useState(false);
+  const articleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSupportsFullscreen(Boolean(document.documentElement.requestFullscreen || (document.documentElement as any).webkitRequestFullscreen));
+    function onFSChange() { setIsFullscreen(Boolean(document.fullscreenElement)); }
+    document.addEventListener('fullscreenchange', onFSChange);
+    return () => document.removeEventListener('fullscreenchange', onFSChange);
+  }, []);
+
+  // Fetch sub-recipes (recipes used as ingredients)
+  useEffect(() => {
+    if (!recipe) return;
+    const sourceIds = recipe.ingredients
+      .map((i) => i.sourceRecipeId)
+      .filter((id): id is string => id != null);
+    if (sourceIds.length === 0) { setSubRecipes([]); return; }
+    Promise.all(
+      sourceIds.map((id) =>
+        gql<{ recipe: SubRecipe | null }>(
+          `query($id: String!) { recipe(id: $id) { id slug title cookTime prepTime servings tags photoUrl } }`,
+          { id },
+        ).then((d) => d.recipe),
+      ),
+    ).then((results) => setSubRecipes(results.filter((r): r is SubRecipe => r != null)));
+  }, [recipe]);
 
   // Resolve photo URLs for display and export
   useEffect(() => {
@@ -181,23 +237,51 @@ export default function RecipeDetailPage() {
           </button>
           <Link to={`/recipes/${slug}/edit`} className="btn-secondary text-sm">Edit</Link>
           {deleteConfirm ? (
-            <div className="flex gap-1 items-center">
-              <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
-              <button type="button" autoFocus onClick={handleDelete} className="btn-danger text-xs px-2 py-1" style={{ minHeight: 'auto' }}>Yes</button>
-              <button type="button" onClick={() => setDeleteConfirm(false)} className="btn-secondary text-xs px-2 py-1" style={{ minHeight: 'auto' }}>No</button>
+            <div className="flex gap-2 items-center">
+              <span className="text-sm text-[var(--color-text-secondary)]">Delete?</span>
+              <button type="button" autoFocus onClick={handleDelete} className="btn-danger text-sm">Yes</button>
+              <button type="button" onClick={() => setDeleteConfirm(false)} className="btn-secondary text-sm">No</button>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => setDeleteConfirm(true)}
-              className="text-[var(--color-text-secondary)] hover:text-red-500 p-2"
-              aria-label="Delete"
+              className="btn-secondary p-2 hover:text-red-500"
+              aria-label="Delete recipe"
             >
               <Trash size={16} aria-hidden />
             </button>
           )}
+          {supportsFullscreen && (
+            <button
+              type="button"
+              onClick={() => {
+                if (isFullscreen) {
+                  document.exitFullscreen().catch(() => {});
+                } else {
+                  articleRef.current?.requestFullscreen().catch(() => {});
+                }
+              }}
+              aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+              aria-pressed={isFullscreen}
+              className="btn-secondary p-2"
+            >
+              {isFullscreen ? <ArrowsIn size={18} aria-hidden /> : <ArrowsOut size={18} aria-hidden />}
+            </button>
+          )}
         </div>
       </div>
+
+      <article ref={articleRef} aria-label={recipe.title}>
+      {/* Zen exit button (visible only in fullscreen) */}
+      <button
+        type="button"
+        onClick={() => document.exitFullscreen().catch(() => {})}
+        aria-label="Exit full screen"
+        className="zen-exit-btn fixed top-4 right-4 z-50 bg-black/70 hover:bg-black/90 text-white p-2 rounded-full backdrop-blur transition-colors hidden outline outline-1 outline-current"
+      >
+        <ArrowsIn size={18} aria-hidden />
+      </button>
 
       {/* Photo */}
       {displayPhotoUrl && (
@@ -308,6 +392,62 @@ export default function RecipeDetailPage() {
 
       <StepPhotos instructions={recipe.instructions} sourceUrl={recipe.sourceUrl} />
 
+      {subRecipes.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-xl font-bold mb-4">Made from Scratch</h2>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+            {subRecipes.map((r) => (
+              <Link key={r.id} to={`/recipes/${r.slug || r.id}`} className="card rounded-xl overflow-hidden hover:underline">
+                {r.photoUrl && (
+                  <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                    <OpfsImage src={r.photoUrl} alt={r.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="p-4">
+                  <h3 className="font-bold text-base">{r.title}</h3>
+                  <span className="text-sm text-[var(--color-text-secondary)]">
+                    {[(r.prepTime ?? 0) + (r.cookTime ?? 0) > 0 && `${(r.prepTime ?? 0) + (r.cookTime ?? 0)} min`, r.servings && `${r.servings} servings`].filter(Boolean).join(' \u00b7 ')}
+                  </span>
+                  {r.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {(recipe.usedIn ?? []).length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-xl font-bold mb-4">Made With This</h2>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+            {recipe.usedIn.map((r) => (
+              <Link key={r.id} to={`/recipes/${r.slug || r.id}`} className="card rounded-xl overflow-hidden hover:underline">
+                {r.photoUrl && (
+                  <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                    <OpfsImage src={r.photoUrl} alt={r.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="p-4">
+                  <h3 className="font-bold text-base">{r.title}</h3>
+                  <span className="text-sm text-[var(--color-text-secondary)]">
+                    {[(r.prepTime ?? 0) + (r.cookTime ?? 0) > 0 && `${(r.prepTime ?? 0) + (r.cookTime ?? 0)} min`, r.servings && `${r.servings} servings`].filter(Boolean).join(' \u00b7 ')}
+                  </span>
+                  {r.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="py-16 no-print">
         <div className="flex justify-center mb-3 opacity-60"><ShareNetwork size={24} weight="light" aria-hidden /></div>
         <h2 className="text-xl font-bold mb-3 md:text-center">Share {recipe.title}</h2>
@@ -347,6 +487,7 @@ export default function RecipeDetailPage() {
           </button>
         </div>
       </div>
+      </article>
     </div>
   );
 }

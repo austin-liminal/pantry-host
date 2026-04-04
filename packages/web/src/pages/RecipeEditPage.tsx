@@ -4,6 +4,7 @@ import { gql } from '@/lib/gql';
 import { getFileURL } from '@/lib/storage-opfs';
 import { storePhotoBlob, fetchAndStorePhoto } from '@/lib/photo-helpers';
 import IngredientEditor, { resolveIngredients, type IngredientRow } from '@pantry-host/shared/components/IngredientEditor';
+import FeaturedTags from '@pantry-host/shared/components/FeaturedTags';
 
 const RECIPE_QUERY = `query($id: String!) {
   recipe(id: $id) {
@@ -319,6 +320,7 @@ export default function RecipeEditPage() {
             placeholder="dinner, italian, quick"
             className="field-input w-full"
           />
+          <FeaturedTags tags={tags} onChange={setTags} />
         </div>
 
         <div>
@@ -346,6 +348,7 @@ export default function RecipeEditPage() {
           error={ingredientError}
           onClearError={() => setIngredientError(null)}
           recipes={allRecipes}
+          defaultMode="matrix"
         />
 
         <div>

@@ -622,9 +622,10 @@ builder.mutationField('updateRecipe', (t) =>
                 ingredient_name: i.ingredientName,
                 quantity: i.quantity ?? null,
                 unit: i.unit ?? null,
+                source_recipe_id: i.sourceRecipeId ?? null,
                 sort_order: idx,
               })),
-              'recipe_id', 'ingredient_name', 'quantity', 'unit', 'sort_order',
+              'recipe_id', 'ingredient_name', 'quantity', 'unit', 'source_recipe_id', 'sort_order',
             )}
           `;
         }

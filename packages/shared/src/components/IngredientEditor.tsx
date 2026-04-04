@@ -31,18 +31,24 @@ interface Props {
   error: string | null;
   onClearError: () => void;
   recipes: RecipeRef[];
+  defaultMode?: ViewMode;
 }
 
 type ViewMode = 'textarea' | 'matrix';
 
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
 function rowsToText(rows: IngredientRow[], recipes: RecipeRef[]): string {
   return rows
+    .filter((r) => r.ingredientName.trim() || r.sourceRecipeId)
     .map((r) => {
-      if (r.sourceRecipeId) {
+      if (r.sourceRecipeId && r.sourceRecipeId !== '__pick__') {
         const recipe = recipes.find((rr) => rr.id === r.sourceRecipeId);
-        return `@${recipe?.slug || r.ingredientName}`;
+        return `@${recipe?.slug || toSlug(r.ingredientName)}`;
       }
-      return [r.quantity, r.unit !== 'whole' ? r.unit : '', r.ingredientName].filter(Boolean).join(' ');
+      return [r.quantity, r.unit || '', r.ingredientName].filter(Boolean).join(' ');
     })
     .join('\n');
 }
@@ -64,8 +70,8 @@ function textToRows(text: string): IngredientRow[] {
     });
 }
 
-export default function IngredientEditor({ rows, onChange, error, onClearError, recipes }: Props) {
-  const [mode, setMode] = useState<ViewMode>('textarea');
+export default function IngredientEditor({ rows, onChange, error, onClearError, recipes, defaultMode = 'textarea' }: Props) {
+  const [mode, setMode] = useState<ViewMode>(defaultMode);
   const [textValue, setTextValue] = useState('');
 
   function switchToTextarea() {
@@ -112,11 +118,10 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
 
   useEffect(() => {
     if (mode === 'textarea' && rows.length > 0) {
-      // Re-serialize when recipes become available (needed for @slug resolution)
-      const hasRecipeRefs = rows.some((r) => r.sourceRecipeId && r.sourceRecipeId !== '__pending__');
-      if (!textValue || (hasRecipeRefs && recipes.length > 0)) {
-        setTextValue(rowsToText(rows, recipes));
-      }
+      const hasRecipeRefs = rows.some((r) => r.sourceRecipeId && r.sourceRecipeId !== '__pending__' && r.sourceRecipeId !== '__pick__');
+      // Wait for recipes to load before serializing rows with recipe refs
+      if (hasRecipeRefs && recipes.length === 0) return;
+      setTextValue(rowsToText(rows, recipes));
     }
   }, [rows, recipes]);
 

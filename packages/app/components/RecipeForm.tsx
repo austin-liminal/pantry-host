@@ -429,6 +429,7 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
           error={error}
           onClearError={() => setError(null)}
           recipes={existingRecipes.map((r) => ({ id: r.id, slug: r.slug ?? r.id, title: r.title }))}
+          defaultMode="matrix"
         />
       </div>
 
