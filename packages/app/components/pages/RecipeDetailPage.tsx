@@ -522,7 +522,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                 <button type="button" onClick={() => setDeleteConfirm(false)} className="btn-secondary text-sm">No</button>
               </div>
             ) : (
-              <button type="button" onClick={() => setDeleteConfirm(true)} aria-label="Delete recipe" className="btn-secondary p-2 hover:text-red-500">
+              <button type="button" onClick={() => setDeleteConfirm(true)} aria-label="Delete recipe" className="btn-secondary btn-delete p-2">
                 <Trash size={16} aria-hidden />
               </button>
             )}

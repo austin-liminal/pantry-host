@@ -274,7 +274,7 @@ export default function MenuDetailPage({ kitchen, menuId }: Props) {
       )}
 
       {availableFilters.length > 0 && (
-        <div className="mb-8">
+        <div className="mt-6 mb-8">
           <p id="filter-desc" className="text-xs text-[var(--color-text-secondary)] mb-2">Filter dishes by dietary preference</p>
           <div className="flex flex-wrap gap-2" role="group" aria-labelledby="filter-desc">
           {availableFilters.map((f) => {

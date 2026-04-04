@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
-import { Trash, PencilSimple } from '@phosphor-icons/react';
+import { getFileURL } from '@/lib/storage-opfs';
+import { Trash, ArrowsOut, ArrowsIn } from '@phosphor-icons/react';
 import { classifyRecipeCourse, COURSE_LABELS } from '@pantry-host/shared/constants';
 
 interface Recipe {
   id: string;
   slug: string | null;
   title: string;
+  description: string | null;
   cookTime: number | null;
   prepTime: number | null;
   servings: number | null;
   tags: string[];
   photoUrl: string | null;
+  queued: boolean;
 }
 
 interface MenuRecipe {
@@ -37,10 +40,24 @@ const MENU_QUERY = `query($id: String!) {
     id slug title description active category
     recipes {
       id course sortOrder
-      recipe { id slug title cookTime prepTime servings tags photoUrl }
+      recipe { id slug title description cookTime prepTime servings tags photoUrl queued }
     }
   }
 }`;
+
+/** Resolves opfs:// URLs to blob URLs */
+function RecipePhoto({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [resolved, setResolved] = useState<string | null>(null);
+  useEffect(() => {
+    if (src.startsWith('opfs://')) {
+      getFileURL(src.replace('opfs://', '')).then(setResolved).catch(() => setResolved(null));
+    } else {
+      setResolved(src);
+    }
+  }, [src]);
+  if (!resolved) return null;
+  return <img src={resolved} alt={alt} className={className} loading="lazy" />;
+}
 
 export default function MenuDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -48,6 +65,16 @@ export default function MenuDetailPage() {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [supportsFullscreen, setSupportsFullscreen] = useState(false);
+  const articleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSupportsFullscreen(Boolean(document.documentElement.requestFullscreen || (document.documentElement as any).webkitRequestFullscreen));
+    function onFSChange() { setIsFullscreen(Boolean(document.fullscreenElement)); }
+    document.addEventListener('fullscreenchange', onFSChange);
+    return () => document.removeEventListener('fullscreenchange', onFSChange);
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -72,7 +99,6 @@ export default function MenuDetailPage() {
     const course = mr.course || classifyRecipeCourse(mr.recipe.tags) || 'other';
     (grouped[course] ??= []).push(mr);
   }
-  // Sort each group by sortOrder
   for (const group of Object.values(grouped)) {
     group.sort((a, b) => a.sortOrder - b.sortOrder);
   }
@@ -90,42 +116,46 @@ export default function MenuDetailPage() {
         &larr; Menus
       </Link>
 
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{menu.title}</h1>
-          {menu.description && (
-            <p className="text-[var(--color-text-secondary)] mt-1">{menu.description}</p>
-          )}
-          <div className="flex gap-2 mt-2">
-            {menu.category && <span className="tag">{menu.category}</span>}
-            {!menu.active && <span className="tag">inactive</span>}
-          </div>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <Link
-            to={`/menus/${slug}/edit`}
-            className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-2"
-            aria-label="Edit menu"
-          >
-            <PencilSimple size={16} aria-hidden />
-          </Link>
+      {/* Action bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 mb-6 border-b" style={{ borderColor: 'var(--color-border-card)' }}>
+        <Link to="/menus" className="text-sm text-[var(--color-text-secondary)] hover:underline">
+          &larr; Menus
+        </Link>
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+          <Link to={`/menus/${slug}/edit`} className="btn-secondary text-sm">Edit</Link>
           {deleteConfirm ? (
-            <div className="flex gap-1 items-center">
-              <span className="text-xs text-[var(--color-text-secondary)] mr-1">Delete?</span>
-              <button type="button" autoFocus onClick={handleDelete} className="btn-danger text-xs px-2 py-1" style={{ minHeight: 'auto' }}>Yes</button>
-              <button type="button" onClick={() => setDeleteConfirm(false)} className="btn-secondary text-xs px-2 py-1" style={{ minHeight: 'auto' }}>No</button>
+            <div className="flex gap-2 items-center">
+              <span className="text-sm text-[var(--color-text-secondary)]">Delete?</span>
+              <button type="button" autoFocus onClick={handleDelete} className="btn-danger text-sm">Yes</button>
+              <button type="button" onClick={() => setDeleteConfirm(false)} className="btn-secondary text-sm">No</button>
             </div>
           ) : (
+            <button type="button" onClick={() => setDeleteConfirm(true)} className="btn-secondary btn-delete text-sm">Delete</button>
+          )}
+          {supportsFullscreen && (
             <button
               type="button"
-              onClick={() => setDeleteConfirm(true)}
-              className="text-[var(--color-text-secondary)] hover:text-red-500 p-2"
-              aria-label="Delete menu"
+              onClick={() => {
+                if (isFullscreen) document.exitFullscreen().catch(() => {});
+                else articleRef.current?.requestFullscreen().catch(() => {});
+              }}
+              aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+              className="btn-secondary p-2"
             >
-              <Trash size={16} aria-hidden />
+              {isFullscreen ? <ArrowsIn size={18} aria-hidden /> : <ArrowsOut size={18} aria-hidden />}
             </button>
           )}
         </div>
+      </div>
+
+      <div ref={articleRef}>
+      <h1 className="text-3xl font-bold">{menu.title}</h1>
+      {menu.description && (
+        <p className="text-[var(--color-text-secondary)] mt-1 mb-6 legible pretty">{menu.description}</p>
+      )}
+      <div className="flex gap-2 mb-8">
+        {menu.category && <span className="tag">{menu.category}</span>}
+        {!menu.active && <span className="tag">inactive</span>}
       </div>
 
       {menu.recipes.length === 0 ? (
@@ -133,35 +163,78 @@ export default function MenuDetailPage() {
           No recipes in this menu yet. <Link to={`/menus/${slug}/edit`} className="underline">Add some.</Link>
         </p>
       ) : (
-        <div className="space-y-8">
-          {sortedCourses.map((course) => (
-            <section key={course}>
-              <h2 className="text-lg font-bold mb-3 capitalize">
-                {COURSE_LABELS[course] || course}
-              </h2>
-              <ul className="space-y-2">
-                {grouped[course].map((mr) => (
-                  <li key={mr.id}>
-                    <Link
-                      to={`/recipes/${mr.recipe.slug || mr.recipe.id}`}
-                      className="block card rounded-xl p-4 hover:underline"
-                    >
-                      <span className="font-semibold text-sm">{mr.recipe.title}</span>
-                      <span className="ml-2 text-xs text-[var(--color-text-secondary)]">
-                        {[
-                          mr.recipe.prepTime && `${mr.recipe.prepTime}m prep`,
-                          mr.recipe.cookTime && `${mr.recipe.cookTime}m cook`,
-                          mr.recipe.servings && `${mr.recipe.servings} servings`,
-                        ].filter(Boolean).join(' \u00b7 ')}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        <>
+          {/* Classic print-style menu */}
+          <div className="space-y-10 mb-10">
+            {sortedCourses.map((course) => (
+              <section key={`classic-${course}`}>
+                <h2 className="text-base font-bold uppercase tracking-widest text-[var(--color-text-secondary)] mb-4">
+                  {COURSE_LABELS[course] || course}
+                </h2>
+                <ul className="space-y-8">
+                  {grouped[course].map((mr) => (
+                    <li key={mr.id}>
+                      <Link
+                        to={`/recipes/${mr.recipe.slug || mr.recipe.id}`}
+                        className="text-xl font-serif font-semibold hover:underline"
+                      >
+                        {mr.recipe.title}
+                      </Link>
+                      {mr.recipe.description && (
+                        <p className="text-lg font-serif text-[var(--color-text-secondary)] mt-1 legible pretty">
+                          {mr.recipe.description}
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+
+          <hr className="border-[var(--color-border-card)] mb-10" />
+
+          {/* Recipe card grid */}
+          <div className="space-y-10">
+            {sortedCourses.map((course) => (
+              <section key={`cards-${course}`}>
+                <h2 className="text-xl font-bold mb-4">
+                  {COURSE_LABELS[course] || course}
+                </h2>
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  {grouped[course].map((mr) => {
+                    const r = mr.recipe;
+                    const totalTime = (r.prepTime ?? 0) + (r.cookTime ?? 0);
+                    return (
+                      <Link key={mr.id} to={`/recipes/${r.slug || r.id}`} className="card rounded-xl overflow-hidden group">
+                        {r.photoUrl ? (
+                          <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                            <RecipePhoto src={r.photoUrl} alt={r.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
+                          </div>
+                        ) : (
+                          <div className="aspect-[16/9] bg-[var(--color-bg-card)]" />
+                        )}
+                        <div className="p-4">
+                          <h3 className="font-bold text-base leading-snug">{r.title}</h3>
+                          <span className="text-sm text-[var(--color-text-secondary)]">
+                            {[totalTime > 0 && `${totalTime} min`, r.servings && `${r.servings} servings`].filter(Boolean).join(' \u00b7 ')}
+                          </span>
+                          {r.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        </>
       )}
+      </div>
     </div>
   );
 }

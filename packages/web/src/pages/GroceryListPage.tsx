@@ -128,7 +128,7 @@ export default function GroceryListPage() {
                               className="w-4 h-4 accent-[var(--color-accent)]"
                             />
                             <span className="text-sm">
-                              {ing.quantity != null && <span className="font-semibold tabular-nums">{ing.quantity}</span>}
+                              {ing.quantity != null && <span className="font-semibold tabular-nums">{Math.round(ing.quantity * 100) / 100}</span>}
                               {ing.unit && <span className="text-[var(--color-text-secondary)]"> {ing.unit}</span>}
                               {' '}{ing.ingredientName}
                             </span>

@@ -133,7 +133,7 @@ export default function IngredientsPage() {
                     <button
                       type="button"
                       onClick={() => setDeleteConfirm(ing.id)}
-                      className="text-[var(--color-text-secondary)] hover:text-red-500 p-2 shrink-0"
+                      className="text-[var(--color-text-secondary)] btn-delete p-2 shrink-0"
                       aria-label="Delete"
                       aria-describedby={`ing-${ing.id}`}
                     >

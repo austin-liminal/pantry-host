@@ -34,6 +34,7 @@
     --color-bg-nav: #f4f4f5;
     --color-ring-focus: #18181b;
     --color-ring-offset: #ffffff;
+    --color-danger: #dc2626;
   }
 
   /* ── Default dark (system preference — no JS needed) ── */
@@ -50,6 +51,7 @@
       --color-bg-nav: #09090b;
       --color-ring-focus: #e4e4e7;
       --color-ring-offset: #09090b;
+      --color-danger: #ef4444;
     }
   }
   body[data-color-scheme="dark"] {
@@ -64,6 +66,7 @@
     --color-bg-nav: #09090b;
     --color-ring-focus: #e4e4e7;
     --color-ring-offset: #09090b;
+    --color-danger: #ef4444;
   }
 
   /* ── Rosé palette (light) ── */
@@ -690,6 +693,7 @@
     border: 1px solid transparent;
     min-height: 44px;
     min-width: 44px;
+    border-radius: 0.5rem; /* rounded-lg */
   }
   .btn:focus-visible {
     outline: 2px solid var(--color-ring-focus);
@@ -708,6 +712,7 @@
     border: 1px solid transparent;
     min-height: 44px;
     min-width: 44px;
+    border-radius: 0.5rem; /* rounded-lg */
     background-color: var(--color-accent);
     color: var(--color-bg-body);
     cursor: pointer;
@@ -732,6 +737,7 @@
     border: 1px solid var(--color-border-card);
     min-height: 44px;
     min-width: 44px;
+    border-radius: 0.5rem; /* rounded-lg */
     color: var(--color-text-primary);
     cursor: pointer;
   }
@@ -755,6 +761,7 @@
     border: 1px solid transparent;
     min-height: 44px;
     min-width: 44px;
+    border-radius: 0.5rem; /* rounded-lg */
     background-color: #dc2626;
     color: #ffffff;
     cursor: pointer;
@@ -798,6 +805,19 @@
     color: var(--color-bg-body);
   }
 
+  /* Delete button: currentColor default, danger on hover/focus, thick outline on keyboard */
+  .btn-delete {
+    color: currentColor;
+  }
+  .btn-delete:hover {
+    color: var(--color-danger);
+  }
+  .btn-delete:focus-visible {
+    color: var(--color-danger);
+    outline: 3px solid var(--color-danger);
+    outline-offset: 2px;
+  }
+
   /* Form elements */
   .field-label {
     display: block;
@@ -816,6 +836,7 @@
     line-height: 1.5rem;
     background-color: var(--color-bg-card);
     border: 1px solid var(--color-border-card);
+    border-radius: 0.5rem; /* rounded-lg */
     color: var(--color-text-primary);
     min-height: 44px;
   }
@@ -832,6 +853,7 @@
     line-height: 1.5rem;
     background-color: var(--color-bg-card);
     border: 1px solid var(--color-border-card);
+    border-radius: 0.5rem; /* rounded-lg */
     color: var(--color-text-primary);
     min-height: 44px;
     appearance: none;
@@ -859,6 +881,7 @@
   .card {
     border: 1px solid var(--color-border-card);
     background-color: var(--color-bg-card);
+    border-radius: 0.75rem; /* rounded-xl — matches marketing */
     transition: border-color 0.15s;
   }
   .card:hover {

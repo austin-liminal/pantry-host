@@ -131,7 +131,7 @@ export default function CookwarePage() {
                       <button
                         type="button"
                         onClick={() => setDeleteConfirm(item.id)}
-                        className="text-xs text-red-500 hover:underline"
+                        className="text-xs btn-delete hover:underline"
                       >
                         Delete
                       </button>

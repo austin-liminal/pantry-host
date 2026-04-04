@@ -246,7 +246,7 @@ export default function RecipeDetailPage() {
             <button
               type="button"
               onClick={() => setDeleteConfirm(true)}
-              className="btn-secondary p-2 hover:text-red-500"
+              className="btn-secondary btn-delete p-2"
               aria-label="Delete recipe"
             >
               <Trash size={16} aria-hidden />
@@ -368,7 +368,7 @@ export default function RecipeDetailPage() {
             <ul className="space-y-2 legible">
               {recipe.ingredients.map((ing, i) => (
                 <li key={i}>
-                  {ing.quantity != null && <span className="font-semibold tabular-nums">{ing.quantity}</span>}
+                  {ing.quantity != null && <span className="font-semibold tabular-nums">{Math.round(ing.quantity * 100) / 100}</span>}
                   {ing.unit && <span className="text-[var(--color-text-secondary)]"> {ing.unit}</span>}
                   {' '}{ing.ingredientName}
                 </li>

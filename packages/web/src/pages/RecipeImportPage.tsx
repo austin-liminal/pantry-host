@@ -301,7 +301,7 @@ function MealDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
 
 export default function RecipeImportPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('cooklang');
+  const [tab, setTab] = useState<Tab>('mealdb');
 
   return (
     <div>
@@ -318,19 +318,19 @@ export default function RecipeImportPage() {
       <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)]" role="tablist">
         <button
           role="tab"
-          aria-selected={tab === 'cooklang'}
-          onClick={() => setTab('cooklang')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'cooklang' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-        >
-          Cooklang
-        </button>
-        <button
-          role="tab"
           aria-selected={tab === 'mealdb'}
           onClick={() => setTab('mealdb')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'mealdb' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
         >
           TheMealDB
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'cooklang'}
+          onClick={() => setTab('cooklang')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'cooklang' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+        >
+          Cooklang
         </button>
       </div>
 

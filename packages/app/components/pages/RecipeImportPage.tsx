@@ -10,6 +10,16 @@ import {
   type FederationSearchResult,
   type FederationPagination,
 } from '@pantry-host/shared/cooklang';
+import {
+  searchMealDB,
+  filterByCategory,
+  getMealDBRecipe,
+  getMealDBCategories,
+  mealToRecipe,
+  type MealDBMeal,
+  type MealDBSearchResult,
+  type MealDBCategory,
+} from '@pantry-host/shared/mealdb';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 
 interface ParsedRecipe {
@@ -153,6 +163,24 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const [clError, setClError] = useState<string | null>(null);
   const clDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Community tab state
+  type CommunityTab = 'cooklang' | 'mealdb';
+  const [communityTab, setCommunityTab] = useState<CommunityTab>('cooklang');
+
+  // TheMealDB state
+  const [mdQuery, setMdQuery] = useState('');
+  const [mdCategory, setMdCategory] = useState('');
+  const [mdCategories, setMdCategories] = useState<MealDBCategory[]>([]);
+  const [mdResults, setMdResults] = useState<(MealDBMeal | MealDBSearchResult)[]>([]);
+  const [mdSearching, setMdSearching] = useState(false);
+  const [mdSelected, setMdSelected] = useState<Set<string>>(new Set());
+  const [mdImporting, setMdImporting] = useState(false);
+  const [mdImportProgress, setMdImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [mdError, setMdError] = useState<string | null>(null);
+  const mdDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => { getMealDBCategories().then(setMdCategories).catch(() => {}); }, []);
+
   const clSearch = useCallback(async (q: string, page = 1, append = false) => {
     if (!q.trim()) { setClResults([]); setClPagination(null); return; }
     if (page === 1) setClSearching(true);
@@ -228,6 +256,59 @@ export default function RecipeImportPage({ kitchen }: Props) {
     } else {
       router.push(`${recipesBase}#stage`);
     }
+  }
+
+  // TheMealDB search
+  const mdSearchByName = useCallback(async (q: string) => {
+    if (!q.trim()) { setMdResults([]); return; }
+    setMdSearching(true); setMdError(null); setMdCategory('');
+    try { setMdResults(await searchMealDB(q.trim())); }
+    catch (err) { setMdError(`Search failed: ${(err as Error).message}`); }
+    finally { setMdSearching(false); }
+  }, []);
+
+  useEffect(() => {
+    clearTimeout(mdDebounceRef.current);
+    if (!mdQuery.trim()) { if (!mdCategory) setMdResults([]); return; }
+    mdDebounceRef.current = setTimeout(() => mdSearchByName(mdQuery), 300);
+    return () => clearTimeout(mdDebounceRef.current);
+  }, [mdQuery, mdSearchByName]);
+
+  async function handleMdCategoryFilter(cat: string) {
+    setMdCategory(cat); setMdQuery(''); setMdSearching(true); setMdError(null);
+    try { setMdResults(await filterByCategory(cat)); }
+    catch (err) { setMdError(`Filter failed: ${(err as Error).message}`); }
+    finally { setMdSearching(false); }
+  }
+
+  function mdToggleSelect(id: string) {
+    setMdSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+
+  async function handleMealDBImport() {
+    if (mdSelected.size === 0) return;
+    setMdImporting(true); setMdImportProgress({ done: 0, total: mdSelected.size }); setMdError(null);
+    const ids = Array.from(mdSelected);
+    let done = 0, failed = 0;
+    for (const id of ids) {
+      try {
+        let meal = mdResults.find((r) => r.idMeal === id) as MealDBMeal | undefined;
+        if (!meal || !('strInstructions' in meal)) meal = await getMealDBRecipe(id) ?? undefined;
+        if (!meal) throw new Error('Meal not found');
+        const recipe = mealToRecipe(meal);
+        await gql(CREATE_RECIPE, {
+          title: recipe.title, description: null, instructions: recipe.instructions,
+          servings: null, prepTime: null, cookTime: null,
+          tags: recipe.tags, photoUrl: recipe.photoUrl, sourceUrl: recipe.sourceUrl,
+          ingredients: recipe.ingredients, kitchenSlug: kitchen,
+        });
+      } catch (err) { console.error(`Failed to import meal ${id}:`, err); failed++; }
+      done++; setMdImportProgress({ done, total: ids.length });
+    }
+    setMdImporting(false); setMdImportProgress(null);
+    if (failed > 0 && failed === ids.length) setMdError('All imports failed.');
+    else if (failed > 0) setMdError(`${done - failed} of ${ids.length} imported. ${failed} failed.`);
+    else router.push(`${recipesBase}#stage`);
   }
 
   useEffect(() => {
@@ -417,12 +498,24 @@ export default function RecipeImportPage({ kitchen }: Props) {
               Parse URLs →
             </button>
 
-          {/* Cooklang Federation */}
+          {/* Community Recipes */}
           <div className="mt-10 pt-8 border-t border-[var(--color-border-card)]">
-            <h2 className="text-xl font-bold mb-2">Import from Cooklang Federation</h2>
+            <h2 className="text-xl font-bold mb-2">Community Recipes</h2>
             <p className="text-sm text-[var(--color-text-secondary)] mb-4 legible pretty">
-              Search the <a href="https://cooklang.org" className="underline" rel="noopener noreferrer">Cooklang</a> Federation for community recipes. Select the ones you want and import them.
+              Search community recipe databases and import into your pantry.
             </p>
+
+            {/* Tab toggle */}
+            <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)]" role="tablist">
+              <button role="tab" aria-selected={communityTab === 'cooklang'} onClick={() => setCommunityTab('cooklang')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'cooklang' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+                Cooklang
+              </button>
+              <button role="tab" aria-selected={communityTab === 'mealdb'} onClick={() => setCommunityTab('mealdb')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'mealdb' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+                TheMealDB
+              </button>
+            </div>
+
+            {communityTab === 'cooklang' && (<>
 
             <div className="relative mb-4">
               <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
@@ -514,6 +607,81 @@ export default function RecipeImportPage({ kitchen }: Props) {
                 No recipes found for &ldquo;{clQuery}&rdquo;. Try a different search term.
               </p>
             )}
+            </>)}
+
+            {communityTab === 'mealdb' && (
+            <>
+            <div className="flex gap-3 mb-4">
+              <div className="relative flex-1">
+                <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
+                <input type="search" value={mdQuery} onChange={(e) => setMdQuery(e.target.value)} placeholder="Search TheMealDB (e.g. chicken, pasta)..." className="field-input w-full pl-9" />
+              </div>
+              <select value={mdCategory} onChange={(e) => { if (e.target.value) handleMdCategoryFilter(e.target.value); }} className="field-select w-auto">
+                <option value="">Category</option>
+                {mdCategories.map((c) => <option key={c.idCategory} value={c.strCategory}>{c.strCategory}</option>)}
+              </select>
+            </div>
+
+            {mdError && <p role="alert" className="text-sm text-red-600 dark:text-red-400 mb-4">{mdError}</p>}
+
+            {mdSearching && mdResults.length === 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1,2,3,4,5,6].map((i) => <div key={i} className="h-40 bg-[var(--color-bg-card)] animate-pulse" />)}
+              </div>
+            )}
+
+            {mdResults.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {mdResults.map((r) => {
+                    const isSel = mdSelected.has(r.idMeal);
+                    const thumb = r.strMealThumb;
+                    const cat = 'strCategory' in r ? (r as MealDBMeal).strCategory : null;
+                    const area = 'strArea' in r ? (r as MealDBMeal).strArea : null;
+                    return (
+                      <label key={r.idMeal} className={`card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
+                        {thumb && (
+                          <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                            <picture>
+                              <source media="(prefers-reduced-data: reduce)" srcSet={`${thumb}/preview`} />
+                              <source media="(monochrome)" srcSet={`${thumb}/preview`} />
+                              <img src={`${thumb}/preview`} srcSet={`${thumb} 2x`} alt={r.strMeal} className="w-full h-full object-cover" loading="lazy" />
+                            </picture>
+                          </div>
+                        )}
+                        <div className="p-3 flex items-start gap-3">
+                          <input type="checkbox" checked={isSel} onChange={() => mdToggleSelect(r.idMeal)} className="mt-1 w-4 h-4 shrink-0 accent-accent" />
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm leading-snug">{r.strMeal}</p>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {cat && <span className="tag">{cat}</span>}
+                              {area && <span className="tag">{area}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                {mdSelected.size > 0 && (
+                  <div className="text-center">
+                    <button type="button" onClick={handleMealDBImport} disabled={mdImporting} aria-busy={mdImporting} className="btn-primary">
+                      {mdImporting && mdImportProgress ? `Importing ${mdImportProgress.done}/${mdImportProgress.total}\u2026` : `Import Selected (${mdSelected.size})`}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {!mdSearching && !mdQuery.trim() && !mdCategory && (
+              <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">Search or pick a category to browse TheMealDB recipes.</p>
+            )}
+            {!mdSearching && (mdQuery.trim() || mdCategory) && mdResults.length === 0 && (
+              <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">No results found.</p>
+            )}
+            </>)}
+
           </div>
           </div>
         )}

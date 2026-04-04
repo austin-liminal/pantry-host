@@ -90,7 +90,7 @@ export default function MenusPage() {
                   <button
                     type="button"
                     onClick={() => setDeleteConfirm(menu.id)}
-                    className="text-[var(--color-text-secondary)] hover:text-red-500 p-1"
+                    className="text-[var(--color-text-secondary)] btn-delete p-1"
                     aria-label={`Delete ${menu.title}`}
                   >
                     <Trash size={14} aria-hidden />
