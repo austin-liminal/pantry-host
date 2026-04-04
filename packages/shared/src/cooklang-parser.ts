@@ -120,8 +120,13 @@ export function hasCooklangSyntax(text: string): boolean {
 
 /**
  * Update a Cooklang ingredient reference in instructions text.
- * Finds the first `@name{...}` matching the ingredient name (case-insensitive)
- * and replaces the content with the new quantity/unit.
+ *
+ * When only one `@name{...}` exists, replaces it directly.
+ *
+ * When multiple references exist (e.g. garlic used in two steps),
+ * leaves all but the first unchanged and sets the first occurrence to
+ * `newTotal − sumOfOthers` so the total across all references equals
+ * the quantity from the ingredient editor.
  *
  * Returns the updated text, or the original if no match found.
  */
@@ -131,16 +136,54 @@ export function updateCooklangIngredient(
   quantity: string | null,
   unit: string | null,
 ): string {
-  // Build the replacement content: "qty%unit", "qty", or ""
-  let content = '';
-  if (quantity && unit && unit !== 'whole') content = `${quantity}%${unit}`;
-  else if (quantity) content = quantity;
-
-  // Find and replace the first @name{...} occurrence (case-insensitive name match)
   const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`@${escaped}\\{[^}]*\\}`, 'i');
-  if (regex.test(text)) {
-    return text.replace(regex, `@${name}{${content}}`);
+  const globalRegex = new RegExp(`@${escaped}\\{([^}]*)\\}`, 'gi');
+
+  // Collect all matches
+  const matches: { index: number; fullMatch: string; content: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = globalRegex.exec(text)) !== null) {
+    matches.push({ index: m.index, fullMatch: m[0], content: m[1] });
   }
-  return text;
+
+  if (matches.length === 0) return text;
+
+  /** Parse qty from a match's content string (e.g. "3%cloves" → 3) */
+  function parseQty(content: string): number | null {
+    const s = content.includes('%') ? content.split('%')[0].trim() : content.trim();
+    if (!s) return null;
+    const n = parseFloat(s);
+    return isNaN(n) ? null : n;
+  }
+
+  const newTotal = quantity ? parseFloat(quantity) : null;
+
+  // Build content string helper
+  function buildContent(qty: number | string | null): string {
+    const q = qty != null ? String(qty) : null;
+    if (q && unit && unit !== 'whole') return `${q}%${unit}`;
+    if (q) return q;
+    return '';
+  }
+
+  if (matches.length === 1) {
+    // Single reference — replace directly
+    return text.replace(matches[0].fullMatch, `@${name}{${buildContent(newTotal)}}`);
+  }
+
+  // Multiple references — set first to newTotal − sumOfOthers
+  if (newTotal == null) {
+    // No quantity: just clear the first reference's quantity
+    return text.replace(matches[0].fullMatch, `@${name}{${buildContent(null)}}`);
+  }
+
+  // Sum quantities of all references except the first
+  let sumOfOthers = 0;
+  for (let i = 1; i < matches.length; i++) {
+    const q = parseQty(matches[i].content);
+    if (q != null) sumOfOthers += q;
+  }
+
+  const firstQty = Math.max(0, Math.round((newTotal - sumOfOthers) * 100) / 100);
+  return text.replace(matches[0].fullMatch, `@${name}{${buildContent(firstQty)}}`);
 }

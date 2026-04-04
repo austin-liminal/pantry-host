@@ -8,9 +8,47 @@
  * Matches the self-hosted app's RecipeForm pattern.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TextAlignLeft, Table, X } from '@phosphor-icons/react';
-import { UNIT_GROUPS, COMMON_INGREDIENTS } from '../constants';
+import { UNIT_GROUPS, ALL_UNITS, COMMON_INGREDIENTS } from '../constants';
+
+/** Map of common aliases and plurals → canonical unit from UNIT_GROUPS */
+const UNIT_ALIASES: Record<string, string> = {
+  // Plurals of Count units
+  cloves: 'clove', stalks: 'stalk', slices: 'slice', bunches: 'bunch',
+  heads: 'head', cans: 'can', jars: 'jar', dozens: 'dozen',
+  // Plurals of Volume
+  cups: 'cup', pints: 'pt', quarts: 'qt', gallons: 'gal',
+  teaspoons: 'tsp', tablespoons: 'tbsp', teaspoon: 'tsp', tablespoon: 'tbsp',
+  liters: 'L', litres: 'L', liter: 'L', litre: 'L',
+  milliliters: 'ml', millilitres: 'ml', milliliter: 'ml', millilitre: 'ml',
+  // Plurals of Weight
+  ounces: 'oz', ounce: 'oz', pounds: 'lb', pound: 'lb',
+  grams: 'g', gram: 'g', kilograms: 'kg', kilogram: 'kg', kilos: 'kg', kilo: 'kg',
+  // Plurals of Pinch/Taste
+  pinches: 'pinch', dashes: 'dash',
+  // Spelled-out abbreviations
+  'fluid ounces': 'fl oz', 'fluid ounce': 'fl oz',
+};
+
+/** Normalize a parsed unit string to a UNIT_GROUPS value, or return as-is for freeform */
+function normalizeUnit(raw: string): string {
+  if (!raw) return 'whole';
+  const lower = raw.toLowerCase().trim();
+  // Direct match
+  if ((ALL_UNITS as readonly string[]).includes(lower)) return lower;
+  // Check if original case matches (e.g. "L")
+  if ((ALL_UNITS as readonly string[]).includes(raw.trim())) return raw.trim();
+  // Alias lookup
+  if (UNIT_ALIASES[lower]) return UNIT_ALIASES[lower];
+  // Singular fallback: strip trailing 's' and check
+  if (lower.endsWith('s')) {
+    const singular = lower.slice(0, -1);
+    if ((ALL_UNITS as readonly string[]).includes(singular)) return singular;
+  }
+  // No match — return as-is (freeform unit)
+  return lower;
+}
 
 export interface IngredientRow {
   ingredientName: string;
@@ -70,9 +108,16 @@ function textToRows(text: string): IngredientRow[] {
     });
 }
 
+/** Check if a unit value is a known unit from UNIT_GROUPS */
+function isKnownUnit(unit: string): boolean {
+  return !unit || unit === 'whole' || (ALL_UNITS as readonly string[]).includes(unit);
+}
+
 export default function IngredientEditor({ rows, onChange, error, onClearError, recipes, defaultMode = 'textarea' }: Props) {
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const [textValue, setTextValue] = useState('');
+  const [freeformUnits, setFreeformUnits] = useState<Set<number>>(new Set());
+  const textareaFocused = useRef(false);
 
   function switchToTextarea() {
     setTextValue(rowsToText(rows, recipes));
@@ -88,7 +133,12 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
       }
       return r;
     });
-    onChange(resolved.length > 0 ? resolved : [{ ingredientName: '', quantity: '', unit: 'whole', sourceRecipeId: null }]);
+    const finalRows = resolved.length > 0 ? resolved : [{ ingredientName: '', quantity: '', unit: 'whole', sourceRecipeId: null }];
+    // Track which rows have freeform (non-standard) units — they get a datalist input
+    const freeform = new Set<number>();
+    finalRows.forEach((r, i) => { if (!isKnownUnit(r.unit)) freeform.add(i); });
+    setFreeformUnits(freeform);
+    onChange(finalRows);
     setMode('matrix');
   }
 
@@ -106,6 +156,15 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
   function removeRow(idx: number) {
     if (rows.length <= 1) return;
     onChange(rows.filter((_, i) => i !== idx));
+    // Re-index freeform set after removal
+    setFreeformUnits((prev) => {
+      const next = new Set<number>();
+      for (const i of prev) {
+        if (i < idx) next.add(i);
+        else if (i > idx) next.add(i - 1);
+      }
+      return next;
+    });
   }
 
   function addRow() {
@@ -117,6 +176,8 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
   }
 
   useEffect(() => {
+    // Textarea is source of truth while focused — don't overwrite it
+    if (textareaFocused.current) return;
     if (mode === 'textarea' && rows.length > 0) {
       const hasRecipeRefs = rows.some((r) => r.sourceRecipeId && r.sourceRecipeId !== '__pending__' && r.sourceRecipeId !== '__pick__');
       // Wait for recipes to load before serializing rows with recipe refs
@@ -158,6 +219,8 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
           <textarea
             value={textValue}
             onChange={(e) => handleTextChange(e.target.value)}
+            onFocus={() => { textareaFocused.current = true; }}
+            onBlur={() => { textareaFocused.current = false; }}
             rows={6}
             placeholder={"2 cups flour\n1 tsp salt\n@raspberry-chia-seed-jam\n3 eggs"}
             className={`field-input w-full font-mono text-sm ${error ? 'border-red-500' : ''}`}
@@ -210,18 +273,34 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
                   aria-label={`Ingredient ${idx + 1} quantity`}
                   className="field-input w-20"
                 />
-                <select
-                  value={row.unit}
-                  onChange={(e) => updateRow(idx, { unit: e.target.value })}
-                  aria-label={`Ingredient ${idx + 1} unit`}
-                  className="field-select w-28"
-                >
-                  {UNIT_GROUPS.map((g) => (
-                    <optgroup key={g.label} label={g.label}>
-                      {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
+                {!freeformUnits.has(idx) ? (
+                  <select
+                    value={row.unit || 'whole'}
+                    onChange={(e) => updateRow(idx, { unit: e.target.value })}
+                    aria-label={`Ingredient ${idx + 1} unit`}
+                    className="field-select w-28"
+                  >
+                    {UNIT_GROUPS.map((g) => (
+                      <optgroup key={g.label} label={g.label}>
+                        {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
+                      </optgroup>
+                    ))}
+                  </select>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      list={`unit-suggestions-${idx}`}
+                      value={row.unit}
+                      onChange={(e) => updateRow(idx, { unit: e.target.value })}
+                      aria-label={`Ingredient ${idx + 1} unit`}
+                      className="field-input w-28"
+                    />
+                    <datalist id={`unit-suggestions-${idx}`}>
+                      {ALL_UNITS.map((u) => <option key={u} value={u} />)}
+                    </datalist>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => removeRow(idx)}
