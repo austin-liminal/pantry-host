@@ -370,7 +370,7 @@ export default function RecipeEditPage() {
 
   return (
     <div>
-      <Link to={`/recipes/${slug}`} className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
+      <Link to={`/recipes/${slug}#stage`} className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
         &larr; Back to recipe
       </Link>
 
@@ -645,7 +645,7 @@ export default function RecipeEditPage() {
 
         <div className="flex gap-3 mt-8">
           <Link
-            to={`/recipes/${slug}`}
+            to={`/recipes/${slug}#stage`}
             className="btn-secondary"
           >
             Cancel

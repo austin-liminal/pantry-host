@@ -44,7 +44,7 @@ export default function MenusPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold">Menus</h1>
-        <Link to="/menus/new" className="btn-primary">+ New Menu</Link>
+        <Link to="/menus/new#stage" className="btn-primary">+ New Menu</Link>
       </div>
 
       {loading ? (
@@ -61,7 +61,7 @@ export default function MenusPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {menus.map((menu) => (
             <div key={menu.id} className="card rounded-xl p-4 relative group">
-              <Link to={`/menus/${menu.slug || menu.id}`} className="block hover:underline">
+              <Link to={`/menus/${menu.slug || menu.id}#stage`} className="block hover:underline">
                 <h3 className="font-bold text-base">{menu.title}</h3>
                 {menu.description && (
                   <p className="text-sm text-[var(--color-text-secondary)] mt-1 line-clamp-2">{menu.description}</p>
@@ -76,7 +76,7 @@ export default function MenusPage() {
               </div>
               <div className="absolute top-3 right-3 flex gap-1">
                 <Link
-                  to={`/menus/${menu.slug || menu.id}/edit`}
+                  to={`/menus/${menu.slug || menu.id}/edit#stage`}
                   className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-1 text-xs"
                 >
                   Edit

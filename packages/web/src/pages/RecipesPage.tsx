@@ -43,7 +43,7 @@ function RecipeCard({ recipe, onToggleQueue }: { recipe: Recipe; onToggleQueue: 
     <div className="card rounded-xl overflow-hidden group">
       {/* Photo */}
       {photoSrc ? (
-        <Link to={`/recipes/${recipe.slug || recipe.id}`} className="block aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]" tabIndex={-1} aria-hidden="true">
+        <Link to={`/recipes/${recipe.slug || recipe.id}#stage`} className="block aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]" tabIndex={-1} aria-hidden="true">
           <img
             src={photoSrc}
             alt={recipe.title}
@@ -58,7 +58,7 @@ function RecipeCard({ recipe, onToggleQueue }: { recipe: Recipe; onToggleQueue: 
       {/* Title + queue toggle */}
       <div className="px-4 pt-3 flex items-start justify-between gap-2">
         <Link
-          to={`/recipes/${recipe.slug || recipe.id}`}
+          to={`/recipes/${recipe.slug || recipe.id}#stage`}
           className="font-bold text-base leading-snug hover:underline line-clamp-2"
         >
           {recipe.title}
@@ -127,8 +127,8 @@ export default function RecipesPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Recipes</h1>
         <div className="flex gap-2">
-          <Link to="/recipes/import" className="btn-secondary">Import</Link>
-          <Link to="/recipes/new" className="btn-primary">New recipe</Link>
+          <Link to="/recipes/import#stage" className="btn-secondary">Import</Link>
+          <Link to="/recipes/new#stage" className="btn-primary">New recipe</Link>
         </div>
       </div>
 

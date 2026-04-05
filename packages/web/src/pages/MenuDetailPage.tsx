@@ -112,17 +112,17 @@ export default function MenuDetailPage() {
 
   return (
     <div>
-      <Link to="/menus" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
+      <Link to="/menus#stage" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
         &larr; Menus
       </Link>
 
       {/* Action bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 mb-6 border-b" style={{ borderColor: 'var(--color-border-card)' }}>
-        <Link to="/menus" className="text-sm text-[var(--color-text-secondary)] hover:underline">
+        <Link to="/menus#stage" className="text-sm text-[var(--color-text-secondary)] hover:underline">
           &larr; Menus
         </Link>
         <div className="flex items-center gap-3 flex-wrap justify-end">
-          <Link to={`/menus/${slug}/edit`} className="btn-secondary text-sm">Edit</Link>
+          <Link to={`/menus/${slug}/edit#stage`} className="btn-secondary text-sm">Edit</Link>
           {deleteConfirm ? (
             <div className="flex gap-2 items-center">
               <span className="text-sm text-[var(--color-text-secondary)]">Delete?</span>
@@ -160,7 +160,7 @@ export default function MenuDetailPage() {
 
       {menu.recipes.length === 0 ? (
         <p className="text-[var(--color-text-secondary)] text-sm">
-          No recipes in this menu yet. <Link to={`/menus/${slug}/edit`} className="underline">Add some.</Link>
+          No recipes in this menu yet. <Link to={`/menus/${slug}/edit#stage`} className="underline">Add some.</Link>
         </p>
       ) : (
         <>
@@ -175,7 +175,7 @@ export default function MenuDetailPage() {
                   {grouped[course].map((mr) => (
                     <li key={mr.id}>
                       <Link
-                        to={`/recipes/${mr.recipe.slug || mr.recipe.id}`}
+                        to={`/recipes/${mr.recipe.slug || mr.recipe.id}#stage`}
                         className="text-xl font-serif font-semibold hover:underline"
                       >
                         {mr.recipe.title}
@@ -206,7 +206,7 @@ export default function MenuDetailPage() {
                     const r = mr.recipe;
                     const totalTime = (r.prepTime ?? 0) + (r.cookTime ?? 0);
                     return (
-                      <Link key={mr.id} to={`/recipes/${r.slug || r.id}`} className="card rounded-xl overflow-hidden group">
+                      <Link key={mr.id} to={`/recipes/${r.slug || r.id}#stage`} className="card rounded-xl overflow-hidden group">
                         {r.photoUrl ? (
                           <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                             <RecipePhoto src={r.photoUrl} alt={r.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />

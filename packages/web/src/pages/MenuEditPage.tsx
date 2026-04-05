@@ -135,7 +135,7 @@ export default function MenuEditPage() {
 
   return (
     <div>
-      <Link to={`/menus/${slug}`} className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
+      <Link to={`/menus/${slug}#stage`} className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
         &larr; Back to menu
       </Link>
 
@@ -219,7 +219,7 @@ export default function MenuEditPage() {
           <button type="submit" disabled={saving || !title.trim()} className="btn-primary disabled:opacity-50">
             {saving ? 'Saving\u2026' : 'Save Changes'}
           </button>
-          <Link to={`/menus/${slug}`} className="btn-secondary">Cancel</Link>
+          <Link to={`/menus/${slug}#stage`} className="btn-secondary">Cancel</Link>
         </div>
       </form>
     </div>

@@ -39,7 +39,7 @@ export default function HomePage() {
         {cards.map(({ label, count, to }) => (
           <Link
             key={to}
-            to={to}
+            to={`${to}#stage`}
             className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6 hover:underline transition-colors"
           >
             <p className="text-3xl font-bold">{stats ? count : '—'}</p>

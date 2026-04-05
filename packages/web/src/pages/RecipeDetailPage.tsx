@@ -246,7 +246,7 @@ export default function RecipeDetailPage() {
     <div>
       {/* Action bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 mb-6 border-b" style={{ borderColor: 'var(--color-border-card)' }}>
-        <Link to="/recipes" className="text-sm text-[var(--color-text-secondary)] hover:underline">
+        <Link to="/recipes#stage" className="text-sm text-[var(--color-text-secondary)] hover:underline">
           &larr; Recipes
         </Link>
         <div className="flex items-center gap-3 flex-wrap justify-end">
@@ -256,7 +256,7 @@ export default function RecipeDetailPage() {
           >
             {recipe.queued ? '- Grocery List' : '+ Grocery List'}
           </button>
-          <Link to={`/recipes/${slug}/edit`} className="btn-secondary text-sm">Edit</Link>
+          <Link to={`/recipes/${slug}/edit#stage`} className="btn-secondary text-sm">Edit</Link>
           {deleteConfirm ? (
             <div className="flex gap-2 items-center">
               <span className="text-sm text-[var(--color-text-secondary)]">Delete?</span>
@@ -370,7 +370,7 @@ export default function RecipeDetailPage() {
           <span className="font-semibold text-xs uppercase tracking-wider text-[var(--color-text-secondary)]">Cookware</span>
           <div className="flex flex-wrap gap-2 mt-1">
             {recipe.requiredCookware.map((c) => (
-              <Link key={c.id} to={`/cookware/${c.id}`} className="tag hover:underline">
+              <Link key={c.id} to={`/cookware/${c.id}#stage`} className="tag hover:underline">
                 {c.name}{c.brand && c.brand !== c.name && <em className="font-normal"> by {c.brand}</em>}
               </Link>
             ))}
@@ -438,7 +438,7 @@ export default function RecipeDetailPage() {
           <h2 className="text-xl font-bold mb-4">Made from Scratch</h2>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {subRecipes.map((r) => (
-              <Link key={r.id} to={`/recipes/${r.slug || r.id}`} className="card rounded-xl overflow-hidden hover:underline">
+              <Link key={r.id} to={`/recipes/${r.slug || r.id}#stage`} className="card rounded-xl overflow-hidden hover:underline">
                 {r.photoUrl && (
                   <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                     <OpfsImage src={r.photoUrl} alt={r.title} className="w-full h-full object-cover" />
@@ -466,7 +466,7 @@ export default function RecipeDetailPage() {
           <h2 className="text-xl font-bold mb-4">Made With This</h2>
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             {recipe.usedIn.map((r) => (
-              <Link key={r.id} to={`/recipes/${r.slug || r.id}`} className="card rounded-xl overflow-hidden hover:underline">
+              <Link key={r.id} to={`/recipes/${r.slug || r.id}#stage`} className="card rounded-xl overflow-hidden hover:underline">
                 {r.photoUrl && (
                   <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                     <OpfsImage src={r.photoUrl} alt={r.title} className="w-full h-full object-cover" />

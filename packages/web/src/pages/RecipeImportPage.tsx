@@ -469,7 +469,7 @@ export default function RecipeImportPage() {
 
   return (
     <div>
-      <Link to="/recipes" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
+      <Link to="/recipes#stage" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
         &larr; Back to recipes
       </Link>
 

@@ -86,7 +86,7 @@ export default function CookwarePage() {
               ) : (
                 <div className="flex items-center gap-3 py-4">
                   <div className="flex-1 min-w-0">
-                    <Link to={`/cookware/${item.id}`} className="font-semibold text-sm hover:underline">
+                    <Link to={`/cookware/${item.id}#stage`} className="font-semibold text-sm hover:underline">
                       {item.name}
                     </Link>
                     {item.brand && (

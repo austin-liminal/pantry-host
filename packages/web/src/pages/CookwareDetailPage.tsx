@@ -49,7 +49,7 @@ export default function CookwareDetailPage() {
 
   return (
     <div>
-      <Link to="/cookware" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
+      <Link to="/cookware#stage" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
         &larr; Cookware
       </Link>
 
@@ -78,7 +78,7 @@ export default function CookwareDetailPage() {
             {item.recipes.map((r) => (
               <li key={r.id}>
                 <Link
-                  to={`/recipes/${r.slug}`}
+                  to={`/recipes/${r.slug}#stage`}
                   className="block card rounded-xl p-4 hover:underline"
                 >
                   <span className="font-semibold text-sm">{r.title}</span>

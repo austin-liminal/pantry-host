@@ -90,7 +90,7 @@ export default function MenuNewPage() {
 
   return (
     <div>
-      <Link to="/menus" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
+      <Link to="/menus#stage" className="text-sm text-[var(--color-text-secondary)] hover:underline mb-4 inline-block">
         &larr; Back to menus
       </Link>
 
@@ -144,7 +144,7 @@ export default function MenuNewPage() {
             Recipes <span className="font-normal text-[var(--color-text-secondary)]">({selected.size} selected)</span>
           </legend>
           {recipes.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">No recipes yet. <Link to="/recipes/new" className="underline">Create one first.</Link></p>
+            <p className="text-sm text-[var(--color-text-secondary)]">No recipes yet. <Link to="/recipes/new#stage" className="underline">Create one first.</Link></p>
           ) : (
             <div className="space-y-4">
               {sortedCourses.map((course) => (
@@ -175,7 +175,7 @@ export default function MenuNewPage() {
           <button type="submit" disabled={saving || !title.trim()} className="btn-primary disabled:opacity-50">
             {saving ? 'Saving\u2026' : 'Create Menu'}
           </button>
-          <Link to="/menus" className="btn-secondary">Cancel</Link>
+          <Link to="/menus#stage" className="btn-secondary">Cancel</Link>
         </div>
       </form>
     </div>

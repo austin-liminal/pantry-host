@@ -74,7 +74,7 @@ export default function GroceryListPage() {
         <div className="h-40 rounded-xl bg-[var(--color-bg-card)] animate-pulse" />
       ) : recipes.length === 0 ? (
         <p className="text-[var(--color-text-secondary)] text-sm">
-          No recipes queued. Add recipes to your grocery list from the <Link to="/recipes" className="underline">recipes page</Link>.
+          No recipes queued. Add recipes to your grocery list from the <Link to="/recipes#stage" className="underline">recipes page</Link>.
         </p>
       ) : (
         <>
@@ -84,7 +84,7 @@ export default function GroceryListPage() {
             <ul className="flex flex-wrap gap-2" role="list" aria-label="Queued recipes">
               {recipes.map((r) => (
                 <li key={r.id} className="flex items-center gap-1 text-[var(--color-accent)] px-3 py-1 text-sm font-medium border border-[var(--color-border-card)]">
-                  <Link to={`/recipes/${r.slug}`} className="hover:underline">{r.title}</Link>
+                  <Link to={`/recipes/${r.slug}#stage`} className="hover:underline">{r.title}</Link>
                   <button
                     type="button"
                     onClick={() => dequeue(r.id)}
@@ -108,7 +108,7 @@ export default function GroceryListPage() {
             {recipes.map((recipe) => (
               <fieldset key={recipe.id} className="border border-[var(--color-border-card)] rounded-lg p-4">
                 <legend className="px-2 font-semibold text-sm">
-                  <Link to={`/recipes/${recipe.slug}`} className="hover:underline">{recipe.title}</Link>
+                  <Link to={`/recipes/${recipe.slug}#stage`} className="hover:underline">{recipe.title}</Link>
                 </legend>
                 <ul className="space-y-1">
                   {[...recipe.groceryIngredients]
