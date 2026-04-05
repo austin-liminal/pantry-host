@@ -39,6 +39,7 @@ interface Recipe {
   tags: string[];
   requiredCookware: { name: string }[];
   photoUrl: string | null;
+  stepPhotos: string[];
   sourceUrl: string | null;
   queued: boolean;
   ingredients: RecipeIngredient[];
@@ -60,7 +61,7 @@ interface SubRecipe {
 const RECIPE_QUERY = `query($id: String!) {
   recipe(id: $id) {
     id slug title description instructions servings prepTime cookTime
-    tags requiredCookware { name } photoUrl sourceUrl queued createdAt
+    tags requiredCookware { name } photoUrl stepPhotos sourceUrl queued createdAt
     ingredients { ingredientName quantity unit sourceRecipeId }
     usedIn { id slug title cookTime prepTime servings tags photoUrl }
   }
@@ -72,12 +73,13 @@ const GRID_OPTIONS = [
   { cols: 1, Icon: Rows, label: '1 column' },
 ] as const;
 
-function StepPhotos({ instructions, sourceUrl }: { instructions: string; sourceUrl: string | null }) {
+function StepPhotos({ instructions, sourceUrl, dbStepPhotos }: { instructions: string; sourceUrl: string | null; dbStepPhotos?: string[] }) {
   const [gridCols, setGridCols] = useState(3);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const errorCount = useRef(0);
-  const base = sourceUrl ? stepPhotoBaseUrl(sourceUrl) : null;
-  if (!base) return null;
+  const hasDbPhotos = dbStepPhotos?.some((url) => url && url.length > 0);
+  const base = !hasDbPhotos && sourceUrl ? stepPhotoBaseUrl(sourceUrl) : null;
+  if (!hasDbPhotos && !base) return null;
 
   const steps = instructions.split(/\n+/).filter((l) => /^\d+\./.test(l.trim()));
   if (steps.length === 0) return null;
@@ -104,22 +106,29 @@ function StepPhotos({ instructions, sourceUrl }: { instructions: string; sourceU
       <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
         {steps.map((step, i) => {
           const stepNum = i + 1;
-          const photoUrl = `${encodeURI(base)}.${stepNum}.jpg`;
+          const dbPhoto = dbStepPhotos?.[i];
+          const photoUrl = dbPhoto || (base ? `${encodeURI(base)}.${stepNum}.jpg` : null);
+          if (!photoUrl) return null;
           const stepText = step.replace(/^\d+\.\s*/, '');
+          const imgEl = photoUrl.startsWith('opfs://') ? (
+            <OpfsImage src={photoUrl} alt={`Step ${stepNum}`} className="w-full aspect-[4/3] object-cover" />
+          ) : (
+            <img
+              src={photoUrl}
+              alt={`Step ${stepNum}`}
+              className="w-full aspect-[4/3] object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).closest('.card')!.style.display = 'none';
+                errorCount.current++;
+                if (errorCount.current >= steps.length && wrapperRef.current) {
+                  wrapperRef.current.style.display = 'none';
+                }
+              }}
+            />
+          );
           return (
             <div key={stepNum} className="card rounded-xl overflow-hidden">
-              <img
-                src={photoUrl}
-                alt={`Step ${stepNum}`}
-                className="w-full aspect-[4/3] object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).closest('.card')!.style.display = 'none';
-                  errorCount.current++;
-                  if (errorCount.current >= steps.length && wrapperRef.current) {
-                    wrapperRef.current.style.display = 'none';
-                  }
-                }}
-              />
+              {imgEl}
               <div className="p-3">
                 <span className="text-xs font-bold text-[var(--color-text-secondary)]">Step {stepNum}</span>
                 <p className="text-sm mt-1 line-clamp-3">{stepText}</p>
@@ -420,7 +429,7 @@ export default function RecipeDetailPage() {
         </section>
       </div>
 
-      <StepPhotos instructions={recipe.instructions} sourceUrl={recipe.sourceUrl} />
+      <StepPhotos instructions={recipe.instructions} sourceUrl={recipe.sourceUrl} dbStepPhotos={recipe.stepPhotos} />
 
       {subRecipes.length > 0 && (
         <section className="mt-12">

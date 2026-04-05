@@ -108,6 +108,7 @@ const RecipeType = builder.objectType('Recipe', {
     source: t.exposeString('source'),
     sourceUrl: t.string({ nullable: true, resolve: (r) => r.source_url ?? null }),
     photoUrl: t.string({ nullable: true, resolve: (r) => r.photo_url }),
+    stepPhotos: t.stringList({ resolve: (r) => r.step_photos ?? [] }),
     lastMadeAt: t.string({ nullable: true, resolve: (r) => r.last_made_at?.toISOString() ?? null }),
     queued: t.boolean({ resolve: (r) => r.queued ?? false }),
     ingredients: t.field({
@@ -494,6 +495,7 @@ async function insertRecipe(
     source?: string;
     sourceUrl?: string | null;
     photoUrl?: string | null;
+    stepPhotos?: string[] | null;
     kitchenId?: string;
   },
   ingredients: { ingredientName: string; quantity?: number | null; unit?: string | null; sourceRecipeId?: string | null }[],
@@ -501,7 +503,7 @@ async function insertRecipe(
   const kitchenId = data.kitchenId ?? await resolveKitchenId('home');
   const slug = await uniqueSlug(data.title);
   const [recipe] = await sql`
-    INSERT INTO recipes (title, slug, description, instructions, servings, prep_time, cook_time, tags, source, source_url, photo_url, kitchen_id)
+    INSERT INTO recipes (title, slug, description, instructions, servings, prep_time, cook_time, tags, source, source_url, photo_url, step_photos, kitchen_id)
     VALUES (
       ${data.title},
       ${slug},
@@ -514,6 +516,7 @@ async function insertRecipe(
       ${data.source ?? 'manual'},
       ${data.sourceUrl ?? null},
       ${data.photoUrl ?? null},
+      ${sql.array(data.stepPhotos ?? [])},
       ${kitchenId}
     )
     RETURNING *
@@ -563,6 +566,7 @@ builder.mutationField('createRecipe', (t) =>
       tags: t.arg.stringList(),
       requiredCookwareIds: t.arg.stringList(),
       photoUrl: t.arg.string(),
+      stepPhotos: t.arg.stringList(),
       sourceUrl: t.arg.string(),
       ingredients: t.arg({ type: [RecipeIngredientInputType], required: true }),
       kitchenSlug: t.arg.string(),
@@ -580,6 +584,7 @@ builder.mutationField('createRecipe', (t) =>
           tags: args.tags,
           requiredCookwareIds: args.requiredCookwareIds,
           photoUrl: args.photoUrl,
+          stepPhotos: args.stepPhotos,
           sourceUrl: args.sourceUrl,
           source: args.sourceUrl ? 'url-import' : 'manual',
           kitchenId,
@@ -604,6 +609,7 @@ builder.mutationField('updateRecipe', (t) =>
       tags: t.arg.stringList(),
       requiredCookwareIds: t.arg.stringList(),
       photoUrl: t.arg.string(),
+      stepPhotos: t.arg.stringList(),
       ingredients: t.arg({ type: [RecipeIngredientInputType] }),
     },
     resolve: async (_, args) => {
@@ -618,7 +624,8 @@ builder.mutationField('updateRecipe', (t) =>
           prep_time = COALESCE(${args.prepTime ?? null}, prep_time),
           cook_time = COALESCE(${args.cookTime ?? null}, cook_time),
           tags = COALESCE(${args.tags ? sql.array(args.tags) : null}, tags),
-          photo_url = COALESCE(${args.photoUrl ?? null}, photo_url)
+          photo_url = COALESCE(${args.photoUrl ?? null}, photo_url),
+          step_photos = COALESCE(${args.stepPhotos ? sql.array(args.stepPhotos) : null}, step_photos)
         WHERE id = ${args.id}
         RETURNING *
       `;

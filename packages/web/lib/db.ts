@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS recipes (
   source            VARCHAR(20) DEFAULT 'manual',
   source_url        TEXT,
   photo_url         TEXT,
+  step_photos       TEXT[] DEFAULT '{}',
   last_made_at      TIMESTAMPTZ,
   queued            BOOLEAN DEFAULT FALSE,
   kitchen_id        TEXT NOT NULL REFERENCES kitchens(id) ON DELETE CASCADE,
@@ -160,6 +161,8 @@ async function getDB(): Promise<PGlite> {
       )`);
       await instance.query(`CREATE INDEX IF NOT EXISTS idx_recipe_cookware_recipe   ON recipe_cookware(recipe_id)`);
       await instance.query(`CREATE INDEX IF NOT EXISTS idx_recipe_cookware_cookware ON recipe_cookware(cookware_id)`);
+      // v0.3.0: Step-by-step photos
+      await instance.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS step_photos TEXT[] DEFAULT '{}'`);
     }
 
     // Only expose db after schema is fully initialized

@@ -103,3 +103,6 @@ CREATE TABLE IF NOT EXISTS recipe_cookware (
 );
 CREATE INDEX IF NOT EXISTS idx_recipe_cookware_recipe   ON recipe_cookware(recipe_id);
 CREATE INDEX IF NOT EXISTS idx_recipe_cookware_cookware ON recipe_cookware(cookware_id);
+
+-- v0.3.0: Step-by-step photos for recipes
+ALTER TABLE recipes ADD COLUMN IF NOT EXISTS step_photos TEXT[] DEFAULT '{}';

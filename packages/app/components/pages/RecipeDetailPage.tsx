@@ -48,6 +48,7 @@ interface Recipe {
   source: string;
   sourceUrl: string | null;
   photoUrl: string | null;
+  stepPhotos: string[];
   lastMadeAt: string | null;
   queued: boolean;
   ingredients: RecipeIngredient[];
@@ -58,7 +59,7 @@ const RECIPE_QUERY = `
   query Recipe($id: String!) {
     recipe(id: $id) {
       id slug title description instructions servings prepTime cookTime
-      tags requiredCookware { id name brand } source sourceUrl photoUrl lastMadeAt queued
+      tags requiredCookware { id name brand } source sourceUrl photoUrl stepPhotos lastMadeAt queued
       ingredients { ingredientName quantity unit sourceRecipeId }
       usedIn { id slug title cookTime prepTime servings source tags photoUrl queued }
     }
@@ -81,12 +82,14 @@ const GRID_OPTIONS = [
   { cols: 1, Icon: Rows, label: '1 column' },
 ] as const;
 
-function StepPhotos({ steps, sourceUrl }: { steps: string[]; sourceUrl: string | null | undefined }) {
+function StepPhotos({ steps, sourceUrl, dbStepPhotos }: { steps: string[]; sourceUrl: string | null | undefined; dbStepPhotos?: string[] }) {
   const [gridCols, setGridCols] = useState(3);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const errorCount = useRef(0);
-  const base = sourceUrl ? stepPhotoBaseUrl(sourceUrl) : null;
-  if (!base || steps.length === 0) return null;
+  const hasDbPhotos = dbStepPhotos?.some((url) => url && url.length > 0);
+  const base = !hasDbPhotos && sourceUrl ? stepPhotoBaseUrl(sourceUrl) : null;
+  if (!hasDbPhotos && !base) return null;
+  if (steps.length === 0) return null;
 
   return (
     <div className="mt-12" ref={wrapperRef}>
@@ -110,11 +113,13 @@ function StepPhotos({ steps, sourceUrl }: { steps: string[]; sourceUrl: string |
       <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
         {steps.map((step, i) => {
           const stepNum = i + 1;
-          const photoUrl = `${encodeURI(base)}.${stepNum}.jpg`;
+          const dbPhoto = dbStepPhotos?.[i];
+          const photoUrl = dbPhoto || (base ? `${encodeURI(base)}.${stepNum}.jpg` : null);
+          if (!photoUrl) return null;
           return (
             <div key={stepNum} className="card overflow-hidden">
               <img
-                src={photoUrl}
+                src={photoUrl.startsWith('/uploads/') ? photoUrl.replace(/\.\w+$/, '-400.jpg') : photoUrl}
                 alt={`Step ${stepNum}`}
                 className="w-full aspect-[4/3] object-cover"
                 onError={(e) => {
@@ -701,7 +706,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
             </section>
           </div>
 
-          <StepPhotos steps={steps} sourceUrl={recipe.sourceUrl} />
+          <StepPhotos steps={steps} sourceUrl={recipe.sourceUrl} dbStepPhotos={recipe.stepPhotos} />
 
           {subRecipes.length > 0 && (
             <section aria-labelledby="sub-recipes-heading" className="mt-12">

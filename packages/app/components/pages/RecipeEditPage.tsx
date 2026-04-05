@@ -22,6 +22,7 @@ interface Recipe {
   tags: string[];
   requiredCookware: { id: string; name: string }[];
   photoUrl: string | null;
+  stepPhotos: string[];
   ingredients: RecipeIngredient[];
 }
 
@@ -29,7 +30,7 @@ const EDIT_QUERY = `
   query EditRecipe($id: String!, $kitchenSlug: String) {
     recipe(id: $id) {
       id title description instructions servings prepTime cookTime
-      tags requiredCookware { id name } photoUrl
+      tags requiredCookware { id name } photoUrl stepPhotos
       ingredients { ingredientName quantity unit sourceRecipeId }
     }
     recipes { id slug title source tags }
@@ -89,6 +90,7 @@ export default function RecipeEditPage({ kitchen, recipeId }: Props) {
             tags: recipe.tags,
             requiredCookware: recipe.requiredCookware.map((c) => c.name),
             photoUrl: recipe.photoUrl ?? undefined,
+            stepPhotos: recipe.stepPhotos ?? [],
             ingredients: recipe.ingredients.map((i) => ({
               ingredientName: i.ingredientName,
               quantity: i.quantity,

@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Camera, X } from '@phosphor-icons/react';
 import { gql } from '@/lib/gql';
 import { getFileURL } from '@/lib/storage-opfs';
 import { storePhotoBlob, fetchAndStorePhoto } from '@/lib/photo-helpers';
@@ -10,7 +11,7 @@ import { extractCooklang, hasCooklangSyntax, updateCooklangIngredient } from '@p
 const RECIPE_QUERY = `query($id: String!) {
   recipe(id: $id) {
     id slug title description instructions servings prepTime cookTime
-    tags requiredCookware { id name } photoUrl
+    tags requiredCookware { id name } photoUrl stepPhotos
     ingredients { ingredientName quantity unit sourceRecipeId }
   }
 }`;
@@ -25,6 +26,7 @@ const UPDATE_MUTATION = `mutation(
   $cookTime: Int,
   $tags: [String!],
   $photoUrl: String,
+  $stepPhotos: [String!],
   $requiredCookwareIds: [String!],
   $ingredients: [RecipeIngredientInput!]
 ) {
@@ -38,6 +40,7 @@ const UPDATE_MUTATION = `mutation(
     cookTime: $cookTime,
     tags: $tags,
     photoUrl: $photoUrl,
+    stepPhotos: $stepPhotos,
     requiredCookwareIds: $requiredCookwareIds,
     ingredients: $ingredients
   ) { id slug }
@@ -83,6 +86,7 @@ interface Recipe {
   tags: string[];
   requiredCookware: { id: string; name: string }[];
   photoUrl: string | null;
+  stepPhotos: string[];
   ingredients: RecipeIngredient[];
 }
 
@@ -107,6 +111,9 @@ export default function RecipeEditPage() {
   const [photoUrl, setPhotoUrl] = useState('');
   const [photoPreview, setPhotoPreview] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [stepPhotos, setStepPhotos] = useState<string[]>([]);
+  const [stepPreviews, setStepPreviews] = useState<string[]>([]);
+  const [uploadingStepIdx, setUploadingStepIdx] = useState<number | null>(null);
   const [cookwareInput, setCookwareInput] = useState('');
   const [cookwareItems, setCookwareItems] = useState<{ id: string; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
@@ -183,6 +190,22 @@ export default function RecipeEditPage() {
         setTags(r.tags.join(', '));
         setCookwareInput(r.requiredCookware.map((c) => c.name).join(', '));
         setPhotoUrl(r.photoUrl ?? '');
+        // Seed step photos from DB, or from instruction step count if DB is empty
+        const dbSteps = r.stepPhotos ?? [];
+        const stepCount = r.instructions.split('\n').filter((l: string) => /^\d+\./.test(l.trim())).length;
+        const seeded = dbSteps.length >= stepCount ? dbSteps : [...dbSteps, ...Array(stepCount - dbSteps.length).fill('')];
+        setStepPhotos(seeded);
+        setStepPreviews(Array(seeded.length).fill(''));
+        // Resolve OPFS step photo previews
+        seeded.forEach((url: string, i: number) => {
+          if (url?.startsWith('opfs://')) {
+            getFileURL(url.replace('opfs://', ''))
+              .then((preview) => setStepPreviews((prev) => { const n = [...prev]; n[i] = preview; return n; }))
+              .catch(() => {});
+          } else if (url) {
+            setStepPreviews((prev) => { const n = [...prev]; n[i] = url; return n; });
+          }
+        });
         setIngredientRows(
           r.ingredients.map((i) => ({
             ingredientName: i.ingredientName,
@@ -241,6 +264,45 @@ export default function RecipeEditPage() {
     }
   }
 
+  const instructionStepCount = useMemo(() =>
+    instructions.split('\n').filter((l) => /^\d+\./.test(l.trim())).length,
+    [instructions],
+  );
+
+  useEffect(() => {
+    setStepPhotos((prev) => {
+      if (prev.length === instructionStepCount) return prev;
+      if (prev.length < instructionStepCount)
+        return [...prev, ...Array(instructionStepCount - prev.length).fill('')];
+      return prev.slice(0, instructionStepCount);
+    });
+    setStepPreviews((prev) => {
+      if (prev.length === instructionStepCount) return prev;
+      if (prev.length < instructionStepCount)
+        return [...prev, ...Array(instructionStepCount - prev.length).fill('')];
+      return prev.slice(0, instructionStepCount);
+    });
+  }, [instructionStepCount]);
+
+  async function handleStepPhotoUpload(idx: number, file: File) {
+    setUploadingStepIdx(idx);
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const { path, previewUrl } = await storePhotoBlob(file, ext);
+      setStepPhotos((prev) => { const n = [...prev]; n[idx] = path; return n; });
+      setStepPreviews((prev) => { const n = [...prev]; n[idx] = previewUrl; return n; });
+    } catch (err) {
+      console.error('Step photo upload failed:', err);
+    } finally {
+      setUploadingStepIdx(null);
+    }
+  }
+
+  function removeStepPhoto(idx: number) {
+    setStepPhotos((prev) => { const n = [...prev]; n[idx] = ''; return n; });
+    setStepPreviews((prev) => { const n = [...prev]; n[idx] = ''; return n; });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!recipe || !title.trim() || !instructions.trim()) return;
@@ -271,6 +333,7 @@ export default function RecipeEditPage() {
         cookTime: cookTime ? parseInt(cookTime) : null,
         tags: tags ? tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
         photoUrl: finalPhotoUrl,
+        stepPhotos: stepPhotos.some((s) => s) ? stepPhotos : null,
         requiredCookwareIds: await resolveCookwareIds(cookwareInput, cookwareItems),
         ingredients,
       });
@@ -442,7 +505,83 @@ export default function RecipeEditPage() {
           </p>
         </div>
 
+        {/* Step by Step Photos */}
+        <fieldset>
+            <legend className="field-label">
+              Step by Step Photos
+            </legend>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {stepPhotos.map((url, i) => {
+                const preview = stepPreviews[i];
+                const hasPhoto = !!(url || preview);
+                return (
+                  <div
+                    key={i}
+                    className={`card aspect-square relative flex items-center justify-center overflow-hidden ${
+                      !hasPhoto ? 'border-2 border-dashed border-[var(--color-text-secondary)] bg-[var(--color-bg-card)]' : ''
+                    }`}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-[var(--color-accent)]'); }}
+                    onDragLeave={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-[var(--color-accent)]'); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.classList.remove('ring-2', 'ring-[var(--color-accent)]');
+                      const file = e.dataTransfer.files?.[0];
+                      if (file?.type.startsWith('image/')) handleStepPhotoUpload(i, file);
+                    }}
+                  >
+                    <span className="absolute top-1.5 left-2 text-xs font-medium text-[var(--color-text-secondary)] z-10">
+                      Step {i + 1}
+                    </span>
+                    {uploadingStepIdx === i && (
+                      <div className="absolute inset-0 bg-[var(--color-bg-body)] opacity-70 flex items-center justify-center z-20">
+                        <span className="text-sm text-[var(--color-text-secondary)]">Uploading…</span>
+                      </div>
+                    )}
+                    {hasPhoto ? (
+                      <>
+                        <img
+                          src={preview || url}
+                          alt={`Step ${i + 1}`}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeStepPhoto(i)}
+                          className="absolute top-1.5 right-1.5 p-1 rounded-full bg-[var(--color-bg-body)] text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] z-10"
+                          aria-label={`Remove step ${i + 1} photo`}
+                        >
+                          <X size={14} weight="bold" aria-hidden />
+                        </button>
+                      </>
+                    ) : (
+                      <label className="flex flex-col items-center gap-1 cursor-pointer p-4 text-center">
+                        <Camera size={24} weight="light" className="text-[var(--color-text-secondary)]" aria-hidden />
+                        <span className="text-xs text-[var(--color-text-secondary)]">Click or drag</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/gif"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleStepPhotoUpload(i, file);
+                          }}
+                          className="sr-only"
+                          aria-label={`Upload step ${i + 1} photo`}
+                        />
+                      </label>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </fieldset>
+
         <div className="flex gap-3">
+          <Link
+            to={`/recipes/${slug}`}
+            className="btn-secondary"
+          >
+            Cancel
+          </Link>
           <button
             type="submit"
             disabled={saving}
@@ -450,12 +589,6 @@ export default function RecipeEditPage() {
           >
             {saving ? 'Saving\u2026' : 'Save Changes'}
           </button>
-          <Link
-            to={`/recipes/${slug}`}
-            className="btn-secondary"
-          >
-            Cancel
-          </Link>
         </div>
       </form>
     </div>

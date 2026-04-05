@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { UNIT_GROUPS, COMMON_INGREDIENTS } from '@pantry-host/shared/constants';
 import IngredientEditor, { resolveIngredients, type IngredientRow } from '@pantry-host/shared/components/IngredientEditor';
@@ -24,6 +24,7 @@ interface RecipeData {
   tags?: string[];
   requiredCookware?: string[];
   photoUrl?: string;
+  stepPhotos?: string[];
   ingredients?: RecipeIngredient[];
 }
 
@@ -48,14 +49,14 @@ const CREATE_RECIPE = `
     $title: String!, $description: String, $instructions: String!,
     $servings: Int, $prepTime: Int, $cookTime: Int,
     $tags: [String!], $requiredCookwareIds: [String!], $photoUrl: String,
-    $sourceUrl: String,
+    $stepPhotos: [String!], $sourceUrl: String,
     $ingredients: [RecipeIngredientInput!]!, $kitchenSlug: String
   ) {
     createRecipe(
       title: $title, description: $description, instructions: $instructions,
       servings: $servings, prepTime: $prepTime, cookTime: $cookTime,
       tags: $tags, requiredCookwareIds: $requiredCookwareIds, photoUrl: $photoUrl,
-      sourceUrl: $sourceUrl,
+      stepPhotos: $stepPhotos, sourceUrl: $sourceUrl,
       ingredients: $ingredients, kitchenSlug: $kitchenSlug
     ) { id }
   }
@@ -66,13 +67,13 @@ const UPDATE_RECIPE = `
     $id: String!, $title: String, $description: String, $instructions: String,
     $servings: Int, $prepTime: Int, $cookTime: Int,
     $tags: [String!], $requiredCookwareIds: [String!], $photoUrl: String,
-    $ingredients: [RecipeIngredientInput!]
+    $stepPhotos: [String!], $ingredients: [RecipeIngredientInput!]
   ) {
     updateRecipe(
       id: $id, title: $title, description: $description, instructions: $instructions,
       servings: $servings, prepTime: $prepTime, cookTime: $cookTime,
       tags: $tags, requiredCookwareIds: $requiredCookwareIds, photoUrl: $photoUrl,
-      ingredients: $ingredients
+      stepPhotos: $stepPhotos, ingredients: $ingredients
     ) { id }
   }
 `;
@@ -97,6 +98,8 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
   const [tagInput, setTagInput] = useState(initial?.tags?.join(', ') ?? '');
   const [cookwareInput, setCookwareInput] = useState(initial?.requiredCookware?.join(', ') ?? '');
   const [photoUrl, setPhotoUrl] = useState(initial?.photoUrl ?? '');
+  const [stepPhotos, setStepPhotos] = useState<string[]>(initial?.stepPhotos ?? []);
+  const [uploadingStepIdx, setUploadingStepIdx] = useState<number | null>(null);
   const [ingredientRows, setIngredientRows] = useState<IngredientRow[]>(
     initial?.ingredients?.map((i) => ({
       ingredientName: i.ingredientName,
@@ -251,6 +254,39 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
     }
   }
 
+  // ---- Step Photos ----
+  const instructionStepCount = useMemo(() =>
+    instructions.split('\n').filter((l) => /^\d+\./.test(l.trim())).length,
+    [instructions],
+  );
+
+  useEffect(() => {
+    setStepPhotos((prev) => {
+      if (prev.length === instructionStepCount) return prev;
+      if (prev.length < instructionStepCount)
+        return [...prev, ...Array(instructionStepCount - prev.length).fill('')];
+      return prev.slice(0, instructionStepCount);
+    });
+  }, [instructionStepCount]);
+
+  async function handleStepPhotoUpload(idx: number, file: File) {
+    setUploadingStepIdx(idx);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json() as { url?: string; error?: string };
+      if (data.url) {
+        setStepPhotos((prev) => { const n = [...prev]; n[idx] = data.url!; return n; });
+      }
+    } catch { /* ignore */ }
+    finally { setUploadingStepIdx(null); }
+  }
+
+  function removeStepPhoto(idx: number) {
+    setStepPhotos((prev) => { const n = [...prev]; n[idx] = ''; return n; });
+  }
+
   // ---- Ingredients ----
   function updateIngredient(idx: number, patch: Partial<IngredientRow>) {
     setIngredientRows((prev) => prev.map((r, i) => {
@@ -326,6 +362,7 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
         tags,
         requiredCookwareIds,
         photoUrl: photoUrl || null,
+        stepPhotos: stepPhotos.some((s) => s) ? stepPhotos : null,
         ingredients,
       };
       try {
@@ -345,6 +382,7 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
         tags,
         requiredCookwareIds,
         photoUrl: photoUrl || null,
+        stepPhotos: stepPhotos.some((s) => s) ? stepPhotos : null,
         sourceUrl: importUrl.trim() || null,
         ingredients,
         kitchenSlug: kitchenSlug ?? null,
@@ -512,6 +550,75 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
           aria-required="true"
         />
       </div>
+
+      {/* Step by Step Photos */}
+      <fieldset className="mb-6">
+          <legend className="field-label">
+            Step by Step Photos
+          </legend>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {stepPhotos.map((url, i) => (
+              <div
+                key={i}
+                className={`card aspect-square relative flex items-center justify-center overflow-hidden ${
+                  !url ? 'border-2 border-dashed border-[var(--color-text-secondary)] bg-[var(--color-bg-card)]' : ''
+                }`}
+                onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('ring-2', 'ring-[var(--color-accent)]'); }}
+                onDragLeave={(e) => { e.currentTarget.classList.remove('ring-2', 'ring-[var(--color-accent)]'); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.currentTarget.classList.remove('ring-2', 'ring-[var(--color-accent)]');
+                  const file = e.dataTransfer.files?.[0];
+                  if (file?.type.startsWith('image/')) handleStepPhotoUpload(i, file);
+                }}
+              >
+                <span className="absolute top-1.5 left-2 text-xs font-medium text-[var(--color-text-secondary)] z-10">
+                  Step {i + 1}
+                </span>
+                {uploadingStepIdx === i && (
+                  <div className="absolute inset-0 bg-[var(--color-bg-body)] opacity-70 flex items-center justify-center z-20">
+                    <span className="text-sm text-[var(--color-text-secondary)]">Uploading…</span>
+                  </div>
+                )}
+                {url ? (
+                  <>
+                    <img
+                      src={url.startsWith('/uploads/') ? url.replace(/\.\w+$/, '-400.jpg') : url}
+                      alt={`Step ${i + 1}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeStepPhoto(i)}
+                      className="absolute top-1.5 right-1.5 p-1 rounded-full bg-[var(--color-bg-body)] text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] z-10"
+                      aria-label={`Remove step ${i + 1} photo`}
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <label className="flex flex-col items-center gap-1 cursor-pointer p-4 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-[var(--color-text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span className="text-xs text-[var(--color-text-secondary)]">Click or drag</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleStepPhotoUpload(i, file);
+                      }}
+                      className="sr-only"
+                      aria-label={`Upload step ${i + 1} photo`}
+                    />
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
+        </fieldset>
 
       {/* Tags */}
       <div className="mb-5">

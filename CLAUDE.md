@@ -338,7 +338,7 @@ preview_start pantry-host           # Rex dev server @ :3000 (SSR from Mini's DB
 preview_start graphql-server-prod   # GraphQL @ :4001 (Mini's Postgres via Tailscale)
 ```
 - Requires Tailscale connected and Mini's Postgres accepting connections
-- Mini Tailscale IP: `100.125.77.118` (hostname: `jps-mac-mini`)
+- Mini Tailscale IP: `100.125.77.118` (hostname: `jmini`)
 - Mini Postgres user: `j7`, database: `pantry_host`
 - Mini's `pg_hba.conf` allows Tailscale CGNAT range (`100.64.0.0/10`)
 - `DATABASE_URL=postgres://j7@100.125.77.118:5432/pantry_host`
