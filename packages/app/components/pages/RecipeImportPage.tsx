@@ -82,13 +82,13 @@ function useClImage(id: number): string | null | undefined {
   return clImageCache.get(id);
 }
 
-function CooklangCard({ result: r, selected, onToggle }: { result: FederationSearchResult; selected: boolean; onToggle: () => void }) {
+function CooklangCard({ result: r, selected, onToggle, selectedCount, onImport }: { result: FederationSearchResult; selected: boolean; onToggle: () => void; selectedCount: number; onImport: () => void }) {
   const imageUrl = useClImage(r.id);
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = imageUrl && !imgFailed;
   const showPlaceholder = imageUrl === null || imgFailed;
   return (
-    <label className={`card overflow-hidden cursor-pointer transition-colors ${selected ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
+    <label className={`group card overflow-hidden cursor-pointer transition-colors ${selected ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
       {showImage && (
         <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
           <img src={imageUrl} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={() => setImgFailed(true)} />
@@ -109,6 +109,11 @@ function CooklangCard({ result: r, selected, onToggle }: { result: FederationSea
           {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
         </div>
       </div>
+      {selected && selectedCount > 0 && (
+        <button type="button" onClick={(e) => { e.preventDefault(); onImport(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+          Import {selectedCount} selected
+        </button>
+      )}
     </label>
   );
 }
@@ -706,9 +711,9 @@ export default function RecipeImportPage({ kitchen }: Props) {
 
             {clResults.length > 0 && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && clSelected.size > 0) { e.preventDefault(); handleCooklangImport(); } }} aria-keyshortcuts="Meta+Enter">
                   {clResults.map((r) => (
-                    <CooklangCard key={r.id} result={r} selected={clSelected.has(r.id)} onToggle={() => clToggleSelect(r.id)} />
+                    <CooklangCard key={r.id} result={r} selected={clSelected.has(r.id)} selectedCount={clSelected.size} onImport={handleCooklangImport} onToggle={() => clToggleSelect(r.id)} />
                   ))}
                 </div>
 
@@ -779,14 +784,14 @@ export default function RecipeImportPage({ kitchen }: Props) {
 
             {mdResults.length > 0 && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && mdSelected.size > 0) { e.preventDefault(); handleMealDBImport(); } }} aria-keyshortcuts="Meta+Enter">
                   {mdResults.map((r) => {
                     const isSel = mdSelected.has(r.idMeal);
                     const thumb = r.strMealThumb;
                     const cat = 'strCategory' in r ? (r as MealDBMeal).strCategory : null;
                     const area = 'strArea' in r ? (r as MealDBMeal).strArea : null;
                     return (
-                      <label key={r.idMeal} className={`card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
+                      <label key={r.idMeal} className={`group card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
                         {thumb && (
                           <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                             <picture>
@@ -806,6 +811,11 @@ export default function RecipeImportPage({ kitchen }: Props) {
                             </div>
                           </div>
                         </div>
+                        {isSel && mdSelected.size > 0 && (
+                          <button type="button" onClick={(e) => { e.preventDefault(); handleMealDBImport(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+                            Import {mdSelected.size} selected
+                          </button>
+                        )}
                       </label>
                     );
                   })}
@@ -839,11 +849,11 @@ export default function RecipeImportPage({ kitchen }: Props) {
 
             {pdrResults.length > 0 && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && pdrSelected.size > 0) { e.preventDefault(); handlePdrImport(); } }} aria-keyshortcuts="Meta+Enter">
                   {pdrResults.map((r) => {
                     const isSel = pdrSelected.has(r.slug);
                     return (
-                      <label key={r.slug} className={`card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
+                      <label key={r.slug} className={`group card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
                         {r.hasImage ? (
                           <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                             <img src={getPublicDomainImageUrl(r.slug)} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
@@ -860,6 +870,11 @@ export default function RecipeImportPage({ kitchen }: Props) {
                             {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
                           </div>
                         </div>
+                        {isSel && pdrSelected.size > 0 && (
+                          <button type="button" onClick={(e) => { e.preventDefault(); handlePdrImport(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+                            Import {pdrSelected.size} selected
+                          </button>
+                        )}
                       </label>
                     );
                   })}
@@ -921,9 +936,9 @@ export default function RecipeImportPage({ kitchen }: Props) {
               )}
 
               {wbResults.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && wbSelected.size > 0) { e.preventDefault(); /* import */ } }} aria-keyshortcuts="Meta+Enter">
                   {wbResults.map((r) => (
-                    <label key={r.slug} className={`card p-4 cursor-pointer transition-colors ${wbSelected.has(r.slug) ? 'ring-2 ring-accent' : ''}`}>
+                    <label key={r.slug} className={`group card p-4 cursor-pointer transition-colors ${wbSelected.has(r.slug) ? 'ring-2 ring-accent' : ''}`}>
                       <div className="flex items-start gap-3">
                         <input
                           type="checkbox"
@@ -948,6 +963,11 @@ export default function RecipeImportPage({ kitchen }: Props) {
                           )}
                         </div>
                       </div>
+                      {wbSelected.has(r.slug) && wbSelected.size > 0 && (
+                        <button type="button" onClick={(e) => { e.preventDefault(); }} className="hidden group-focus-within:block btn-primary text-xs mt-2 w-full">
+                          Import {wbSelected.size} selected
+                        </button>
+                      )}
                     </label>
                   ))}
                 </div>
@@ -1041,13 +1061,13 @@ export default function RecipeImportPage({ kitchen }: Props) {
               {cdSearching && <div className="h-40 rounded-xl bg-[var(--color-bg-card)] animate-pulse" />}
 
               {cdResults.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && cdSelected.size > 0) { e.preventDefault(); } }} aria-keyshortcuts="Meta+Enter">
                   {cdResults.map((r) => {
                     const id = 'idDrink' in r ? r.idDrink : '';
                     const name = 'strDrink' in r ? r.strDrink : '';
                     const thumb = 'strDrinkThumb' in r ? r.strDrinkThumb : null;
                     return (
-                      <label key={id} className={`card overflow-hidden cursor-pointer transition-colors ${cdSelected.has(id) ? 'ring-2 ring-accent' : ''}`}>
+                      <label key={id} className={`group card overflow-hidden cursor-pointer transition-colors ${cdSelected.has(id) ? 'ring-2 ring-accent' : ''}`}>
                         {thumb && <img src={thumb} alt={name} className="w-full aspect-[4/3] object-cover" loading="lazy" />}
                         <div className="p-3 flex items-start gap-2">
                           <input type="checkbox" checked={cdSelected.has(id)} onChange={() => setCdSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; })} className="mt-1 accent-accent" />
@@ -1057,6 +1077,11 @@ export default function RecipeImportPage({ kitchen }: Props) {
                             {('strAlcoholic' in r && r.strAlcoholic) && <span className="tag text-xs">{r.strAlcoholic}</span>}
                           </div>
                         </div>
+                        {cdSelected.has(id) && cdSelected.size > 0 && (
+                          <button type="button" onClick={(e) => { e.preventDefault(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+                            Import {cdSelected.size} selected
+                          </button>
+                        )}
                       </label>
                     );
                   })}
