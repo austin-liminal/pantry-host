@@ -69,6 +69,35 @@ export async function getFileURL(path: string): Promise<string> {
   return url;
 }
 
+// ── Data storage (JSON files in app root, not images subdir) ─────────────────
+
+async function getAppDir(): Promise<FileSystemDirectoryHandle> {
+  const root = await navigator.storage.getDirectory();
+  return root.getDirectoryHandle(ROOT_DIR, { create: true });
+}
+
+/** Store a JSON-serializable value in OPFS app directory */
+export async function putData(filename: string, data: unknown): Promise<void> {
+  const dir = await getAppDir();
+  const handle = await dir.getFileHandle(filename, { create: true });
+  const writable = await handle.createWritable();
+  await writable.write(JSON.stringify(data));
+  await writable.close();
+}
+
+/** Retrieve a JSON value from OPFS app directory, or null if not found */
+export async function getData<T>(filename: string): Promise<T | null> {
+  try {
+    const dir = await getAppDir();
+    const handle = await dir.getFileHandle(filename);
+    const file = await handle.getFile();
+    const text = await file.text();
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
 /** List all files in OPFS images directory */
 export async function listFiles(): Promise<string[]> {
   const dir = await getImagesDir();

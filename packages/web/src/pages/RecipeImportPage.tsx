@@ -24,7 +24,9 @@ import {
   getPublicDomainImageUrl,
   type PDREntry,
 } from '@pantry-host/shared/publicdomainrecipes';
-import { MagnifyingGlass, CookingPot } from '@phosphor-icons/react';
+import { MagnifyingGlass, CookingPot, DownloadSimple } from '@phosphor-icons/react';
+import { searchWikibooks, parseIngredientLine, type WikibooksEntry } from '@pantry-host/shared/wikibooks';
+import { isWikibooksDownloaded, loadWikibooksData, downloadWikibooksDataset } from '@/lib/wikibooks-store';
 
 const CREATE_MUTATION = `mutation(
   $title: String!, $description: String, $instructions: String!,
@@ -39,7 +41,7 @@ const CREATE_MUTATION = `mutation(
   ) { id slug }
 }`;
 
-type Tab = 'mealdb' | 'publicdomain' | 'cooklang';
+type Tab = 'mealdb' | 'publicdomain' | 'cooklang' | 'wikibooks';
 
 // ── Cooklang image cache + throttled fetcher ────────────────────────────────
 
@@ -504,11 +506,219 @@ export default function RecipeImportPage() {
         >
           Cooklang
         </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'wikibooks'}
+          onClick={() => setTab('wikibooks')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'wikibooks' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+        >
+          Wikibooks
+        </button>
       </div>
 
       {tab === 'mealdb' && <MealDBTab navigate={navigate} />}
       {tab === 'publicdomain' && <PublicDomainTab navigate={navigate} />}
       {tab === 'cooklang' && <CooklangTab navigate={navigate} />}
+      {tab === 'wikibooks' && <WikibooksTab navigate={navigate} />}
     </div>
+  );
+}
+
+// ── Wikibooks Tab ────────────────────────────────────────────────────────────
+
+function WikibooksTab({ navigate }: { navigate: (path: string) => void }) {
+  const [downloaded, setDownloaded] = useState<boolean | null>(null);
+  const [data, setData] = useState<WikibooksEntry[]>([]);
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+
+  // Check if already downloaded on mount
+  useEffect(() => {
+    isWikibooksDownloaded().then(async (yes) => {
+      setDownloaded(yes);
+      if (yes) {
+        const loaded = await loadWikibooksData();
+        if (loaded) setData(loaded);
+      }
+    });
+  }, []);
+
+  async function handleDownload() {
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const entries = await downloadWikibooksDataset((done, total) => {
+        setProgress({ done, total });
+      });
+      setData(entries);
+      setDownloaded(true);
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : 'Download failed');
+    } finally {
+      setDownloading(false);
+      setProgress(null);
+    }
+  }
+
+  function toggleSelect(slug: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug); else next.add(slug);
+      return next;
+    });
+  }
+
+  async function handleImport() {
+    const toImport = data.filter((r) => selected.has(r.slug));
+    setImportProgress({ done: 0, total: toImport.length });
+
+    for (let i = 0; i < toImport.length; i++) {
+      const r = toImport[i];
+      try {
+        await gql(CREATE_MUTATION, {
+          title: r.title,
+          description: null,
+          instructions: r.instructions,
+          servings: r.servings,
+          prepTime: null,
+          cookTime: null,
+          tags: r.tags,
+          photoUrl: null,
+          sourceUrl: r.sourceUrl,
+          ingredients: r.ingredients.map(parseIngredientLine),
+        });
+      } catch { /* skip failed */ }
+      setImportProgress({ done: i + 1, total: toImport.length });
+      if (i < toImport.length - 1) await new Promise((r) => setTimeout(r, 1200));
+    }
+
+    setSelected(new Set());
+    setImportProgress(null);
+    if (toImport.length === 1) navigate(`/recipes#stage`);
+    else navigate('/recipes#stage');
+  }
+
+  const results = query ? searchWikibooks(query, data).slice(0, 48) : data.slice(0, 48);
+
+  // Pre-download state
+  if (downloaded === null) return <div className="h-40 rounded-xl bg-[var(--color-bg-card)] animate-pulse" />;
+
+  if (!downloaded && !downloading) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-[var(--color-text-secondary)] mb-2">
+          Browse 3,900 public domain recipes offline.
+        </p>
+        <p className="text-[var(--color-text-secondary)] text-sm mb-6">
+          Download once and store locally in your browser.
+        </p>
+        <button onClick={handleDownload} className="btn-primary inline-flex items-center gap-2">
+          <DownloadSimple size={18} aria-hidden />
+          Download Wikibooks Cookbook (~30MB)
+        </button>
+        {downloadError && <p className="text-sm text-red-500 mt-4">{downloadError}</p>}
+      </div>
+    );
+  }
+
+  if (downloading) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-[var(--color-text-secondary)] mb-4">Downloading Wikibooks Cookbook…</p>
+        {progress && (
+          <>
+            <div className="w-full max-w-md mx-auto h-2 rounded-full bg-[var(--color-bg-card)] overflow-hidden mb-2">
+              <div
+                className="h-full bg-[var(--color-accent)] transition-all"
+                style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {progress.done} of {progress.total} batches
+            </p>
+          </>
+        )}
+        {downloadError && <p className="text-sm text-red-500 mt-4">{downloadError}</p>}
+      </div>
+    );
+  }
+
+  // Post-download: search + browse
+  return (
+    <>
+      <div className="mb-4">
+        <div className="relative">
+          <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search recipes…"
+            className="field-input w-full pl-9"
+          />
+        </div>
+        <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+          {data.length.toLocaleString()} recipes available · Showing {results.length}
+        </p>
+      </div>
+
+      {importProgress && (
+        <div className="mb-4 p-3 card text-sm text-center">
+          Importing {importProgress.done} of {importProgress.total}…
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {results.map((r) => (
+          <label
+            key={r.slug}
+            className={`card p-4 cursor-pointer transition-colors ${selected.has(r.slug) ? 'ring-2 ring-[var(--color-accent)]' : ''}`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={selected.has(r.slug)}
+                onChange={() => toggleSelect(r.slug)}
+                className="mt-1 accent-[var(--color-accent)]"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{r.title}</p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {r.tags.filter((t) => t !== 'wikibooks').slice(0, 3).map((t) => (
+                    <span key={t} className="tag text-xs">{t}</span>
+                  ))}
+                  {r.difficulty != null && (
+                    <span className="text-xs text-[var(--color-text-secondary)]">
+                      {'★'.repeat(r.difficulty)}{'☆'.repeat(5 - r.difficulty)}
+                    </span>
+                  )}
+                </div>
+                {(r.servings || r.time) && (
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                    {[r.servings && `${r.servings} servings`, r.time].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </div>
+            </div>
+          </label>
+        ))}
+      </div>
+
+      {selected.size > 0 && (
+        <div className="sticky bottom-4 mt-6 flex justify-center">
+          <button onClick={handleImport} disabled={!!importProgress} className="btn-primary shadow-lg">
+            Import {selected.size} selected
+          </button>
+        </div>
+      )}
+
+      <p className="text-xs text-[var(--color-text-secondary)] mt-6 text-center">
+        Recipes from <a href="https://en.wikibooks.org/wiki/Cookbook" className="underline" rel="noopener noreferrer">Wikibooks Cookbook</a> · CC-BY-SA-4.0
+      </p>
+    </>
   );
 }

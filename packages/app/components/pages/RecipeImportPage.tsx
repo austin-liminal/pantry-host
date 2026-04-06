@@ -27,6 +27,7 @@ import {
   type PDREntry,
 } from '@pantry-host/shared/publicdomainrecipes';
 import { MagnifyingGlass, CookingPot } from '@phosphor-icons/react';
+import { parseIngredientLine, type WikibooksEntry } from '@pantry-host/shared/wikibooks';
 
 // ── Cooklang image cache + throttled fetcher ────────────────────────────────
 const clImageCache = new Map<number, string | null>();
@@ -244,8 +245,16 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const clDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Community tab state
-  type CommunityTab = 'cooklang' | 'mealdb' | 'publicdomain';
+  type CommunityTab = 'cooklang' | 'mealdb' | 'publicdomain' | 'wikibooks';
   const [communityTab, setCommunityTab] = useState<CommunityTab>('cooklang');
+
+  // Wikibooks state (server-side cached, no client download)
+  const [wbResults, setWbResults] = useState<WikibooksEntry[]>([]);
+  const [wbTotal, setWbTotal] = useState(0);
+  const [wbQuery, setWbQuery] = useState('');
+  const [wbSearching, setWbSearching] = useState(false);
+  const [wbSelected, setWbSelected] = useState<Set<string>>(new Set());
+  const [wbLoaded, setWbLoaded] = useState(false);
 
   // TheMealDB state
   const [mdQuery, setMdQuery] = useState('');
@@ -633,6 +642,19 @@ export default function RecipeImportPage({ kitchen }: Props) {
               <button role="tab" aria-selected={communityTab === 'publicdomain'} onClick={() => setCommunityTab('publicdomain')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'publicdomain' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
                 Public Domain
               </button>
+              <button role="tab" aria-selected={communityTab === 'wikibooks'} onClick={() => {
+                setCommunityTab('wikibooks');
+                if (!wbLoaded && !wbSearching) {
+                  setWbSearching(true);
+                  fetch('/api/wikibooks?limit=48')
+                    .then((r) => r.json())
+                    .then((d) => { setWbResults(d.results); setWbTotal(d.total); setWbLoaded(true); })
+                    .catch(() => {})
+                    .finally(() => setWbSearching(false));
+                }
+              }} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'wikibooks' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+                Wikibooks
+              </button>
             </div>
 
             {communityTab === 'cooklang' && (<>
@@ -826,6 +848,112 @@ export default function RecipeImportPage({ kitchen }: Props) {
             {pdrQuery.trim() && pdrResults.length === 0 && (
               <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">No recipes found for &ldquo;{pdrQuery}&rdquo;.</p>
             )}
+            </>)}
+
+            {communityTab === 'wikibooks' && (<>
+              <div className="relative mb-4">
+                <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
+                <input
+                  type="search"
+                  value={wbQuery}
+                  onChange={(e) => {
+                    setWbQuery(e.target.value);
+                    const q = e.target.value;
+                    setWbSearching(true);
+                    fetch(`/api/wikibooks?q=${encodeURIComponent(q)}&limit=48`)
+                      .then((r) => r.json())
+                      .then((d) => { setWbResults(d.results); setWbTotal(d.total); setWbLoaded(true); })
+                      .catch(() => {})
+                      .finally(() => setWbSearching(false));
+                  }}
+                  placeholder="Search 3,900 Wikibooks recipes…"
+                  className="field-input w-full pl-9"
+                />
+                {wbLoaded && (
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                    {wbTotal.toLocaleString()} results
+                  </p>
+                )}
+              </div>
+
+              {!wbLoaded && !wbSearching && (
+                <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">
+                  Type to search, or press Enter with an empty query to browse all.
+                </p>
+              )}
+
+              {wbSearching && (
+                <div className="h-40 rounded-xl bg-[var(--color-bg-card)] animate-pulse" />
+              )}
+
+              {wbLoaded && wbResults.length === 0 && (
+                <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">No recipes found.</p>
+              )}
+
+              {wbResults.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {wbResults.map((r) => (
+                    <label key={r.slug} className={`card p-4 cursor-pointer transition-colors ${wbSelected.has(r.slug) ? 'ring-2 ring-accent' : ''}`}>
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={wbSelected.has(r.slug)}
+                          onChange={() => setWbSelected((prev) => { const n = new Set(prev); if (n.has(r.slug)) n.delete(r.slug); else n.add(r.slug); return n; })}
+                          className="mt-1 accent-accent"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">{r.title}</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {r.tags.filter((t) => t !== 'wikibooks').slice(0, 3).map((t) => (
+                              <span key={t} className="tag text-xs">{t}</span>
+                            ))}
+                            {r.difficulty != null && (
+                              <span className="text-xs text-[var(--color-text-secondary)]">{'★'.repeat(r.difficulty)}{'☆'.repeat(5 - r.difficulty)}</span>
+                            )}
+                          </div>
+                          {(r.servings || r.time) && (
+                            <p className="text-xs text-[var(--color-text-secondary)] mt-1">
+                              {[r.servings && `${r.servings} servings`, r.time].filter(Boolean).join(' · ')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {wbSelected.size > 0 && (
+                <div className="sticky bottom-4 mt-6 flex justify-center">
+                  <button
+                    onClick={async () => {
+                      const toImport = wbResults.filter((r) => wbSelected.has(r.slug));
+                      for (const r of toImport) {
+                        try {
+                          await gql(`mutation($title: String!, $instructions: String!, $servings: Int, $tags: [String!], $sourceUrl: String, $ingredients: [RecipeIngredientInput!]!) { createRecipe(title: $title, instructions: $instructions, servings: $servings, tags: $tags, sourceUrl: $sourceUrl, ingredients: $ingredients) { id } }`, {
+                            title: r.title,
+                            instructions: r.instructions,
+                            servings: r.servings,
+                            tags: r.tags,
+                            sourceUrl: r.sourceUrl,
+                            ingredients: r.ingredients.map(parseIngredientLine),
+                          });
+                        } catch { /* skip */ }
+                        await new Promise((resolve) => setTimeout(resolve, 1200));
+                      }
+                      setWbSelected(new Set());
+                      router.push(`${recipesBase}#stage`);
+                    }}
+                    className="btn-primary shadow-lg"
+                  >
+                    Import {wbSelected.size} selected
+                  </button>
+                </div>
+              )}
+
+              <p className="text-xs text-[var(--color-text-secondary)] mt-6 text-center">
+                Recipes from <a href="https://en.wikibooks.org/wiki/Cookbook" className="underline" rel="noopener noreferrer">Wikibooks Cookbook</a> · CC-BY-SA-4.0
+              </p>
             </>)}
 
           </div>
