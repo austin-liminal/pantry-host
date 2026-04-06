@@ -97,13 +97,13 @@ function useClImage(id: number): string | null | undefined {
   return clImageCache.get(id); // undefined = loading, null = no image, string = url
 }
 
-function CooklangCard({ result: r, selected, onToggle }: { result: FederationSearchResult; selected: boolean; onToggle: () => void }) {
+function CooklangCard({ result: r, selected, onToggle, selectedCount, onImport }: { result: FederationSearchResult; selected: boolean; onToggle: () => void; selectedCount: number; onImport: () => void }) {
   const imageUrl = useClImage(r.id);
   const [imgFailed, setImgFailed] = useState(false);
   const showImage = imageUrl && !imgFailed;
   const showPlaceholder = imageUrl === null || imgFailed;
   return (
-    <label className={`card overflow-hidden cursor-pointer transition-colors ${selected ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
+    <label className={`group card overflow-hidden cursor-pointer transition-colors ${selected ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
       {showImage && (
         <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
           <img src={imageUrl} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={() => setImgFailed(true)} />
@@ -124,6 +124,11 @@ function CooklangCard({ result: r, selected, onToggle }: { result: FederationSea
           {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
         </div>
       </div>
+      {selected && selectedCount > 0 && (
+        <button type="button" onClick={(e) => { e.preventDefault(); onImport(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+          Import {selectedCount} selected
+        </button>
+      )}
     </label>
   );
 }
@@ -203,9 +208,9 @@ function CooklangTab({ navigate }: { navigate: ReturnType<typeof useNavigate> })
       )}
       {results.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) { e.preventDefault(); handleImport(); } }} aria-keyshortcuts="Meta+Enter">
             {results.map((r) => (
-              <CooklangCard key={r.id} result={r} selected={selected.has(r.id)} onToggle={() => { setSelected((p) => { const n = new Set(p); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }); }} />
+              <CooklangCard key={r.id} result={r} selected={selected.has(r.id)} selectedCount={selected.size} onImport={handleImport} onToggle={() => { setSelected((p) => { const n = new Set(p); n.has(r.id) ? n.delete(r.id) : n.add(r.id); return n; }); }} />
             ))}
           </div>
           {pagination && pagination.page < pagination.total_pages && (
@@ -333,14 +338,14 @@ function MealDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
 
       {results.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) { e.preventDefault(); handleImport(); } }} aria-keyshortcuts="Meta+Enter">
             {results.map((r) => {
               const isSel = selected.has(r.idMeal);
               const thumb = r.strMealThumb;
               const cat = 'strCategory' in r ? (r as MealDBMeal).strCategory : null;
               const area = 'strArea' in r ? (r as MealDBMeal).strArea : null;
               return (
-                <label key={r.idMeal} className={`card rounded-xl overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
+                <label key={r.idMeal} className={`group card rounded-xl overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
                   {thumb && (
                     <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                       <picture>
@@ -360,6 +365,11 @@ function MealDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
                       </div>
                     </div>
                   </div>
+                  {isSel && selected.size > 0 && (
+                    <button type="button" onClick={(e) => { e.preventDefault(); handleImport(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+                      Import {selected.size} selected
+                    </button>
+                  )}
                 </label>
               );
             })}
@@ -517,13 +527,13 @@ function CocktailDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> 
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) { e.preventDefault(); handleImport(); } }} aria-keyshortcuts="Meta+Enter">
         {results.map((r) => {
           const id = 'idDrink' in r ? r.idDrink : '';
           const name = 'strDrink' in r ? r.strDrink : '';
           const thumb = 'strDrinkThumb' in r ? r.strDrinkThumb : null;
           return (
-            <label key={id} className={`card overflow-hidden cursor-pointer transition-colors ${selected.has(id) ? 'ring-2 ring-[var(--color-accent)]' : ''}`}>
+            <label key={id} className={`group card overflow-hidden cursor-pointer transition-colors ${selected.has(id) ? 'ring-2 ring-[var(--color-accent)]' : ''}`}>
               {thumb && (
                 <picture>
                   <source media="(prefers-reduced-data: reduce)" srcSet={`${thumb}/preview`} />
@@ -538,6 +548,11 @@ function CocktailDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> 
                   {('strAlcoholic' in r && r.strAlcoholic) && <span className="tag text-xs">{r.strAlcoholic}</span>}
                 </div>
               </div>
+              {selected.has(id) && selected.size > 0 && (
+                <button type="button" onClick={(e) => { e.preventDefault(); handleImport(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+                  Import {selected.size} selected
+                </button>
+              )}
             </label>
           );
         })}
@@ -605,11 +620,11 @@ function PublicDomainTab({ navigate }: { navigate: ReturnType<typeof useNavigate
 
       {results.length > 0 && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) { e.preventDefault(); handleImport(); } }} aria-keyshortcuts="Meta+Enter">
             {results.map((r) => {
               const isSel = selected.has(r.slug);
               return (
-                <label key={r.slug} className={`card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
+                <label key={r.slug} className={`group card overflow-hidden cursor-pointer transition-colors ${isSel ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}>
                   {r.hasImage ? (
                     <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                       <img src={getPublicDomainImageUrl(r.slug)} alt={r.title} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }} />
@@ -626,6 +641,11 @@ function PublicDomainTab({ navigate }: { navigate: ReturnType<typeof useNavigate
                       {r.tags.length > 0 && <div className="flex flex-wrap gap-1 mt-2">{r.tags.slice(0, 4).map((t) => <span key={t} className="tag">{t}</span>)}</div>}
                     </div>
                   </div>
+                  {isSel && selected.size > 0 && (
+                    <button type="button" onClick={(e) => { e.preventDefault(); handleImport(); }} className="hidden group-focus-within:block btn-primary text-xs mx-3 mb-3 w-[calc(100%-1.5rem)]">
+                      Import {selected.size} selected
+                    </button>
+                  )}
                 </label>
               );
             })}
@@ -866,11 +886,11 @@ function WikibooksTab({ navigate }: { navigate: (path: string) => void }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) { e.preventDefault(); handleImport(); } }} aria-keyshortcuts="Meta+Enter">
         {results.map((r) => (
           <label
             key={r.slug}
-            className={`card p-4 cursor-pointer transition-colors ${selected.has(r.slug) ? 'ring-2 ring-[var(--color-accent)]' : ''}`}
+            className={`group card p-4 cursor-pointer transition-colors ${selected.has(r.slug) ? 'ring-2 ring-[var(--color-accent)]' : ''}`}
           >
             <div className="flex items-start gap-3">
               <input
@@ -898,6 +918,11 @@ function WikibooksTab({ navigate }: { navigate: (path: string) => void }) {
                 )}
               </div>
             </div>
+            {selected.has(r.slug) && selected.size > 0 && (
+              <button type="button" onClick={(e) => { e.preventDefault(); handleImport(); }} className="hidden group-focus-within:block btn-primary text-xs mt-2 w-full">
+                Import {selected.size} selected
+              </button>
+            )}
           </label>
         ))}
       </div>
