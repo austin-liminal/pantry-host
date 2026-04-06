@@ -666,12 +666,12 @@ export default function RecipeImportPage() {
       </p>
 
       {/* Tab toggle */}
-      <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)]" role="tablist">
+      <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)] overflow-x-auto" role="tablist">
         <button
           role="tab"
           aria-selected={tab === 'mealdb'}
           onClick={() => setTab('mealdb')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'mealdb' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+          className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${tab === 'mealdb' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
         >
           TheMealDB
         </button>
@@ -679,7 +679,7 @@ export default function RecipeImportPage() {
           role="tab"
           aria-selected={tab === 'publicdomain'}
           onClick={() => setTab('publicdomain')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'publicdomain' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+          className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${tab === 'publicdomain' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
         >
           Public Domain
         </button>
@@ -687,7 +687,7 @@ export default function RecipeImportPage() {
           role="tab"
           aria-selected={tab === 'cooklang'}
           onClick={() => setTab('cooklang')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'cooklang' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+          className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${tab === 'cooklang' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
         >
           Cooklang
         </button>
@@ -695,7 +695,7 @@ export default function RecipeImportPage() {
           role="tab"
           aria-selected={tab === 'wikibooks'}
           onClick={() => setTab('wikibooks')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'wikibooks' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+          className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${tab === 'wikibooks' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
         >
           Wikibooks
         </button>
@@ -703,7 +703,7 @@ export default function RecipeImportPage() {
           role="tab"
           aria-selected={tab === 'cocktaildb'}
           onClick={() => setTab('cocktaildb')}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === 'cocktaildb' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
+          className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${tab === 'cocktaildb' ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
         >
           TheCocktailDB
         </button>

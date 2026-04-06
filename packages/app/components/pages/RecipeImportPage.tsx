@@ -653,14 +653,14 @@ export default function RecipeImportPage({ kitchen }: Props) {
             </p>
 
             {/* Tab toggle */}
-            <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)]" role="tablist">
-              <button role="tab" aria-selected={communityTab === 'cooklang'} onClick={() => setCommunityTab('cooklang')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'cooklang' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+            <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)] overflow-x-auto" role="tablist">
+              <button role="tab" aria-selected={communityTab === 'cooklang'} onClick={() => setCommunityTab('cooklang')} className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${communityTab === 'cooklang' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
                 Cooklang
               </button>
-              <button role="tab" aria-selected={communityTab === 'mealdb'} onClick={() => setCommunityTab('mealdb')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'mealdb' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+              <button role="tab" aria-selected={communityTab === 'mealdb'} onClick={() => setCommunityTab('mealdb')} className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${communityTab === 'mealdb' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
                 TheMealDB
               </button>
-              <button role="tab" aria-selected={communityTab === 'publicdomain'} onClick={() => setCommunityTab('publicdomain')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'publicdomain' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+              <button role="tab" aria-selected={communityTab === 'publicdomain'} onClick={() => setCommunityTab('publicdomain')} className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${communityTab === 'publicdomain' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
                 Public Domain
               </button>
               <button role="tab" aria-selected={communityTab === 'wikibooks'} onClick={() => {
@@ -673,10 +673,10 @@ export default function RecipeImportPage({ kitchen }: Props) {
                     .catch(() => {})
                     .finally(() => setWbSearching(false));
                 }
-              }} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'wikibooks' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+              }} className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${communityTab === 'wikibooks' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
                 Wikibooks
               </button>
-              <button role="tab" aria-selected={communityTab === 'cocktaildb'} onClick={() => setCommunityTab('cocktaildb')} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${communityTab === 'cocktaildb' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
+              <button role="tab" aria-selected={communityTab === 'cocktaildb'} onClick={() => setCommunityTab('cocktaildb')} className={`px-4 py-2 text-sm font-medium whitespace-nowrap shrink-0 border-b-2 transition-colors ${communityTab === 'cocktaildb' ? 'border-accent text-accent' : 'border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}>
                 TheCocktailDB
               </button>
             </div>
