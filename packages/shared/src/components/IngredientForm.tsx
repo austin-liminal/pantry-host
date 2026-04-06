@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { CATEGORIES, UNIT_GROUPS, COMMON_INGREDIENTS } from '../constants';
+import { CATEGORY_GROUPS, UNIT_GROUPS, COMMON_INGREDIENTS } from '../constants';
 
 export interface IngredientData {
   id: string;
@@ -117,35 +117,36 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
           className="field-select w-full"
         >
           <option value="">— select —</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {CATEGORY_GROUPS.map((g) => (
+            <optgroup key={g.label} label={g.label}>
+              {g.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            </optgroup>
+          ))}
         </select>
       </div>
 
       {/* Three-way quantity mode */}
       <fieldset className="mb-4">
         <legend className="field-label mb-2">Quantity</legend>
-        <div className="flex rounded border border-[var(--color-border-card)] overflow-hidden w-fit" role="group">
+        <div className="flex flex-wrap gap-3">
           {(['unset', 'amount', 'always'] as QtyMode[]).map((mode) => {
             const labels: Record<QtyMode, string> = {
               unset: 'Unset',
               amount: 'Amount',
               always: 'Always on hand',
             };
-            const active = qtyMode === mode;
             return (
-              <button
-                key={mode}
-                type="button"
-                aria-pressed={active}
-                onClick={() => setQtyMode(mode)}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
-                  active
-                    ? 'bg-[var(--color-text-primary)] text-[var(--color-bg-body)]'
-                    : 'bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] hover:bg-[var(--color-accent-subtle)]'
-                } border-r border-[var(--color-border-card)] last:border-r-0`}
-              >
+              <label key={mode} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                <input
+                  type="radio"
+                  name="qty-mode"
+                  value={mode}
+                  checked={qtyMode === mode}
+                  onChange={() => setQtyMode(mode)}
+                  className="accent-[var(--color-accent)]"
+                />
                 {labels[mode]}
-              </button>
+              </label>
             );
           })}
         </div>

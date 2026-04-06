@@ -5,7 +5,7 @@ import BatchScanSession from '@/components/BatchScanSession';
 import { gql } from '@/lib/gql';
 import { Camera, PencilSimple, Trash } from '@phosphor-icons/react';
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
-import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
+import { HIDDEN_TAGS, ALL_CATEGORIES } from '@pantry-host/shared/constants';
 import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface Ingredient {
@@ -92,9 +92,12 @@ export default function IngredientsPage({ kitchen }: Props) {
   const allTags = [...new Set(ingredients.flatMap((i) => i.tags))].sort();
 
   const grouped = groupBy(ingredients, (i) => i.category ?? 'other');
-  const categoryOrder = ['produce', 'fruit', 'dairy', 'protein', 'pantry', 'spices', 'frozen', 'beverages', 'other'];
   const sortedCategories = Object.keys(grouped).sort(
-    (a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b),
+    (a, b) => {
+      const ai = (ALL_CATEGORIES as readonly string[]).indexOf(a);
+      const bi = (ALL_CATEGORIES as readonly string[]).indexOf(b);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    },
   );
 
   return (

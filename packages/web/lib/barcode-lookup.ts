@@ -16,12 +16,24 @@ function mapCategory(categories: string): string {
   const lower = categories.toLowerCase();
   if (lower.includes('frozen')) return 'frozen';
   if (lower.includes('fruit') || lower.includes('berry') || lower.includes('melon')) return 'fruit';
-  if (lower.includes('produce') || lower.includes('vegetable')) return 'produce';
-  if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese') || lower.includes('yogurt')) return 'dairy';
-  if (lower.includes('meat') || lower.includes('fish') || lower.includes('poultry') || lower.includes('seafood')) return 'protein';
-  if (lower.includes('beverage') || lower.includes('drink') || lower.includes('juice') || lower.includes('soda')) return 'beverages';
-  if (lower.includes('spice') || lower.includes('herb') || lower.includes('seasoning')) return 'spices';
-  return 'pantry';
+  if (lower.includes('produce') || lower.includes('vegetable') || lower.includes('salad')) return 'vegetables';
+  if (lower.includes('dairy') || lower.includes('milk') || lower.includes('cheese') || lower.includes('yogurt')) return 'dairy & eggs';
+  if (lower.includes('egg')) return 'eggs';
+  if (lower.includes('seafood') || lower.includes('fish') || lower.includes('shrimp') || lower.includes('salmon')) return 'seafood & fish';
+  if (lower.includes('meat') || lower.includes('poultry') || lower.includes('chicken') || lower.includes('beef') || lower.includes('pork')) return 'meat & poultry';
+  if (lower.includes('tofu') || lower.includes('tempeh') || lower.includes('soy')) return 'tofu & tempeh';
+  if (lower.includes('bean') || lower.includes('lentil') || lower.includes('legume') || lower.includes('chickpea')) return 'legumes & pulses';
+  if (lower.includes('nut') || lower.includes('seed') || lower.includes('almond') || lower.includes('peanut')) return 'nuts & seeds';
+  if (lower.includes('deli') || lower.includes('charcuterie') || lower.includes('sausage') || lower.includes('salami')) return 'deli & charcuterie';
+  if (lower.includes('beverage') || lower.includes('drink') || lower.includes('juice') || lower.includes('soda') || lower.includes('water') || lower.includes('coffee') || lower.includes('tea')) return 'beverages';
+  if (lower.includes('condiment') || lower.includes('sauce') || lower.includes('ketchup') || lower.includes('mustard') || lower.includes('mayo')) return 'condiments & sauces';
+  if (lower.includes('oil') || lower.includes('vinegar')) return 'oils & vinegars';
+  if (lower.includes('spice') || lower.includes('herb') || lower.includes('seasoning')) return 'herbs & spices';
+  if (lower.includes('flour') || lower.includes('sugar') || lower.includes('baking')) return 'baking';
+  if (lower.includes('snack') || lower.includes('chip') || lower.includes('cracker') || lower.includes('cookie')) return 'snacks';
+  if (lower.includes('can') || lower.includes('jar') || lower.includes('canned')) return 'canned & jarred';
+  if (lower.includes('grain') || lower.includes('rice') || lower.includes('pasta') || lower.includes('cereal') || lower.includes('bread')) return 'dry goods & grains';
+  return 'other';
 }
 
 const ML_PER_FLOZ = 29.5735;

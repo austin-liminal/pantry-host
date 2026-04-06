@@ -1,17 +1,32 @@
-export const CATEGORIES = [
-  'produce',
-  'fruit',
-  'dairy',
-  'protein',
-  'pantry',
-  'bakery',
-  'spices',
-  'frozen',
-  'beverages',
-  'other',
+export const CATEGORY_GROUPS = [
+  {
+    label: 'Fresh',
+    categories: ['vegetables', 'fruit', 'fresh herbs', 'dairy & eggs'],
+  },
+  {
+    label: 'Protein',
+    categories: ['meat & poultry', 'seafood & fish', 'eggs', 'tofu & tempeh', 'legumes & pulses', 'nuts & seeds'],
+  },
+  {
+    label: 'Shelf Stable',
+    categories: ['dry goods & grains', 'canned & jarred', 'condiments & sauces', 'herbs & spices', 'oils & vinegars', 'baking'],
+  },
+  {
+    label: 'Cold & Frozen',
+    categories: ['frozen', 'deli & charcuterie'],
+  },
+  {
+    label: 'Other',
+    categories: ['beverages', 'snacks', 'other'],
+  },
 ] as const;
 
-export type Category = typeof CATEGORIES[number];
+export const ALL_CATEGORIES = CATEGORY_GROUPS.flatMap((g) => g.categories);
+export type Category = typeof ALL_CATEGORIES[number];
+
+/** Flat alias for backward compatibility */
+export const CATEGORIES = ALL_CATEGORIES;
+
 
 export const UNIT_GROUPS = [
   {

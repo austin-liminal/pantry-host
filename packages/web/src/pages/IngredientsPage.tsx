@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
-import { HIDDEN_TAGS } from '@pantry-host/shared/constants';
+import { HIDDEN_TAGS, ALL_CATEGORIES } from '@pantry-host/shared/constants';
 import { Trash, PencilSimple } from '@phosphor-icons/react';
 import IngredientForm, { type IngredientFormVariables, type IngredientData } from '@pantry-host/shared/components/IngredientForm';
 import BatchScanSession from '../components/BatchScanSession';
@@ -59,7 +59,7 @@ export default function IngredientsPage() {
   }
 
   const grouped = ingredients.reduce<Record<string, IngredientData[]>>((acc, ing) => {
-    const cat = ing.category || 'Uncategorized';
+    const cat = ing.category || 'other';
     (acc[cat] ??= []).push(ing);
     return acc;
   }, {});
@@ -113,7 +113,11 @@ export default function IngredientsPage() {
           Your pantry is empty. Click "+ Add Ingredient" to get started.
         </p>
       ) : (
-        Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b)).map(([cat, items]) => (
+        Object.entries(grouped).sort(([a], [b]) => {
+          const ai = (ALL_CATEGORIES as readonly string[]).indexOf(a);
+          const bi = (ALL_CATEGORIES as readonly string[]).indexOf(b);
+          return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+        }).map(([cat, items]) => (
           <div key={cat} className="mb-6">
             <h2 className="font-semibold text-sm uppercase tracking-wider text-[var(--color-text-secondary)] mb-2">
               {cat}
