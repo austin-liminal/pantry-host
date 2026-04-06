@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import IngredientForm from '@/components/IngredientForm';
 import BatchScanSession from '@/components/BatchScanSession';
 import { gql } from '@/lib/gql';
@@ -131,7 +131,25 @@ export default function IngredientsPage({ kitchen }: Props) {
 
   const allTags = [...new Set(ingredients.flatMap((i) => i.tags))].sort();
 
-  const grouped = groupBy(ingredients, (i) => i.category ?? 'other');
+  const [filter, setFilter] = useState('');
+
+  const filterSuggestions = useMemo(() => {
+    const names = ingredients.map((i) => i.name);
+    const tags = allTags.map((t) => `#${t}`);
+    return [...names, ...tags];
+  }, [ingredients, allTags]);
+
+  const filtered = useMemo(() => {
+    if (!filter.trim()) return ingredients;
+    const q = filter.toLowerCase().replace(/^#/, '');
+    return ingredients.filter((i) =>
+      i.name.toLowerCase().includes(q) ||
+      i.category?.toLowerCase().includes(q) ||
+      i.tags.some((t) => t.toLowerCase().includes(q))
+    );
+  }, [ingredients, filter]);
+
+  const grouped = groupBy(filtered, (i) => i.category ?? 'other');
 
   return (
     <>
@@ -204,6 +222,24 @@ export default function IngredientsPage({ kitchen }: Props) {
               onCancel={() => setShowAddForm(false)}
             />
           </section>
+        )}
+
+        {ingredients.length > 0 && (
+          <div className="mb-8">
+            <label htmlFor="pantry-filter" className="field-label">Filter Ingredients</label>
+            <input
+              id="pantry-filter"
+              type="text"
+              list="pantry-filter-suggestions"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="garlic, #organic, dairy"
+              className="field-input w-full"
+            />
+            <datalist id="pantry-filter-suggestions">
+              {filterSuggestions.map((s) => <option key={s} value={s} />)}
+            </datalist>
+          </div>
         )}
 
         {!loaded && ingredients.length === 0 && (

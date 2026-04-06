@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { gql } from '@/lib/gql';
 import { HIDDEN_TAGS, ALL_CATEGORIES, CATEGORY_GROUPS } from '@pantry-host/shared/constants';
 import {
@@ -98,7 +98,25 @@ export default function IngredientsPage() {
     load();
   }
 
-  const grouped = ingredients.reduce<Record<string, IngredientData[]>>((acc, ing) => {
+  const [filter, setFilter] = useState('');
+
+  const filterSuggestions = useMemo(() => {
+    const names = ingredients.map((i) => i.name);
+    const tags = [...new Set(ingredients.flatMap((i) => i.tags))].map((t) => `#${t}`);
+    return [...names, ...tags];
+  }, [ingredients]);
+
+  const filtered = useMemo(() => {
+    if (!filter.trim()) return ingredients;
+    const q = filter.toLowerCase().replace(/^#/, '');
+    return ingredients.filter((i) =>
+      i.name.toLowerCase().includes(q) ||
+      i.category?.toLowerCase().includes(q) ||
+      i.tags.some((t) => t.toLowerCase().includes(q))
+    );
+  }, [ingredients, filter]);
+
+  const grouped = filtered.reduce<Record<string, IngredientData[]>>((acc, ing) => {
     const cat = ing.category || 'other';
     (acc[cat] ??= []).push(ing);
     return acc;
@@ -139,6 +157,24 @@ export default function IngredientsPage() {
             onCancel={() => setShowAddForm(false)}
             autoFocus
           />
+        </div>
+      )}
+
+      {ingredients.length > 0 && (
+        <div className="mb-8">
+          <label htmlFor="pantry-filter" className="field-label">Filter Ingredients</label>
+          <input
+            id="pantry-filter"
+            type="text"
+            list="pantry-filter-suggestions"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="garlic, #organic, dairy"
+            className="field-input w-full"
+          />
+          <datalist id="pantry-filter-suggestions">
+            {filterSuggestions.map((s) => <option key={s} value={s} />)}
+          </datalist>
         </div>
       )}
 
