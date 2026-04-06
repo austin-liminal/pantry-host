@@ -37,6 +37,29 @@ export default function Layout() {
 
   useEffect(() => { setQuote(getDailyQuote()); }, []);
 
+  // Update page title on route change
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/': 'Your Kitchen',
+      '/ingredients': 'Pantry',
+      '/list': 'Grocery List',
+      '/menus': 'Menus',
+      '/recipes': 'Recipes',
+      '/cookware': 'Cookware',
+      '/recipes/new': 'New Recipe',
+      '/recipes/import': 'Import Recipes',
+      '/menus/new': 'New Menu',
+    };
+    const path = location.pathname;
+    const match = titles[path]
+      || (path.endsWith('/edit') && path.startsWith('/recipes/') ? 'Edit Recipe' : null)
+      || (path.endsWith('/edit') && path.startsWith('/menus/') ? 'Edit Menu' : null)
+      || (path.startsWith('/recipes/') ? 'Recipe' : null)
+      || (path.startsWith('/menus/') ? 'Menu' : null)
+      || (path.startsWith('/cookware/') ? 'Cookware' : null);
+    document.title = match ? `Pantry Host | ${match}` : 'Pantry Host';
+  }, [location.pathname]);
+
   // Scroll to #stage on route change — React Router doesn't handle hash scrolling
   useEffect(() => {
     if (location.hash === '#stage') {

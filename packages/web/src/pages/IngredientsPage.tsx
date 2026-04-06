@@ -1,7 +1,46 @@
 import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
 import { HIDDEN_TAGS, ALL_CATEGORIES, CATEGORY_GROUPS } from '@pantry-host/shared/constants';
-import { Trash, PencilSimple } from '@phosphor-icons/react';
+import {
+  Trash, PencilSimple,
+  Leaf, Bone, Egg, Package, Snowflake, DotsThree,
+  Carrot, OrangeSlice, Plant, Cow, Drop, Knife, Fish,
+  Cube, Grains, Nut, Jar, JarLabel, Pepper, Bread,
+  ForkKnife, Coffee, Cookie,
+} from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
+
+const GROUP_ICONS: Record<string, ReactNode> = {
+  'Fresh': <Leaf size={20} aria-hidden />,
+  'Protein': <Bone size={20} aria-hidden />,
+  'Shelf Stable': <Package size={20} aria-hidden />,
+  'Cold & Frozen': <Snowflake size={20} aria-hidden />,
+  'Other': <DotsThree size={20} aria-hidden />,
+};
+
+const CAT_ICONS: Record<string, ReactNode> = {
+  'vegetables': <Carrot size={16} aria-hidden />,
+  'fruit': <OrangeSlice size={16} aria-hidden />,
+  'fresh herbs': <Plant size={16} aria-hidden />,
+  'dairy': <Cow size={16} aria-hidden />,
+  'meat & poultry': <Knife size={16} aria-hidden />,
+  'seafood & fish': <Fish size={16} aria-hidden />,
+  'eggs': <Egg size={16} aria-hidden />,
+  'tofu & tempeh': <Cube size={16} aria-hidden />,
+  'legumes & pulses': <Grains size={16} aria-hidden />,
+  'nuts & seeds': <Nut size={16} aria-hidden />,
+  'dry goods & grains': <Grains size={16} aria-hidden />,
+  'canned & jarred': <Jar size={16} aria-hidden />,
+  'condiments & sauces': <JarLabel size={16} aria-hidden />,
+  'herbs & spices': <Pepper size={16} aria-hidden />,
+  'oils & vinegars': <Drop size={16} aria-hidden />,
+  'baking': <Bread size={16} aria-hidden />,
+  'frozen': <Snowflake size={16} aria-hidden />,
+  'deli & charcuterie': <ForkKnife size={16} aria-hidden />,
+  'beverages': <Coffee size={16} aria-hidden />,
+  'snacks': <Cookie size={16} aria-hidden />,
+  'other': <Package size={16} aria-hidden />,
+};
 import IngredientForm, { type IngredientFormVariables, type IngredientData } from '@pantry-host/shared/components/IngredientForm';
 import BatchScanSession from '../components/BatchScanSession';
 
@@ -67,7 +106,7 @@ export default function IngredientsPage() {
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Pantry</h1>
+        <h1 className="text-3xl font-bold">What's in Your Pantry?</h1>
         <div className="flex gap-2">
           {isSecure && (
             <button type="button" onClick={() => setScanning(true)} className="btn-secondary">
@@ -115,13 +154,13 @@ export default function IngredientsPage() {
       ) : (
         CATEGORY_GROUPS.filter((g) => g.categories.some((c) => grouped[c])).map((group) => (
           <div key={group.label} className="mb-8">
-            <h2 className="text-lg font-bold mb-3">{group.label}</h2>
+            <h2 className="text-lg font-bold mb-3 flex items-center gap-2">{GROUP_ICONS[group.label]} {group.label}</h2>
             {group.categories.filter((c) => grouped[c]).map((cat) => {
               const items = grouped[cat];
               return (
           <div key={cat} className="mb-4 ml-1">
-            <h3 className="font-semibold text-sm uppercase tracking-wider text-[var(--color-text-secondary)] mb-2">
-              {cat}
+            <h3 className="font-semibold text-sm uppercase tracking-wider text-[var(--color-text-secondary)] mb-2 flex items-center gap-1.5">
+              {CAT_ICONS[cat]} {cat}
             </h3>
             <ul className="divide-y divide-[var(--color-border-card)]">
               {items.map((ing) => (

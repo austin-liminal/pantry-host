@@ -3,7 +3,46 @@ import { useState, useEffect, useCallback } from 'react';
 import IngredientForm from '@/components/IngredientForm';
 import BatchScanSession from '@/components/BatchScanSession';
 import { gql } from '@/lib/gql';
-import { Camera, PencilSimple, Trash } from '@phosphor-icons/react';
+import {
+  Camera, PencilSimple, Trash,
+  Leaf, Bone, Egg, Package, Snowflake, DotsThree,
+  Carrot, OrangeSlice, Plant, Cow, Drop, Knife, Fish,
+  Cube, Grains, Nut, Jar, JarLabel, Pepper, Bread,
+  ForkKnife, Coffee, Cookie,
+} from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
+
+const GROUP_ICONS: Record<string, ReactNode> = {
+  'Fresh': <Leaf size={20} aria-hidden />,
+  'Protein': <Bone size={20} aria-hidden />,
+  'Shelf Stable': <Package size={20} aria-hidden />,
+  'Cold & Frozen': <Snowflake size={20} aria-hidden />,
+  'Other': <DotsThree size={20} aria-hidden />,
+};
+
+const CAT_ICONS: Record<string, ReactNode> = {
+  'vegetables': <Carrot size={16} aria-hidden />,
+  'fruit': <OrangeSlice size={16} aria-hidden />,
+  'fresh herbs': <Plant size={16} aria-hidden />,
+  'dairy': <Cow size={16} aria-hidden />,
+  'meat & poultry': <Knife size={16} aria-hidden />,
+  'seafood & fish': <Fish size={16} aria-hidden />,
+  'eggs': <Egg size={16} aria-hidden />,
+  'tofu & tempeh': <Cube size={16} aria-hidden />,
+  'legumes & pulses': <Grains size={16} aria-hidden />,
+  'nuts & seeds': <Nut size={16} aria-hidden />,
+  'dry goods & grains': <Grains size={16} aria-hidden />,
+  'canned & jarred': <Jar size={16} aria-hidden />,
+  'condiments & sauces': <JarLabel size={16} aria-hidden />,
+  'herbs & spices': <Pepper size={16} aria-hidden />,
+  'oils & vinegars': <Drop size={16} aria-hidden />,
+  'baking': <Bread size={16} aria-hidden />,
+  'frozen': <Snowflake size={16} aria-hidden />,
+  'deli & charcuterie': <ForkKnife size={16} aria-hidden />,
+  'beverages': <Coffee size={16} aria-hidden />,
+  'snacks': <Cookie size={16} aria-hidden />,
+  'other': <Package size={16} aria-hidden />,
+};
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
 import { HIDDEN_TAGS, CATEGORY_GROUPS } from '@pantry-host/shared/constants';
 import { isOwner } from '@/lib/isTrustedNetwork';
@@ -123,7 +162,7 @@ export default function IngredientsPage({ kitchen }: Props) {
                   }}
                   className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide px-3 py-1.5 rounded-full border border-[var(--color-border-card)] text-[var(--color-text-secondary)] hover:text-accent hover:border-accent transition-colors whitespace-nowrap"
                 >
-                  {cat} <span className="tabular-nums text-[var(--color-text-secondary)]">{grouped[cat].length}</span>
+                  {CAT_ICONS[cat]} {cat} <span className="tabular-nums text-[var(--color-text-secondary)]">{grouped[cat].length}</span>
                 </a>
               </li>
             ))}
@@ -133,7 +172,7 @@ export default function IngredientsPage({ kitchen }: Props) {
 
       <main id="stage" className="max-sm:min-h-screen px-4 py-10 md:px-8 max-w-4xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <h1 className="text-4xl font-bold">Pantry</h1>
+          <h1 className="text-4xl font-bold">What's in Your Pantry?</h1>
           <div className="flex gap-3 flex-wrap">
             {isSecure && (
               <button type="button" onClick={() => setShowBatchScan(true)} className="btn-secondary" aria-label="Batch scan groceries with camera">
@@ -190,11 +229,11 @@ export default function IngredientsPage({ kitchen }: Props) {
 
         {CATEGORY_GROUPS.filter((g) => g.categories.some((c) => grouped[c])).map((group) => (
           <section key={group.label} className="mb-10">
-            <h2 className="text-lg font-bold mb-3 scroll-mt-20">{group.label}</h2>
+            <h2 className="text-lg font-bold mb-3 scroll-mt-20 flex items-center gap-2">{GROUP_ICONS[group.label]} {group.label}</h2>
             {group.categories.filter((c) => grouped[c]).map((category) => (
               <div key={category} className="mb-4 ml-1" id={`cat-${category}`}>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-secondary)] mb-2 scroll-mt-20">
-                  {category}
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-secondary)] mb-2 scroll-mt-20 flex items-center gap-1.5">
+                  {CAT_ICONS[category]} {category}
                 </h3>
             <ul role="list" className="divide-y divide-[var(--color-border-card)]">
               {grouped[category].map((ing) => (
