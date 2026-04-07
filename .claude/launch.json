@@ -26,6 +26,12 @@
       "port": 5173
     },
     {
+      "name": "marketing-prod",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && nvm use && cd packages/marketing && npx vite preview --port 5173 --strictPort"],
+      "port": 5173
+    },
+    {
       "name": "web",
       "runtimeExecutable": "sh",
       "runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\" && . \"$NVM_DIR/nvm.sh\" && nvm use && cd packages/web && npx vite --port 5174"],
