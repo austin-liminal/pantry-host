@@ -18,6 +18,7 @@
  * present-but-inert unless the user explicitly opens it.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { Info } from '@phosphor-icons/react';
 import {
   getRecipeAPIRecipe,
   recipeApiIdFromSourceUrl,
@@ -122,8 +123,9 @@ export function NutritionFacts({ sourceUrl, apiKey }: Props) {
         if ((e.currentTarget as HTMLDetailsElement).open) setHasOpened(true);
       }}
     >
-      <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] select-none hover:text-[var(--color-text-primary)]">
-        Nutrition (per serving)
+      <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] select-none hover:text-[var(--color-text-primary)] inline-flex items-center gap-2">
+        <Info size={16} weight="regular" aria-hidden />
+        Nutritional Info (per serving)
       </summary>
 
       <div className="mt-4">
