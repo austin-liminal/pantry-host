@@ -163,8 +163,10 @@ function CooklangTab({ navigate }: { navigate: ReturnType<typeof useNavigate> })
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    if (!query.trim()) { setResults([]); setPagination(null); return; }
-    debounceRef.current = setTimeout(() => search(query), 300);
+    const q = query.trim();
+    if (!q) { setResults([]); setPagination(null); return; }
+    if (q.length < 3) return; // don't hammer the federation for 1-2 char queries
+    debounceRef.current = setTimeout(() => search(query), 600);
     return () => clearTimeout(debounceRef.current);
   }, [query, search]);
 

@@ -376,8 +376,10 @@ export default function RecipeImportPage({ kitchen }: Props) {
 
   useEffect(() => {
     clearTimeout(clDebounceRef.current);
-    if (!clQuery.trim()) { setClResults([]); setClPagination(null); return; }
-    clDebounceRef.current = setTimeout(() => clSearch(clQuery), 300);
+    const q = clQuery.trim();
+    if (!q) { setClResults([]); setClPagination(null); return; }
+    if (q.length < 3) return; // don't hammer the federation for 1-2 char queries
+    clDebounceRef.current = setTimeout(() => clSearch(clQuery), 600);
     return () => clearTimeout(clDebounceRef.current);
   }, [clQuery, clSearch]);
 
