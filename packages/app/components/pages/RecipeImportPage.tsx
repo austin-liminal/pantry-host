@@ -47,6 +47,7 @@ import {
   type RecipeAPIListItem,
   type RecipeAPICategoryCount,
 } from '@pantry-host/shared/recipe-api';
+import CommunityDatasources from '@pantry-host/shared/components/CommunityDatasources';
 
 // ── Cooklang detail cache + throttled fetcher ──────────────────────────────
 //
@@ -844,7 +845,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
           <div className="mt-10 pt-8 border-t border-[var(--color-border-card)]">
             <h2 className="text-xl font-bold mb-2">Community Recipes</h2>
             <p className="text-sm text-[var(--color-text-secondary)] mb-4 legible pretty">
-              Search community recipe databases and import into your pantry.
+              Search community recipe datasources and import into your pantry.
             </p>
 
             {/* Tab toggle */}
@@ -1554,6 +1555,8 @@ export default function RecipeImportPage({ kitchen }: Props) {
             </div>
           </div>
         )}
+
+        <CommunityDatasources />
       </main>
     </>
   );

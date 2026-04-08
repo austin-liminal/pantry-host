@@ -45,6 +45,7 @@ import {
   type RecipeAPIListItem,
   type RecipeAPICategoryCount,
 } from '@pantry-host/shared/recipe-api';
+import CommunityDatasources from '@pantry-host/shared/components/CommunityDatasources';
 
 const CREATE_MUTATION = `mutation(
   $title: String!, $description: String, $instructions: String!,
@@ -758,7 +759,7 @@ export default function RecipeImportPage() {
 
       <h1 className="text-3xl font-bold mb-2">Import Recipes</h1>
       <p className="text-sm text-[var(--color-text-secondary)] mb-6 legible pretty">
-        Search community recipe databases and import into your local pantry.
+        Search community recipe datasources and import into your local pantry.
       </p>
 
       {/* Tab toggle */}
@@ -789,6 +790,8 @@ export default function RecipeImportPage() {
       {tab === 'wikibooks' && <div role="tabpanel" id="tabpanel-wikibooks" aria-labelledby="tab-wikibooks"><WikibooksTab navigate={navigate} /></div>}
       {tab === 'cocktaildb' && <div role="tabpanel" id="tabpanel-cocktaildb" aria-labelledby="tab-cocktaildb"><CocktailDBTab navigate={navigate} /></div>}
       {tab === 'recipe-api' && <div role="tabpanel" id="tabpanel-recipe-api" aria-labelledby="tab-recipe-api"><RecipeAPITab navigate={navigate} /></div>}
+
+      <CommunityDatasources />
     </div>
   );
 }
