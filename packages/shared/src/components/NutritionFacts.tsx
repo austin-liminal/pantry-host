@@ -124,7 +124,7 @@ export function NutritionFacts({ sourceUrl, apiKey }: Props) {
         if ((e.currentTarget as HTMLDetailsElement).open) setHasOpened(true);
       }}
     >
-      <summary id={summaryId} className="cursor-pointer text-sm font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] select-none hover:text-[var(--color-text-primary)] list-none [&::-webkit-details-marker]:hidden inline-flex items-center gap-2">
+      <summary id={summaryId} className="cursor-pointer text-sm font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] select-none hover:text-[var(--color-text-primary)] group-open:text-[var(--color-text-primary)] list-none [&::-webkit-details-marker]:hidden inline-flex items-center gap-2">
         <CaretRight size={14} weight="bold" aria-hidden className="transition-transform group-open:rotate-90" />
         <span className="inline-flex items-center gap-1">
           <Info size={16} weight="regular" aria-hidden />
@@ -155,8 +155,9 @@ export function NutritionFacts({ sourceUrl, apiKey }: Props) {
               ))}
             </dl>
 
-            <details className="mt-5" aria-describedby={summaryId}>
-              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] select-none hover:text-[var(--color-text-primary)]">
+            <details className="group/more mt-5" aria-describedby={summaryId}>
+              <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] select-none hover:text-[var(--color-text-primary)] group-open/more:text-[var(--color-text-primary)] list-none [&::-webkit-details-marker]:hidden inline-flex items-center gap-2">
+                <CaretRight size={12} weight="bold" aria-hidden className="transition-transform group-open/more:rotate-90" />
                 More
               </summary>
               <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-2 mt-3">
