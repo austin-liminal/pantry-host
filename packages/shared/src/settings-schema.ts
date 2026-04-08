@@ -52,7 +52,7 @@ export const SETTINGS_SCHEMA: SettingDef[] = [
     key: 'SHOW_COCKTAILDB',
     label: 'Show TheCocktailDB import tab',
     description:
-      "Defaults to on. Turn off to hide the alcoholic drink source on /recipes/import. Strict households, kids' pantries, and faith-based deployments may prefer this off.",
+      "Defaults to on. Turn off to hide the alcoholic drink source on /recipes/import.",
     kind: 'boolean',
     packages: ['app', 'web'],
   },
