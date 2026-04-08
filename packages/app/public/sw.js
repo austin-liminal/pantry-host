@@ -33,6 +33,7 @@
  * | HTML navigation         | BUILD_CACHE     | Network-first + timeout           |
  * | Other same-origin       | BUILD_CACHE     | Stale-while-revalidate (.ok only) |
  * | recipes.cooklang.org    | COOKLANG_CACHE  | Cache-first 24h TTL + revalidate  |
+ * | recipe-api.com          | COOKLANG_CACHE  | Cache-first 24h TTL + revalidate  |
  * | Other cross-origin      | —               | Ignored (passthrough)             |
  */
 
@@ -86,10 +87,17 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// --- Cooklang federation cache helpers ---
+// --- Federated recipe source cache helpers ---
 
 function isCooklangFederation(url) {
   return url.hostname === 'recipes.cooklang.org';
+}
+
+// Third-party federated recipe APIs cached alongside Cooklang. Same TTL
+// bucket, same semantics. recipe-api.com's free tier (10 req/min) is
+// stricter than Cooklang, so cache-first is especially valuable here.
+function isCachedRecipeSource(url) {
+  return isCooklangFederation(url) || url.hostname === 'recipe-api.com';
 }
 
 /**
@@ -159,8 +167,8 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Cooklang federation: dedicated TTL cache (cross-origin by design).
-  if (isCooklangFederation(url)) {
+  // Federated recipe sources (Cooklang + recipe-api.com): dedicated TTL cache.
+  if (isCachedRecipeSource(url)) {
     event.respondWith(cooklangHandler(request));
     return;
   }

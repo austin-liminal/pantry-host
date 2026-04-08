@@ -314,6 +314,7 @@ The SW provides offline support for the self-hosted app. Key design decisions:
 DATABASE_URL=postgres://jpdevries@localhost:5432/pantry_host  # required for app
 AI_PROVIDER=anthropic                                             # default: anthropic
 AI_API_KEY=sk-ant-...                                             # optional, AI recipes
+RECIPE_API_KEY=rapi_...                                         # optional, recipe-api.com import tab (owner-gated)
 GRAPHQL_PORT=4001                                               # default 4001
 DEFAULT_THEME=claude                                            # auto-set by launch.json
 MCP_PORT=5001                                                   # default 5001, MCP HTTP mode

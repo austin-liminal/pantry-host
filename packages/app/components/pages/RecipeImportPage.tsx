@@ -39,6 +39,14 @@ import {
   type CocktailDBSearchResult,
   type CocktailDBCategory,
 } from '@pantry-host/shared/cocktaildb';
+import {
+  searchRecipeAPI,
+  getRecipeAPIRecipe,
+  getRecipeAPICategories,
+  recipeApiToParsed,
+  type RecipeAPIListItem,
+  type RecipeAPICategoryCount,
+} from '@pantry-host/shared/recipe-api';
 
 // ── Cooklang detail cache + throttled fetcher ──────────────────────────────
 //
@@ -271,8 +279,12 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const clDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Community tab state
-  type CommunityTab = 'cooklang' | 'mealdb' | 'cocktaildb' | 'publicdomain' | 'wikibooks';
+  type CommunityTab = 'cooklang' | 'mealdb' | 'cocktaildb' | 'publicdomain' | 'wikibooks' | 'recipe-api';
   const [communityTab, setCommunityTab] = useState<CommunityTab>('cooklang');
+  // Recipe API tab is shown only if the server exposes a RECIPE_API_KEY via
+  // the owner-gated /api/recipe-api-key route. Guests on HTTP LAN IPs get
+  // null and the tab stays hidden.
+  const [recipeApiKey, setRecipeApiKey] = useState<string | null>(null);
   // Cocktail age gate — backed by state so clicking "I am 21 or older" triggers
   // a re-render. Previously read localStorage directly at render time, which
   // meant a click only updated storage + called setCommunityTab (a no-op if
@@ -281,7 +293,9 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const [cdAgeVerified, setCdAgeVerified] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('age-verified') === 'true'
   );
-  const COMMUNITY_TAB_ORDER: CommunityTab[] = ['cooklang', 'mealdb', 'publicdomain', 'wikibooks', 'cocktaildb'];
+  const COMMUNITY_TAB_ORDER: CommunityTab[] = (
+    ['cooklang', 'mealdb', 'publicdomain', 'wikibooks', 'cocktaildb', 'recipe-api'] as CommunityTab[]
+  ).filter((k) => k !== 'recipe-api' || !!recipeApiKey);
   const handleCommunityTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     const idx = COMMUNITY_TAB_ORDER.indexOf(communityTab);
     let next = idx;
@@ -338,6 +352,112 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const mdDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => { getMealDBCategories().then(setMdCategories).catch(() => {}); }, []);
+
+  // Recipe API (recipe-api.com) state
+  const [raQuery, setRaQuery] = useState('');
+  const [raCategory, setRaCategory] = useState('');
+  const [raCategories, setRaCategories] = useState<RecipeAPICategoryCount[]>([]);
+  const [raResults, setRaResults] = useState<RecipeAPIListItem[]>([]);
+  const [raSearching, setRaSearching] = useState(false);
+  const [raSelected, setRaSelected] = useState<Set<string>>(new Set());
+  const [raImporting, setRaImporting] = useState(false);
+  const [raImportProgress, setRaImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [raError, setRaError] = useState<string | null>(null);
+  const raDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Fetch the owner-only key from the Rex API route on mount. Returns null
+  // for guest visitors, which hides the Recipe API tab entirely.
+  useEffect(() => {
+    fetch('/api/recipe-api-key')
+      .then((r) => r.ok ? r.json() : { key: null })
+      .then((d: { key: string | null }) => setRecipeApiKey(d.key))
+      .catch(() => setRecipeApiKey(null));
+  }, []);
+
+  // Load categories once we have a key.
+  useEffect(() => {
+    if (!recipeApiKey) return;
+    getRecipeAPICategories(recipeApiKey).then(setRaCategories).catch(() => {});
+  }, [recipeApiKey]);
+
+  const raRunSearch = useCallback(
+    async (q: string, cat: string) => {
+      if (!recipeApiKey) return;
+      setRaSearching(true);
+      setRaError(null);
+      try {
+        const res = await searchRecipeAPI({ q: q || undefined, category: cat || undefined, per_page: 12 }, recipeApiKey);
+        setRaResults(res.data);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg.includes('429')) setRaError('Rate limit reached. Try again in a moment.');
+        else if (msg.includes('401') || msg.includes('403')) setRaError('API key rejected. Check RECIPE_API_KEY in .env.local.');
+        else setRaError(`Search failed: ${msg}`);
+        setRaResults([]);
+      } finally {
+        setRaSearching(false);
+      }
+    },
+    [recipeApiKey],
+  );
+
+  useEffect(() => {
+    clearTimeout(raDebounceRef.current);
+    const q = raQuery.trim();
+    if (!q && !raCategory) { setRaResults([]); return; }
+    if (q && q.length < 3) return;
+    raDebounceRef.current = setTimeout(() => raRunSearch(q, raCategory), 600);
+    return () => clearTimeout(raDebounceRef.current);
+  }, [raQuery, raCategory, raRunSearch]);
+
+  function raToggleSelect(id: string) {
+    setRaSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleRecipeApiImport() {
+    if (!recipeApiKey || raSelected.size === 0) return;
+    setRaImporting(true);
+    setRaImportProgress({ done: 0, total: raSelected.size });
+    setRaError(null);
+    const ids = Array.from(raSelected);
+    let done = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        const full = await getRecipeAPIRecipe(id, recipeApiKey);
+        const recipe = recipeApiToParsed(full);
+        await gql(CREATE_RECIPE, {
+          title: recipe.title,
+          description: recipe.description ?? null,
+          instructions: recipe.instructions,
+          servings: recipe.servings ?? null,
+          prepTime: recipe.prepTime ?? null,
+          cookTime: recipe.cookTime ?? null,
+          tags: recipe.tags ?? [],
+          photoUrl: recipe.photoUrl ?? null,
+          sourceUrl: recipe.sourceUrl ?? null,
+          ingredients: recipe.ingredients,
+          kitchenSlug: kitchen,
+        });
+      } catch (err) {
+        console.error(`Failed to import recipe ${id}:`, err);
+        failed++;
+      }
+      done++;
+      setRaImportProgress({ done, total: ids.length });
+      if (done < ids.length) await new Promise((r) => setTimeout(r, 1200));
+    }
+    setRaImporting(false);
+    setRaImportProgress(null);
+    if (failed > 0 && failed === ids.length) setRaError('All imports failed. Try again in a minute.');
+    else if (failed > 0) setRaError(`${done - failed} of ${ids.length} imported. ${failed} failed.`);
+    else router.push(`${recipesBase}#stage`);
+  }
 
   // Public Domain Recipes state
   const [pdrQuery, setPdrQuery] = useState('');
@@ -709,7 +829,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
             {/* Tab toggle */}
             <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)] overflow-x-auto" role="tablist" aria-label="Recipe sources">
               {COMMUNITY_TAB_ORDER.map((key) => {
-                const label = key === 'cooklang' ? 'Cooklang' : key === 'mealdb' ? 'TheMealDB' : key === 'publicdomain' ? 'Public Domain' : key === 'wikibooks' ? 'Wikibooks' : 'TheCocktailDB';
+                const label = key === 'cooklang' ? 'Cooklang' : key === 'mealdb' ? 'TheMealDB' : key === 'publicdomain' ? 'Public Domain' : key === 'wikibooks' ? 'Wikibooks' : key === 'cocktaildb' ? 'TheCocktailDB' : 'Recipe API';
                 const active = communityTab === key;
                 return (
                   <button
@@ -1164,6 +1284,91 @@ export default function RecipeImportPage({ kitchen }: Props) {
                 </div>
               )}
             </>)}
+            </div>)}
+
+            {communityTab === 'recipe-api' && (<div role="tabpanel" id="tabpanel-recipe-api" aria-labelledby="tab-recipe-api">
+              <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:items-end">
+                <div className="flex-1">
+                  <label htmlFor="recipe-api-search" className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1 block">Search</label>
+                  <div className="relative">
+                    <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
+                    <input id="recipe-api-search" type="search" value={raQuery} onChange={(e) => setRaQuery(e.target.value)} placeholder="chicken, pasta, salad" className="field-input w-full pl-9" />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="recipe-api-category" className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1 block">Category</label>
+                  <select id="recipe-api-category" value={raCategory} onChange={(e) => setRaCategory(e.target.value)} className="field-select w-full sm:w-auto">
+                    <option value="">All categories</option>
+                    {raCategories.map((c) => (
+                      <option key={c.slug} value={c.slug}>{c.name} ({c.count})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {raError && <p role="alert" className="text-sm text-red-400 mb-4">{raError}</p>}
+
+              {raSearching && raResults.length === 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1,2,3,4,5,6].map((i) => <div key={i} className="h-32 rounded-xl bg-[var(--color-bg-card)] animate-pulse" />)}
+                </div>
+              )}
+
+              {raImportProgress && (
+                <p className="text-sm text-[var(--color-text-secondary)] mb-4">Importing {raImportProgress.done} of {raImportProgress.total}…</p>
+              )}
+
+              {raResults.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6" onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && raSelected.size > 0) { e.preventDefault(); handleRecipeApiImport(); } }} aria-keyshortcuts="Meta+Enter">
+                  {raResults.map((r) => {
+                    const isSelected = raSelected.has(r.id);
+                    return (
+                      <label key={r.id} className={`group card p-4 cursor-pointer transition-colors ${isSelected ? 'border-accent bg-[var(--color-accent-subtle)]' : ''}`}>
+                        <div className="flex items-start gap-3">
+                          <input type="checkbox" checked={isSelected} onChange={() => raToggleSelect(r.id)} className="mt-1 w-4 h-4 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm leading-snug">{r.name}</p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {r.category && <span className="tag">{r.category}</span>}
+                              {r.cuisine && <span className="tag">{r.cuisine}</span>}
+                              {r.difficulty && <span className="tag">{r.difficulty}</span>}
+                              {r.dietary?.flags?.slice(0, 2).map((f) => <span key={f} className="tag">{f}</span>)}
+                            </div>
+                            {r.nutrition_summary?.calories != null && (
+                              <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+                                {Math.round(r.nutrition_summary.calories)} kcal · {Math.round(r.nutrition_summary.protein_g ?? 0)}g protein
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {isSelected && raSelected.size > 0 && (
+                          <button type="button" onClick={(e) => { e.preventDefault(); handleRecipeApiImport(); }} className="hidden group-focus-within:block btn-primary text-xs mt-3 w-full">
+                            Import {raSelected.size} selected
+                          </button>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+
+              {raSelected.size > 0 && !raImportProgress && (
+                <div className="sticky bottom-4 flex justify-end">
+                  <button type="button" onClick={handleRecipeApiImport} disabled={raImporting} className="btn-primary shadow-lg">
+                    Import {raSelected.size} selected
+                  </button>
+                </div>
+              )}
+
+              {!raSearching && raQuery.trim().length >= 3 && raResults.length === 0 && !raError && (
+                <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">
+                  No recipes found for &ldquo;{raQuery}&rdquo;.
+                </p>
+              )}
+
+              <p className="text-xs text-[var(--color-text-secondary)] mt-8 text-center">
+                Powered by <a href="https://recipe-api.com" target="_blank" rel="noopener noreferrer" className="underline">recipe-api.com</a>. Key loaded from <code>RECIPE_API_KEY</code> in <code>.env.local</code>.
+              </p>
             </div>)}
 
           </div>

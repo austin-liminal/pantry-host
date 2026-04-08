@@ -42,6 +42,14 @@ function isCooklangFederation(url) {
   return url.hostname === 'recipes.cooklang.org';
 }
 
+// Third-party federated recipe APIs we cache alongside Cooklang. Same TTL
+// bucket, same semantics (ok-gated, stale-over-error). recipe-api.com is
+// added here because its free tier is stricter than Cooklang and we want
+// repeat searches served from cache wherever possible.
+function isCachedRecipeSource(url) {
+  return isCooklangFederation(url) || url.hostname === 'recipe-api.com';
+}
+
 /**
  * Clone a response and stamp it with an `X-Cached-At` header so we can
  * compute age when reading it back from the cache.
@@ -114,8 +122,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Cooklang federation: dedicated TTL cache.
-  if (isCooklangFederation(url)) {
+  // Federated recipe sources (Cooklang + recipe-api.com): dedicated TTL cache.
+  if (isCachedRecipeSource(url)) {
     event.respondWith(cooklangHandler(request));
     return;
   }

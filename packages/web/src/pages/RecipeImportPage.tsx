@@ -37,6 +37,14 @@ import {
   type CocktailDBCategory,
 } from '@pantry-host/shared/cocktaildb';
 import { isWikibooksDownloaded, loadWikibooksData, downloadWikibooksDataset } from '@/lib/wikibooks-store';
+import {
+  searchRecipeAPI,
+  getRecipeAPIRecipe,
+  getRecipeAPICategories,
+  recipeApiToParsed,
+  type RecipeAPIListItem,
+  type RecipeAPICategoryCount,
+} from '@pantry-host/shared/recipe-api';
 
 const CREATE_MUTATION = `mutation(
   $title: String!, $description: String, $instructions: String!,
@@ -51,7 +59,9 @@ const CREATE_MUTATION = `mutation(
   ) { id slug }
 }`;
 
-type Tab = 'mealdb' | 'cocktaildb' | 'publicdomain' | 'cooklang' | 'wikibooks';
+type Tab = 'mealdb' | 'cocktaildb' | 'publicdomain' | 'cooklang' | 'wikibooks' | 'recipe-api';
+
+const RECIPE_API_KEY_STORAGE = 'recipe-api-key';
 
 // ── Cooklang detail cache + throttled fetcher ──────────────────────────────
 //
@@ -692,13 +702,14 @@ function PublicDomainTab({ navigate }: { navigate: ReturnType<typeof useNavigate
 
 // ── Main Import Page ────────────────────────────────────────────────────────
 
-const TAB_ORDER: Tab[] = ['mealdb', 'publicdomain', 'cooklang', 'wikibooks', 'cocktaildb'];
+const TAB_ORDER: Tab[] = ['mealdb', 'publicdomain', 'cooklang', 'wikibooks', 'cocktaildb', 'recipe-api'];
 const TAB_LABELS: Record<Tab, string> = {
   mealdb: 'TheMealDB',
   publicdomain: 'Public Domain',
   cooklang: 'Cooklang',
   wikibooks: 'Wikibooks',
   cocktaildb: 'TheCocktailDB',
+  'recipe-api': 'Recipe API',
 };
 
 export default function RecipeImportPage() {
@@ -761,6 +772,7 @@ export default function RecipeImportPage() {
       {tab === 'cooklang' && <div role="tabpanel" id="tabpanel-cooklang" aria-labelledby="tab-cooklang"><CooklangTab navigate={navigate} /></div>}
       {tab === 'wikibooks' && <div role="tabpanel" id="tabpanel-wikibooks" aria-labelledby="tab-wikibooks"><WikibooksTab navigate={navigate} /></div>}
       {tab === 'cocktaildb' && <div role="tabpanel" id="tabpanel-cocktaildb" aria-labelledby="tab-cocktaildb"><CocktailDBTab navigate={navigate} /></div>}
+      {tab === 'recipe-api' && <div role="tabpanel" id="tabpanel-recipe-api" aria-labelledby="tab-recipe-api"><RecipeAPITab navigate={navigate} /></div>}
     </div>
   );
 }
@@ -964,6 +976,292 @@ function WikibooksTab({ navigate }: { navigate: (path: string) => void }) {
 
       <p className="text-xs text-[var(--color-text-secondary)] mt-6 text-center">
         Recipes from <a href="https://en.wikibooks.org/wiki/Cookbook" className="underline" rel="noopener noreferrer">Wikibooks Cookbook</a> · CC-BY-SA-4.0
+      </p>
+    </>
+  );
+}
+
+// ── Recipe API Tab ──────────────────────────────────────────────────────────
+//
+// recipe-api.com is a paid JSON API requiring an X-API-Key header (free tier
+// exists — 100 req/day, 10 req/min). Users bring their own key: we store it
+// in localStorage under 'recipe-api-key'. When no key is present we render a
+// small input form; once saved we flip to the search UI.
+//
+// The list/search response does NOT include image URLs, so cards are
+// text-only (name, category, cuisine, difficulty, calorie summary). That
+// means zero per-card probe requests — we only fetch a full recipe when the
+// user actually imports it.
+
+function RecipeAPITab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
+  const [apiKey, setApiKey] = useState<string>(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem(RECIPE_API_KEY_STORAGE) ?? '') : ''
+  );
+  const [keyInput, setKeyInput] = useState('');
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('');
+  const [categories, setCategories] = useState<RecipeAPICategoryCount[]>([]);
+  const [results, setResults] = useState<RecipeAPIListItem[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (!apiKey) return;
+    getRecipeAPICategories(apiKey).then(setCategories).catch(() => {});
+  }, [apiKey]);
+
+  const runSearch = useCallback(
+    async (q: string, cat: string) => {
+      if (!apiKey) return;
+      setSearching(true);
+      setError(null);
+      try {
+        const res = await searchRecipeAPI({ q: q || undefined, category: cat || undefined, per_page: 12 }, apiKey);
+        setResults(res.data);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg.includes('429')) setError('Rate limit reached. Try again in a moment.');
+        else if (msg.includes('401') || msg.includes('403')) setError('API key rejected. Check your key and try again.');
+        else setError(`Search failed: ${msg}`);
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    },
+    [apiKey],
+  );
+
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    const q = query.trim();
+    if (!q && !category) { setResults([]); return; }
+    if (q && q.length < 3) return; // min query length — don't hammer the API
+    debounceRef.current = setTimeout(() => runSearch(q, category), 600);
+    return () => clearTimeout(debounceRef.current);
+  }, [query, category, runSearch]);
+
+  async function handleImport() {
+    if (!apiKey || selected.size === 0) return;
+    setImporting(true);
+    setImportProgress({ done: 0, total: selected.size });
+    setError(null);
+    const ids = Array.from(selected);
+    let done = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        const full = await getRecipeAPIRecipe(id, apiKey);
+        const recipe = recipeApiToParsed(full);
+        await gql(CREATE_MUTATION, {
+          title: recipe.title,
+          description: recipe.description ?? null,
+          instructions: recipe.instructions,
+          servings: recipe.servings ?? null,
+          prepTime: recipe.prepTime ?? null,
+          cookTime: recipe.cookTime ?? null,
+          tags: recipe.tags ?? [],
+          photoUrl: recipe.photoUrl ?? null,
+          sourceUrl: recipe.sourceUrl ?? null,
+          ingredients: recipe.ingredients,
+        });
+      } catch (err) {
+        console.error(`Failed to import recipe ${id}:`, err);
+        failed++;
+      }
+      done++;
+      setImportProgress({ done, total: ids.length });
+      if (done < ids.length) await new Promise((r) => setTimeout(r, 1200));
+    }
+    setImporting(false);
+    setImportProgress(null);
+    if (failed > 0 && failed === ids.length) setError('All imports failed. Try again in a minute.');
+    else if (failed > 0) setError(`${done - failed} of ${ids.length} imported. ${failed} failed.`);
+    else navigate('/recipes#stage');
+  }
+
+  function saveKey(e: React.FormEvent) {
+    e.preventDefault();
+    const k = keyInput.trim();
+    if (!k) return;
+    localStorage.setItem(RECIPE_API_KEY_STORAGE, k);
+    setApiKey(k);
+    setKeyInput('');
+  }
+
+  function clearKey() {
+    localStorage.removeItem(RECIPE_API_KEY_STORAGE);
+    setApiKey('');
+    setResults([]);
+    setCategories([]);
+    setSelected(new Set());
+  }
+
+  if (!apiKey) {
+    return (
+      <div className="max-w-md mx-auto text-center py-8">
+        <h2 className="text-xl font-bold mb-2">Recipe API</h2>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-4 legible pretty">
+          <a href="https://recipe-api.com" target="_blank" rel="noopener noreferrer" className="underline">recipe-api.com</a>
+          {' '}is a paid JSON API with structured ingredients, USDA nutrition data, and
+          dietary flags. A free tier is available (100 requests/day) — grab a key
+          from{' '}
+          <a href="https://recipe-api.com/pricing" target="_blank" rel="noopener noreferrer" className="underline">recipe-api.com/pricing</a>
+          {' '}and paste it below. The key stays in your browser; it is never sent to
+          any Pantry Host server.
+        </p>
+        <form onSubmit={saveKey} className="flex flex-col gap-3">
+          <label htmlFor="recipe-api-key-input" className="sr-only">API key</label>
+          <input
+            id="recipe-api-key-input"
+            type="password"
+            autoComplete="off"
+            spellCheck={false}
+            value={keyInput}
+            onChange={(e) => setKeyInput(e.target.value)}
+            placeholder="rapi_..."
+            className="field-input w-full"
+          />
+          <button type="submit" disabled={!keyInput.trim()} className="btn-primary">
+            Save key
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex flex-col sm:flex-row gap-3 mb-6 sm:items-end">
+        <div className="flex-1">
+          <label htmlFor="recipe-api-search" className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1 block">Search</label>
+          <div className="relative">
+            <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
+            <input
+              id="recipe-api-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="chicken, pasta, salad"
+              className="field-input w-full pl-9"
+            />
+          </div>
+        </div>
+        <div>
+          <label htmlFor="recipe-api-category" className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1 block">Category</label>
+          <select
+            id="recipe-api-category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="field-select w-full sm:w-auto"
+          >
+            <option value="">All categories</option>
+            {categories.map((c) => (
+              <option key={c.slug} value={c.slug}>
+                {c.name} ({c.count})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {error && <p role="alert" className="text-sm text-red-400 mb-4">{error}</p>}
+
+      {searching && results.length === 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="h-32 rounded-xl bg-[var(--color-bg-card)] animate-pulse" />)}
+        </div>
+      )}
+
+      {importProgress && (
+        <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+          Importing {importProgress.done} of {importProgress.total}…
+        </p>
+      )}
+
+      {results.length > 0 && (
+        <div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6"
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) {
+              e.preventDefault();
+              handleImport();
+            }
+          }}
+          aria-keyshortcuts="Meta+Enter"
+        >
+          {results.map((r) => {
+            const isSelected = selected.has(r.id);
+            return (
+              <label
+                key={r.id}
+                className={`group card p-4 cursor-pointer transition-colors ${isSelected ? 'border-[var(--color-accent)] bg-[var(--color-accent-subtle)]' : ''}`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => {
+                      setSelected((p) => {
+                        const n = new Set(p);
+                        if (n.has(r.id)) n.delete(r.id);
+                        else n.add(r.id);
+                        return n;
+                      });
+                    }}
+                    className="mt-1 w-4 h-4 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm leading-snug">{r.name}</p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {r.category && <span className="tag">{r.category}</span>}
+                      {r.cuisine && <span className="tag">{r.cuisine}</span>}
+                      {r.difficulty && <span className="tag">{r.difficulty}</span>}
+                      {r.dietary?.flags?.slice(0, 2).map((f) => <span key={f} className="tag">{f}</span>)}
+                    </div>
+                    {r.nutrition_summary?.calories != null && (
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-2">
+                        {Math.round(r.nutrition_summary.calories)} kcal · {Math.round(r.nutrition_summary.protein_g ?? 0)}g protein
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {isSelected && selected.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); handleImport(); }}
+                    className="hidden group-focus-within:block btn-primary text-xs mt-3 w-full"
+                  >
+                    Import {selected.size} selected
+                  </button>
+                )}
+              </label>
+            );
+          })}
+        </div>
+      )}
+
+      {selected.size > 0 && !importProgress && (
+        <div className="sticky bottom-4 flex justify-end">
+          <button type="button" onClick={handleImport} disabled={importing} className="btn-primary shadow-lg">
+            Import {selected.size} selected
+          </button>
+        </div>
+      )}
+
+      {!searching && query.trim().length >= 3 && results.length === 0 && !error && (
+        <p className="text-[var(--color-text-secondary)] text-sm text-center py-8">
+          No recipes found for &ldquo;{query}&rdquo;.
+        </p>
+      )}
+
+      <p className="text-xs text-[var(--color-text-secondary)] mt-8 text-center">
+        Powered by <a href="https://recipe-api.com" target="_blank" rel="noopener noreferrer" className="underline">recipe-api.com</a>.
+        {' '}
+        <button type="button" onClick={clearKey} className="underline">Change key</button>
       </p>
     </>
   );
