@@ -294,7 +294,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
     typeof window !== 'undefined' && localStorage.getItem('age-verified') === 'true'
   );
   const COMMUNITY_TAB_ORDER: CommunityTab[] = (
-    ['cooklang', 'mealdb', 'publicdomain', 'wikibooks', 'cocktaildb', 'recipe-api'] as CommunityTab[]
+    ['cooklang', 'mealdb', 'recipe-api', 'publicdomain', 'wikibooks', 'cocktaildb'] as CommunityTab[]
   ).filter((k) => k !== 'recipe-api' || !!recipeApiKey);
   const handleCommunityTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     const idx = COMMUNITY_TAB_ORDER.indexOf(communityTab);

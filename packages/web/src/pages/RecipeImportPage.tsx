@@ -702,7 +702,7 @@ function PublicDomainTab({ navigate }: { navigate: ReturnType<typeof useNavigate
 
 // ── Main Import Page ────────────────────────────────────────────────────────
 
-const TAB_ORDER: Tab[] = ['mealdb', 'publicdomain', 'cooklang', 'wikibooks', 'cocktaildb', 'recipe-api'];
+const TAB_ORDER: Tab[] = ['mealdb', 'publicdomain', 'recipe-api', 'cooklang', 'wikibooks', 'cocktaildb'];
 const TAB_LABELS: Record<Tab, string> = {
   mealdb: 'TheMealDB',
   publicdomain: 'Public Domain',
