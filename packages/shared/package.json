@@ -35,7 +35,7 @@
     "./pixabay": "./src/pixabay.ts",
     "./components/PixabayImage": "./src/components/PixabayImage.tsx"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "react": "^19.2.4"
   }
