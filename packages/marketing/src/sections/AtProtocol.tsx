@@ -36,7 +36,7 @@ const principles = [
   {
     title: 'Federated, not centralized',
     description:
-      'No pantryhost.app/recipe/123 URL — by design. Recipes are addressable by AT URI and travel with your identity, not ours.',
+      <>No <code>pantryhost.app/recipe/123</code> URL — by design. Recipes are addressable by AT URI and travel with your identity, not ours.</>,
     icon: Globe,
   },
 ];
@@ -113,7 +113,7 @@ export default function AtProtocol() {
       </div>
 
       <p className="text-center text-xs text-[var(--color-text-secondary)] mt-6 max-w-2xl mx-auto pretty">
-        Built on the same decentralized index pattern as the Cooklang&nbsp;Federation. Adopting an existing lexicon over inventing a new one&nbsp;&mdash; ecosystem citizenship over <abbr title="Not Invented Here">NIH</abbr>.
+        Same principle as our Cooklang&nbsp;Federation support&nbsp;&mdash; your data, someone else&rsquo;s index. Adopting an existing lexicon over inventing a new one&nbsp;&mdash; ecosystem citizenship over <abbr title="Not Invented Here">NIH</abbr>.
       </p>
     </section>
   );
