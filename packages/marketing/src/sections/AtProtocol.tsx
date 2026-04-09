@@ -63,7 +63,7 @@ export default function AtProtocol() {
         Pantry&nbsp;Host is getting native <abbr title="The protocol behind Bluesky">AT&nbsp;Protocol</abbr> support so you can publish a recipe to your own Bluesky identity in one&nbsp;tap&nbsp;&mdash; without us hosting&nbsp;anything.
       </p>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-10">
+      <div className="grid md:grid-cols-3 gap-6 mb-6">
         {principles.map((p) => (
           <div
             key={p.title}
