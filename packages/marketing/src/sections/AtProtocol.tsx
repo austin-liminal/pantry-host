@@ -13,9 +13,12 @@ import { Share, IdentificationCard, Globe } from '@phosphor-icons/react';
  * coherent story about open ecosystems.
  */
 
-// Bluesky official butterfly mark — single-path SVG, monochrome via currentColor.
+// Bluesky official butterfly mark. Native viewBox is 600x530-ish; the
+// path uses negative Y values for the upper wings, so we need a viewBox
+// that includes them or the top of the butterfly gets clipped.
+const BLUESKY_VIEWBOX = '0 0 600 530';
 const BLUESKY_PATH =
-  'M5.534 3.787C8.443 5.97 11.572 10.395 12.72 12.769c1.148-2.374 4.277-6.799 7.186-8.982C22.005 2.213 25.5.642 25.5 4.628c0 .795-.456 6.683-.724 7.638-.93 3.323-4.317 4.17-7.328 3.658 5.265.896 6.604 3.866 3.711 6.836-5.494 5.642-7.896-1.416-8.512-3.225a14.42 14.42 0 0 1-.327-1.158 14.42 14.42 0 0 1-.327 1.158c-.616 1.81-3.018 8.867-8.512 3.225-2.893-2.97-1.554-5.94 3.711-6.836-3.011.512-6.397-.335-7.328-3.658C-1.404 11.31-1.86 5.422-1.86 4.628-1.86.642 1.635 2.213 3.765 3.787L5.534 3.787z';
+  'M135.72 44.03C202.216 93.951 273.74 195.17 299.91 249.49c26.17-54.32 97.694-155.539 164.19-205.46C512.18 8.005 590 -19.728 590 69.04c0 17.726-10.155 148.928-16.111 170.208-20.703 73.984-96.144 92.854-163.25 81.433 117.262 19.96 147.131 86.084 82.654 152.208-122.385 125.621-175.86-31.511-189.563-71.807-2.512-7.387-3.687-10.832-3.69-7.905-.003-2.927-1.179.518-3.69 7.905-13.704 40.296-67.18 197.428-189.563 71.807-64.477-66.124-34.61-132.251 82.65-152.208-67.105 11.421-142.548-7.45-163.25-81.433C20.232 217.968 10.077 86.766 10.077 69.04c0-88.768 77.82-61.035 125.9-25.01z';
 
 const principles = [
   {
@@ -44,8 +47,8 @@ export default function AtProtocol() {
       <div className="flex justify-center mb-4 opacity-60">
         <svg
           fill="currentColor"
-          viewBox="0 0 24 24"
-          width={36}
+          viewBox={BLUESKY_VIEWBOX}
+          width={40}
           height={36}
           aria-hidden="true"
           xmlns="http://www.w3.org/2000/svg"
