@@ -399,7 +399,9 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
     setDeleting(true);
     try {
       await gql(DELETE_RECIPE, { id: recipe.id });
-      router.push(`${recipesBase}#stage`);
+      // Full page load (not router.push) so the _app hash-scroll
+      // workaround fires on mount and scrolls past the nav to #stage.
+      window.location.href = `${recipesBase}#stage`;
     } catch {
       setDeleting(false);
       setDeleteConfirm(false);
