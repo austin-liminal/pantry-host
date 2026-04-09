@@ -129,59 +129,8 @@ export default function CommunityDatasources() {
         away without affecting your data.
       </p>
 
-      {/* Desktop / wide-screen table */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
-          <caption className="sr-only">
-            Comparison of the six federated recipe datasources Pantry Host
-            integrates with, including maintainer, catalog size, license, auth
-            requirements, and standout features.
-          </caption>
-          <thead>
-            <tr className="border-b border-[var(--color-border-card)]">
-              <th scope="col" className="text-left font-semibold py-3 pr-4">Source</th>
-              <th scope="col" className="text-left font-semibold py-3 pr-4">Maintainer</th>
-              <th scope="col" className="text-left font-semibold py-3 pr-4">Catalog</th>
-              <th scope="col" className="text-left font-semibold py-3 pr-4">License</th>
-              <th scope="col" className="text-left font-semibold py-3 pr-4">Auth &amp; free tier</th>
-              <th scope="col" className="text-left font-semibold py-3">Standout features</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DATASOURCES.map((d) => (
-              <tr
-                key={d.key}
-                className="border-b border-[var(--color-border-card)] align-top"
-              >
-                <th scope="row" className="text-left font-medium py-4 pr-4 whitespace-nowrap">
-                  <a
-                    href={d.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-[var(--color-accent)]"
-                  >
-                    {d.name}
-                  </a>
-                </th>
-                <td className="py-4 pr-4 text-[var(--color-text-secondary)]">{d.maintainer}</td>
-                <td className="py-4 pr-4 text-[var(--color-text-secondary)] whitespace-nowrap">{d.catalog}</td>
-                <td className="py-4 pr-4 text-[var(--color-text-secondary)]">{d.license}</td>
-                <td className="py-4 pr-4 text-[var(--color-text-secondary)]">{d.authBlurb}</td>
-                <td className="py-4 text-[var(--color-text-secondary)]">
-                  <ul className="list-disc pl-5 space-y-1">
-                    {d.standout.map((s) => (
-                      <li key={s}>{s}</li>
-                    ))}
-                  </ul>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Narrow-screen card fallback */}
-      <div className="md:hidden grid gap-4">
+      {/* Responsive card grid: 1 col mobile → 2 sm → 3 lg → 4 xl */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {DATASOURCES.map((d) => (
           <article
             key={d.key}
