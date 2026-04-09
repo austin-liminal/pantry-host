@@ -113,7 +113,7 @@ export default function AtProtocol() {
       </div>
 
       <p className="text-center text-xs text-[var(--color-text-secondary)] mt-6 max-w-2xl mx-auto pretty">
-        AT&nbsp;Protocol enables you to share just the recipes you choose to, on your own Personal Data&nbsp;Server, in an open&nbsp;format.
+        AT&nbsp;Protocol integration enables you to share just the recipes you choose to, on your own Personal Data&nbsp;Server, in an open&nbsp;format.
       </p>
     </section>
   );
