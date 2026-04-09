@@ -1014,16 +1014,16 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                 >
                   Save Menu Changes
                 </button>
-                {menuStatus && (
-                  <p
-                    role={menuStatus.type === 'error' ? 'alert' : 'status'}
-                    aria-live="polite"
-                    className={`mt-3 text-sm font-semibold ${menuStatus.type === 'error' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}`}
-                  >
-                    {menuStatus.message}
-                  </p>
-                )}
               </div>
+              {menuStatus && (
+                <p
+                  role={menuStatus.type === 'error' ? 'alert' : 'status'}
+                  aria-live="polite"
+                  className={`mt-3 text-sm font-semibold md:text-center ${menuStatus.type === 'error' ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-secondary)]'}`}
+                >
+                  {menuStatus.message}
+                </p>
+              )}
             </form>
           );
         })()}
