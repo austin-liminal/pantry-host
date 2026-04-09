@@ -555,6 +555,20 @@ builder.mutationField('createRecipe', (t) =>
     },
     resolve: async (_, args) => {
       const kitchenId = await resolveKitchenId(args.kitchenSlug);
+
+      // Idempotency guard: if a recipe with the same title was created
+      // in this kitchen within the last 60 seconds, return the existing
+      // one instead of creating a duplicate. Mirrors the app schema.
+      const [recent] = await sql`
+        SELECT * FROM recipes
+        WHERE kitchen_id = ${kitchenId}
+          AND lower(title) = ${args.title.toLowerCase()}
+          AND created_at > NOW() - INTERVAL '60 seconds'
+        ORDER BY created_at DESC
+        LIMIT 1
+      `;
+      if (recent) return recent;
+
       return insertRecipe(
         {
           title: args.title,
