@@ -13,6 +13,16 @@ export default function App({ Component, pageProps }: AppProps) {
     if ('serviceWorker' in navigator) {
       const buildHash = document.querySelector<HTMLMetaElement>('meta[name="build-hash"]')?.content || 'dev';
       navigator.serviceWorker.register(`/sw.js?v=${buildHash}`).catch(console.error);
+
+      // When a new SW activates after a deploy, it posts a 'SW_UPDATED'
+      // message. Reload so the page picks up the new HTML + JS bundles.
+      // On homescreen PWAs there's no reload button, so this is the only
+      // way to escape stale assets without the user force-quitting the app.
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data?.type === 'SW_UPDATED') {
+          window.location.reload();
+        }
+      });
     }
     initTheme();
     // Flush is triggered by API coming back online, not navigator.online —
