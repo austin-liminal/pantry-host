@@ -47,16 +47,16 @@ async function fetchPixabaySettings(): Promise<PixabayState> {
     }
     return {
       key: realKey,
-      enabled: body.values.PIXABAY_FALLBACK_ENABLED !== 'false',
+      enabled: body.values.PIXABAY_FALLBACK_ENABLED === 'true',
     };
   } catch {
-    return { key: null, enabled: true };
+    return { key: null, enabled: false };
   }
 }
 
 function usePixabaySettings(): PixabayState {
   const [state, setState] = useState<PixabayState>(() =>
-    pixabaySettings ?? { key: null, enabled: true },
+    pixabaySettings ?? { key: null, enabled: false },
   );
   useEffect(() => {
     // Register as a listener so Settings page saves can push updates.

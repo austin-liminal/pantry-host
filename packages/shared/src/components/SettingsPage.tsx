@@ -268,7 +268,9 @@ function SettingField({
   const descId = `${id}-desc`;
 
   if (def.kind === 'boolean') {
-    const checked = field?.value !== 'false';
+    const stored = field?.value;
+    const effective = stored ?? def.defaultValue ?? 'true';
+    const checked = effective !== 'false';
     return (
       <div className="card p-5">
         <label htmlFor={id} className="flex items-start gap-3 cursor-pointer">

@@ -141,9 +141,9 @@ function usePixabaySettings(): { key: string | null; enabled: boolean } {
     if (typeof window === 'undefined') return { key: null, enabled: true };
     return {
       key: window.localStorage.getItem('pixabay-api-key'),
-      // Default enabled: the feature is dormant without a key anyway, so
-      // this effectively means "enabled the moment a key is added".
-      enabled: window.localStorage.getItem('pixabay-fallback-enabled') !== 'false',
+      // Default OFF — opt-in feature. User must explicitly toggle on
+      // in Settings (after adding a key).
+      enabled: window.localStorage.getItem('pixabay-fallback-enabled') === 'true',
     };
   });
   useEffect(() => {
@@ -153,7 +153,7 @@ function usePixabaySettings(): { key: string | null; enabled: boolean } {
         setState((prev) => ({ ...prev, key: e.newValue }));
         if (!e.newValue) clearPixabayCache();
       } else if (e.key === 'pixabay-fallback-enabled') {
-        const nextEnabled = e.newValue !== 'false';
+        const nextEnabled = e.newValue === 'true';
         setState((prev) => ({ ...prev, enabled: nextEnabled }));
         if (!nextEnabled) clearPixabayCache();
       }

@@ -47,6 +47,10 @@ export interface SettingDef {
   packages: Array<'app' | 'web'>;
   /** Optional grouping for fieldset rendering. */
   group?: SettingGroup;
+  /** Default value when no stored value exists. Booleans default to
+   *  'true' if omitted (legacy behavior); set to 'false' for opt-in
+   *  features that should start dormant. */
+  defaultValue?: string;
 }
 
 const PIXABAY_GROUP: SettingGroup = {
@@ -77,6 +81,7 @@ export const SETTINGS_SCHEMA: SettingDef[] = [
     kind: 'boolean',
     packages: ['app', 'web'],
     group: PIXABAY_GROUP,
+    defaultValue: 'false',
   },
   {
     key: 'PIXABAY_API_KEY',
