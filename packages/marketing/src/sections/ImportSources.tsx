@@ -67,10 +67,10 @@ export default function ImportSources() {
         <BookOpen size={32} weight="light" />
       </div>
       <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">
-        Six Community&nbsp;Sources
+        Import from Community&nbsp;Sources
       </h2>
       <p className="text-center text-[var(--color-text-secondary)] text-sm sm:text-base max-w-2xl mx-auto mb-12 leading-relaxed pretty">
-        Import from federated recipe communities directly inside the&nbsp;app. Every imported recipe becomes yours&nbsp;&mdash; stored locally, editable, and independent of the original&nbsp;source.
+        Import from recipe communities directly inside the&nbsp;app. Every imported recipe is stored locally on your hardware and works&nbsp;offline&nbsp;&mdash; even if the original source goes&nbsp;away.
       </p>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
