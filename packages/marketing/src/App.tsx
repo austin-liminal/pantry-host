@@ -4,6 +4,7 @@ import Tiers from './sections/Tiers';
 import Features from './sections/Features';
 import Integrations from './sections/Integrations';
 import AtProtocol from './sections/AtProtocol';
+import ImportSources from './sections/ImportSources';
 import DemoVideos from './sections/DemoVideos';
 import { Docker, RaspberryPi } from './sections/SelfHost';
 import Philosophy from './sections/Philosophy';
@@ -63,6 +64,7 @@ function Landing() {
         <Features />
         <Integrations />
         <AtProtocol />
+        <ImportSources />
         <DemoVideos />
         <Docker />
         <RaspberryPi />
