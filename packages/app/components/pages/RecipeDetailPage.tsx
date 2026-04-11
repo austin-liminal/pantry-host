@@ -765,7 +765,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
             <footer className="mt-12 pt-6 border-t" style={{ borderColor: 'var(--color-accent-subtle)' }}>
               {recipe.sourceUrl.startsWith('at://') ? (
                 <span className="text-sm text-[var(--color-text-secondary)]">
-                  Imported from Bluesky &middot; <button type="button" onClick={() => { navigator.clipboard.writeText(recipe.sourceUrl!); }} title="Copy AT URI" className="font-mono text-[10px] truncate max-w-[60vw] inline-block align-bottom hover:underline cursor-copy">{recipe.sourceUrl}</button>
+                  Imported from Bluesky &middot; <button type="button" onClick={() => { navigator.clipboard.writeText(recipe.sourceUrl!); }} title="Copy AT URI" className="font-mono text-[10px] truncate block overflow-hidden hover:underline cursor-copy">{recipe.sourceUrl}</button>
                 </span>
               ) : (
                 <a

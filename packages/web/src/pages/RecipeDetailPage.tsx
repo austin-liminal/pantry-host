@@ -384,7 +384,7 @@ export default function RecipeDetailPage() {
       {recipe.sourceUrl && (
         <p className="mt-4 text-xs text-[var(--color-text-secondary)]">
           {recipe.sourceUrl.startsWith('at://') ? (
-            <>Source: <button type="button" onClick={() => { navigator.clipboard.writeText(recipe.sourceUrl!); }} title="Copy AT URI" className="font-mono text-[10px] truncate max-w-[60vw] inline-block align-bottom hover:underline cursor-copy">{recipe.sourceUrl}</button></>
+            <>Source: <button type="button" onClick={() => { navigator.clipboard.writeText(recipe.sourceUrl!); }} title="Copy AT URI" className="font-mono text-[10px] truncate block overflow-hidden hover:underline cursor-copy">{recipe.sourceUrl}</button></>
           ) : (
             <>Source: <a href={recipe.sourceUrl} className="underline" rel="noopener noreferrer" target="_blank">{recipe.sourceUrl.includes('github.com') ? recipe.sourceUrl.replace('https://github.com/', '').split('/').slice(0, 2).join('/') : (() => { try { return new URL(recipe.sourceUrl).hostname; } catch { return recipe.sourceUrl; } })()}</a></>
           )}
