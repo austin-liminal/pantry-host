@@ -24,4 +24,4 @@ The Confederated Tribes of Grand Ronde maintain a Land Acquisition Fund to purch
 
 This statement exists because it is factual, not because it is fashionable.
 
-If the Confederated Tribes of Grand Ronde or their descendant community find this project's framing of their history to be inaccurate, harmful, or unwelcome, we will adjust or withdraw this statement at their direction. This is their land and their call — not ours to narrate on their behalf.
+If the Confederated Tribes of Grand Ronde or their descendant community find this project's framing of their history to be inaccurate, harmful, or unwelcome, we will adjust or withdraw this statement at their direction.
