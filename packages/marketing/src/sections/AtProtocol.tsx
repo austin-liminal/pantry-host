@@ -89,7 +89,7 @@ export default function AtProtocol() {
         </h3>
         <ol className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl mx-auto list-decimal pl-5 marker:text-[var(--color-accent)] marker:font-semibold">
           <li>
-            Hit <em>Share to Bluesky</em> on any recipe and authenticate with your handle.
+            Hit <em>Share to Bluesky</em> on any recipe and sign in with Bluesky.
           </li>
           <li>
             Pantry&nbsp;Host maps your structured recipe to the <code className="text-xs">exchange.recipe.recipe</code> lexicon.
