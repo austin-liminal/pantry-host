@@ -63,7 +63,7 @@ export default function AtProtocol() {
         Share to&nbsp;Bluesky
       </h2>
       <p className="text-center text-[var(--color-text-secondary)] text-sm sm:text-base max-w-2xl mx-auto mb-12 leading-relaxed pretty">
-        Pantry&nbsp;Host is getting native <abbr title="The protocol behind Bluesky">AT&nbsp;Protocol</abbr> support so you can publish a recipe to your own Bluesky identity in one&nbsp;tap&nbsp;&mdash; without us hosting&nbsp;anything.
+        Pantry&nbsp;Host is getting native <abbr title="The protocol behind Bluesky">AT&nbsp;Protocol</abbr> support so you can publish a recipe, or even a full menu, to your own Bluesky identity in one&nbsp;tap&nbsp;&mdash; without us hosting&nbsp;anything.
       </p>
 
       <div className="grid md:grid-cols-3 gap-6 mb-6">
