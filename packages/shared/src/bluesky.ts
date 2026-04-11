@@ -30,6 +30,12 @@ export interface ParsedAtUri {
   rkey: string;
 }
 
+export interface BlueskyRecipeImage {
+  alt?: string;
+  image: { $type: 'blob'; ref: { $link: string }; mimeType: string; size: number };
+  aspectRatio?: { width: number; height: number };
+}
+
 export interface BlueskyRecipeRecord {
   name: string;
   text?: string;
@@ -46,6 +52,10 @@ export interface BlueskyRecipeRecord {
   attribution?: {
     $type: string;
     license?: string;
+  };
+  embed?: {
+    $type: string;
+    images?: BlueskyRecipeImage[];
   };
   createdAt?: string;
   updatedAt?: string;
@@ -66,6 +76,8 @@ export interface AtProtoRecord<T = unknown> {
 }
 
 // ── AT URI parsing ───────────────────────────────────────────────────────
+
+const BSKY_CDN = 'https://cdn.bsky.app/img/feed_thumbnail/plain';
 
 const AT_URI_RE = /^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/;
 
@@ -272,6 +284,18 @@ export function blueskyToRecipe(
     'bluesky',
   ].filter((t): t is string => Boolean(t))));
 
+  // Extract photo from embed if available. Bluesky stores images as
+  // blob refs — the CDN serves them at a predictable URL.
+  let photoUrl: string | undefined;
+  const firstImage = record.embed?.images?.[0];
+  if (firstImage) {
+    const did = parseAtUri(atUri)?.repo;
+    const cid = firstImage.image.ref.$link;
+    if (did && cid) {
+      photoUrl = `${BSKY_CDN}/${did}/${cid}@jpeg`;
+    }
+  }
+
   const handleClean = handle?.replace(/^@/, '');
   const attribution = handleClean
     ? `Shared by @${handleClean} on Bluesky (https://bsky.app/profile/${handleClean})`
@@ -280,6 +304,7 @@ export function blueskyToRecipe(
 
   return {
     title: record.name,
+    photoUrl,
     description: description || undefined,
     instructions: steps.join('\n'),
     servings: parseServings(record.recipeYield),
