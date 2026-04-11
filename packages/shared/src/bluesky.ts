@@ -162,7 +162,13 @@ const UNITS = new Set([
 ]);
 
 // Match leading number: integer, decimal, fraction, mixed (1½, 1 1/2)
-const NUM_RE = /^([\d]+(?:[.,]\d+)?(?:\s*[\u00BC-\u00BE\u2150-\u215E])?|[\u00BC-\u00BE\u2150-\u215E]|[\d]+\s*\/\s*[\d]+|[\d]+\s+[\d]+\s*\/\s*[\d]+)\s*/;
+// Order matters — longest/most-specific patterns first:
+// 1. Mixed fractions: "2 3/4"
+// 2. Simple fractions: "1/2"
+// 3. Integer + unicode fraction: "1½"
+// 4. Unicode fraction alone: "½"
+// 5. Plain number: "2", "2.5"
+const NUM_RE = /^([\d]+\s+[\d]+\s*\/\s*[\d]+|[\d]+\s*\/\s*[\d]+|[\d]+(?:[.,]\d+)?(?:\s*[\u00BC-\u00BE\u2150-\u215E])?|[\u00BC-\u00BE\u2150-\u215E])\s*/;
 
 function parseNumber(s: string): number | null {
   if (!s) return null;
