@@ -383,7 +383,11 @@ export default function RecipeDetailPage() {
       {/* Source */}
       {recipe.sourceUrl && (
         <p className="mt-4 text-xs text-[var(--color-text-secondary)]">
-          Source: <a href={recipe.sourceUrl.startsWith('at://') ? `https://recipe.exchange/recipes/${recipe.sourceUrl.split('/').pop()}` : recipe.sourceUrl} className="underline" rel="noopener noreferrer" target="_blank">{recipe.sourceUrl.startsWith('at://') ? 'Bluesky' : recipe.sourceUrl.includes('github.com') ? recipe.sourceUrl.replace('https://github.com/', '').split('/').slice(0, 2).join('/') : (() => { try { return new URL(recipe.sourceUrl).hostname; } catch { return recipe.sourceUrl; } })()}</a>
+          {recipe.sourceUrl.startsWith('at://') ? (
+            <>Source: <span className="font-mono text-[10px] select-all">{recipe.sourceUrl}</span></>
+          ) : (
+            <>Source: <a href={recipe.sourceUrl} className="underline" rel="noopener noreferrer" target="_blank">{recipe.sourceUrl.includes('github.com') ? recipe.sourceUrl.replace('https://github.com/', '').split('/').slice(0, 2).join('/') : (() => { try { return new URL(recipe.sourceUrl).hostname; } catch { return recipe.sourceUrl; } })()}</a></>
+          )}
         </p>
       )}
 

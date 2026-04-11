@@ -763,14 +763,20 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
 
           {recipe.sourceUrl && (
             <footer className="mt-12 pt-6 border-t" style={{ borderColor: 'var(--color-accent-subtle)' }}>
-              <a
-                href={recipe.sourceUrl.startsWith('at://') ? `https://recipe.exchange/recipes/${recipe.sourceUrl.split('/').pop()}` : recipe.sourceUrl}
-                target={`_${recipe.slug ?? recipe.id}`}
-                rel="noopener noreferrer"
-                className="text-sm text-accent hover:underline"
-              >
-                {recipe.sourceUrl.startsWith('at://') ? 'View on Bluesky →' : 'View Original Recipe →'}
-              </a>
+              {recipe.sourceUrl.startsWith('at://') ? (
+                <span className="text-sm text-[var(--color-text-secondary)]">
+                  Imported from Bluesky &middot; <span className="font-mono text-[10px] select-all">{recipe.sourceUrl}</span>
+                </span>
+              ) : (
+                <a
+                  href={recipe.sourceUrl}
+                  target={`_${recipe.slug ?? recipe.id}`}
+                  rel="noopener noreferrer"
+                  className="text-sm text-accent hover:underline"
+                >
+                  View Original Recipe →
+                </a>
+              )}
             </footer>
           )}
         </article>
