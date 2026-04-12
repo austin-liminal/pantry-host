@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { gql } from '@/lib/gql';
 import { listBlueskyRecipes, type ParsedRecipe } from '@pantry-host/shared/bluesky';
+import ImportGrid, { captureActiveElement } from '@pantry-host/shared/components/ImportGrid';
 
 const FEED_API = 'https://feed.pantryhost.app/api/handles';
 
@@ -38,8 +39,9 @@ export default function BlueskyFeedsPage({ kitchen }: Props) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
-  const [importing, setImporting] = useState<Set<string>>(new Set());
-  const [imported, setImported] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -108,28 +110,47 @@ export default function BlueskyFeedsPage({ kitchen }: Props) {
     });
   }
 
-  async function handleImport(item: FeedRecipe) {
-    if (importing.has(item.atUri) || imported.has(item.atUri)) return;
-    setImporting((prev) => new Set(prev).add(item.atUri));
-    try {
-      await gql(CREATE_RECIPE, {
-        title: item.recipe.title,
-        description: item.recipe.description ?? null,
-        instructions: item.recipe.instructions,
-        servings: item.recipe.servings ?? null,
-        prepTime: item.recipe.prepTime ?? null,
-        cookTime: item.recipe.cookTime ?? null,
-        tags: item.recipe.tags ?? [],
-        photoUrl: item.recipe.photoUrl ?? null,
-        sourceUrl: item.recipe.sourceUrl,
-        ingredients: item.recipe.ingredients,
-        kitchenSlug: kitchen,
-      });
-      setImported((prev) => new Set(prev).add(item.atUri));
-    } catch (err) {
-      console.error('Import failed:', err);
+  function toggleSelect(atUri: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(atUri) ? next.delete(atUri) : next.add(atUri);
+      return next;
+    });
+  }
+
+  async function handleBulkImport() {
+    if (selected.size === 0 || importing) return;
+    captureActiveElement();
+    setImporting(true);
+    setImportProgress({ done: 0, total: selected.size });
+    let done = 0;
+    for (const atUri of selected) {
+      const item = recipes.find((r) => r.atUri === atUri);
+      if (!item) { done++; continue; }
+      try {
+        await gql(CREATE_RECIPE, {
+          title: item.recipe.title,
+          description: item.recipe.description ?? null,
+          instructions: item.recipe.instructions,
+          servings: item.recipe.servings ?? null,
+          prepTime: item.recipe.prepTime ?? null,
+          cookTime: item.recipe.cookTime ?? null,
+          tags: item.recipe.tags ?? [],
+          photoUrl: item.recipe.photoUrl ?? null,
+          sourceUrl: item.recipe.sourceUrl,
+          ingredients: item.recipe.ingredients,
+          kitchenSlug: kitchen,
+        });
+      } catch (err) {
+        console.error('Import failed:', err);
+      }
+      done++;
+      setImportProgress({ done, total: selected.size });
+      if (done < selected.size) await new Promise((r) => setTimeout(r, 300));
     }
-    setImporting((prev) => { const n = new Set(prev); n.delete(item.atUri); return n; });
+    setImporting(false);
+    setImportProgress(null);
+    window.location.href = `${recipesBase}#stage`;
   }
 
   return (
@@ -181,38 +202,62 @@ export default function BlueskyFeedsPage({ kitchen }: Props) {
       )}
 
       {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((item) => (
-            <div key={item.atUri} className="card rounded-xl overflow-hidden flex flex-col">
-              {item.recipe.photoUrl && (
-                <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
-                  <img src={item.recipe.photoUrl} alt={item.recipe.title} className="w-full h-full object-cover" loading="lazy" />
-                </div>
-              )}
-              <div className="p-4 flex-1 flex flex-col">
-                <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{item.recipe.title}</h3>
-                <p className="text-xs text-[var(--color-text-secondary)] mb-2">@{item.handle}</p>
-                {item.recipe.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {item.recipe.tags.filter((t) => t !== 'bluesky').slice(0, 4).map((t) => (
-                      <span key={t} className="tag text-[10px]">{t}</span>
-                    ))}
+        <>
+          <ImportGrid
+            importing={importing}
+            importingLabel={importProgress ? `Importing ${importProgress.done}/${importProgress.total}…` : undefined}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4"
+            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) { e.preventDefault(); handleBulkImport(); } }}
+            ariaKeyshortcuts="Meta+Enter"
+          >
+            {filtered.map((item) => {
+              const isSelected = selected.has(item.atUri);
+              return (
+                <label key={item.atUri} className={`card rounded-xl overflow-hidden flex flex-col cursor-pointer transition-colors ${isSelected ? 'border-accent' : ''}`}>
+                  {item.recipe.photoUrl && (
+                    <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                      <img src={item.recipe.photoUrl} alt={item.recipe.title} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  )}
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(item.atUri)}
+                        className="mt-1 w-4 h-4 shrink-0 accent-accent"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{item.recipe.title}</h3>
+                        <p className="text-xs text-[var(--color-text-secondary)]">@{item.handle}</p>
+                      </div>
+                    </div>
+                    {item.recipe.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {item.recipe.tags.filter((t) => t !== 'bluesky').slice(0, 4).map((t) => (
+                          <span key={t} className="tag text-[10px]">{t}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="mt-auto">
-                  <button
-                    type="button"
-                    onClick={() => handleImport(item)}
-                    disabled={importing.has(item.atUri) || imported.has(item.atUri)}
-                    className="btn-secondary text-xs w-full disabled:opacity-50"
-                  >
-                    {imported.has(item.atUri) ? '✓ Imported' : importing.has(item.atUri) ? 'Importing…' : 'Import'}
-                  </button>
-                </div>
-              </div>
+                </label>
+              );
+            })}
+          </ImportGrid>
+
+          {selected.size > 0 && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleBulkImport}
+                disabled={importing}
+                className="btn-primary disabled:opacity-50"
+              >
+                Import {selected.size} selected
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {!loading && filtered.length === 0 && (

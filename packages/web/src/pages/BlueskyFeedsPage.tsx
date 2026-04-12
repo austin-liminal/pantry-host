@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { listBlueskyRecipes, type ParsedRecipe } from '@pantry-host/shared/bluesky';
+import ImportGrid, { captureActiveElement } from '@pantry-host/shared/components/ImportGrid';
 
 const FEED_API = 'https://feed.pantryhost.app/api/handles';
 
@@ -32,16 +33,17 @@ const BLUESKY_VIEWBOX = '0 0 600 530';
 const BLUESKY_PATH = 'M135.72 44.03C202.216 93.951 273.74 195.17 299.91 249.49c26.17-54.32 97.694-155.539 164.19-205.46C512.18 8.005 590 -19.728 590 69.04c0 17.726-10.155 148.928-16.111 170.208-20.703 73.984-96.144 92.854-163.25 81.433 117.262 19.96 147.131 86.084 82.654 152.208-122.385 125.621-175.86-31.511-189.563-71.807-2.512-7.387-3.687-10.832-3.69-7.905-.003-2.927-1.179.518-3.69 7.905-13.704 40.296-67.18 197.428-189.563 71.807-64.477-66.124-34.61-132.251 82.65-152.208-67.105 11.421-142.548-7.45-163.25-81.433C20.232 217.968 10.077 86.766 10.077 69.04c0-88.768 77.82-61.035 125.9-25.01z';
 
 export default function BlueskyFeedsPage() {
+  const navigate = useNavigate();
   const [recipes, setRecipes] = useState<FeedRecipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
-  const [importing, setImporting] = useState<Set<string>>(new Set());
-  const [imported, setImported] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
 
   useEffect(() => {
     (async () => {
-      // Fetch handle list from feed.pantryhost.app, fallback to seeds
       let handles: string[];
       try {
         const res = await fetch(FEED_API);
@@ -55,7 +57,6 @@ export default function BlueskyFeedsPage() {
         handles = SEED_HANDLES;
       }
 
-      // Fetch recipes from each handle in parallel
       const results = await Promise.allSettled(
         handles.map((h) => listBlueskyRecipes(h))
       );
@@ -74,7 +75,6 @@ export default function BlueskyFeedsPage() {
     })();
   }, []);
 
-  // Derive filter chips from available recipes
   const categories = new Set<string>();
   const cuisines = new Set<string>();
   for (const { recipe } of recipes) {
@@ -85,14 +85,12 @@ export default function BlueskyFeedsPage() {
     }
   }
 
-  // Filter recipes
   const filtered = recipes.filter((r) => {
     if (search) {
       const q = search.toLowerCase();
-      const match = r.recipe.title.toLowerCase().includes(q) ||
-        r.recipe.tags.some((t) => t.toLowerCase().includes(q)) ||
-        r.recipe.description?.toLowerCase().includes(q);
-      if (!match) return false;
+      if (!r.recipe.title.toLowerCase().includes(q) &&
+          !r.recipe.tags.some((t) => t.toLowerCase().includes(q)) &&
+          !r.recipe.description?.toLowerCase().includes(q)) return false;
     }
     if (activeFilters.size > 0) {
       const recipeTags = new Set(r.recipe.tags.map((t) => t.toLowerCase()));
@@ -111,27 +109,46 @@ export default function BlueskyFeedsPage() {
     });
   }
 
-  async function handleImport(item: FeedRecipe) {
-    if (importing.has(item.atUri) || imported.has(item.atUri)) return;
-    setImporting((prev) => new Set(prev).add(item.atUri));
-    try {
-      await gql(CREATE_MUTATION, {
-        title: item.recipe.title,
-        description: item.recipe.description ?? null,
-        instructions: item.recipe.instructions,
-        servings: item.recipe.servings ?? null,
-        prepTime: item.recipe.prepTime ?? null,
-        cookTime: item.recipe.cookTime ?? null,
-        tags: item.recipe.tags ?? [],
-        photoUrl: item.recipe.photoUrl ?? null,
-        sourceUrl: item.recipe.sourceUrl,
-        ingredients: item.recipe.ingredients,
-      });
-      setImported((prev) => new Set(prev).add(item.atUri));
-    } catch (err) {
-      console.error('Import failed:', err);
+  function toggleSelect(atUri: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(atUri) ? next.delete(atUri) : next.add(atUri);
+      return next;
+    });
+  }
+
+  async function handleBulkImport() {
+    if (selected.size === 0 || importing) return;
+    captureActiveElement();
+    setImporting(true);
+    setImportProgress({ done: 0, total: selected.size });
+    let done = 0;
+    for (const atUri of selected) {
+      const item = recipes.find((r) => r.atUri === atUri);
+      if (!item) { done++; continue; }
+      try {
+        await gql(CREATE_MUTATION, {
+          title: item.recipe.title,
+          description: item.recipe.description ?? null,
+          instructions: item.recipe.instructions,
+          servings: item.recipe.servings ?? null,
+          prepTime: item.recipe.prepTime ?? null,
+          cookTime: item.recipe.cookTime ?? null,
+          tags: item.recipe.tags ?? [],
+          photoUrl: item.recipe.photoUrl ?? null,
+          sourceUrl: item.recipe.sourceUrl,
+          ingredients: item.recipe.ingredients,
+        });
+      } catch (err) {
+        console.error('Import failed:', err);
+      }
+      done++;
+      setImportProgress({ done, total: selected.size });
+      if (done < selected.size) await new Promise((r) => setTimeout(r, 300));
     }
-    setImporting((prev) => { const n = new Set(prev); n.delete(item.atUri); return n; });
+    setImporting(false);
+    setImportProgress(null);
+    navigate('/recipes#stage');
   }
 
   return (
@@ -188,38 +205,62 @@ export default function BlueskyFeedsPage() {
 
       {/* Recipe grid */}
       {!loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((item) => (
-            <div key={item.atUri} className="card rounded-xl overflow-hidden flex flex-col">
-              {item.recipe.photoUrl && (
-                <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
-                  <img src={item.recipe.photoUrl} alt={item.recipe.title} className="w-full h-full object-cover" loading="lazy" />
-                </div>
-              )}
-              <div className="p-4 flex-1 flex flex-col">
-                <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{item.recipe.title}</h3>
-                <p className="text-xs text-[var(--color-text-secondary)] mb-2">@{item.handle}</p>
-                {item.recipe.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {item.recipe.tags.filter((t) => t !== 'bluesky').slice(0, 4).map((t) => (
-                      <span key={t} className="tag text-[10px]">{t}</span>
-                    ))}
+        <>
+          <ImportGrid
+            importing={importing}
+            importingLabel={importProgress ? `Importing ${importProgress.done}/${importProgress.total}…` : undefined}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4"
+            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && selected.size > 0) { e.preventDefault(); handleBulkImport(); } }}
+            ariaKeyshortcuts="Meta+Enter"
+          >
+            {filtered.map((item) => {
+              const isSelected = selected.has(item.atUri);
+              return (
+                <label key={item.atUri} className={`card rounded-xl overflow-hidden flex flex-col cursor-pointer transition-colors ${isSelected ? 'border-[var(--color-accent)]' : ''}`}>
+                  {item.recipe.photoUrl && (
+                    <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
+                      <img src={item.recipe.photoUrl} alt={item.recipe.title} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  )}
+                  <div className="p-4 flex-1 flex flex-col">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelect(item.atUri)}
+                        className="mt-1 w-4 h-4 shrink-0 accent-[var(--color-accent)]"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm leading-snug mb-1 line-clamp-2">{item.recipe.title}</h3>
+                        <p className="text-xs text-[var(--color-text-secondary)]">@{item.handle}</p>
+                      </div>
+                    </div>
+                    {item.recipe.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {item.recipe.tags.filter((t) => t !== 'bluesky').slice(0, 4).map((t) => (
+                          <span key={t} className="tag text-[10px]">{t}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="mt-auto">
-                  <button
-                    type="button"
-                    onClick={() => handleImport(item)}
-                    disabled={importing.has(item.atUri) || imported.has(item.atUri)}
-                    className="btn-secondary text-xs w-full disabled:opacity-50"
-                  >
-                    {imported.has(item.atUri) ? '✓ Imported' : importing.has(item.atUri) ? 'Importing…' : 'Import'}
-                  </button>
-                </div>
-              </div>
+                </label>
+              );
+            })}
+          </ImportGrid>
+
+          {selected.size > 0 && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={handleBulkImport}
+                disabled={importing}
+                className="btn-primary disabled:opacity-50"
+              >
+                Import {selected.size} selected
+              </button>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {!loading && filtered.length === 0 && (
