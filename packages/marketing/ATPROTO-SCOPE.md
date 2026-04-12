@@ -4,9 +4,37 @@ Addendum to `pantryhost-atproto-hack.docx.md`. Incorporates the
 `exchange.recipe.collection` lexicon (menus), import attribution
 requirements, and AT URI paste-import via the existing URL textarea.
 
-## Weekend Scope (Updated)
+## Shipped (pre-hackathon)
 
-### Export
+### Bluesky Import Tab (both packages)
+✅ `packages/shared/src/bluesky.ts` — AT URI parser, XRPC fetch,
+   ingredient parser, `blueskyToRecipe` converter
+✅ Bluesky tab on `/recipes/import` — paste AT URI, @handle lookup,
+   collection import (creates menu + recipes)
+✅ Attribution: "Shared by @handle on Bluesky" in description,
+   `sourceUrl` = AT URI, auto-tagged `bluesky`
+✅ Recipe detail: `at://` sourceUrls shown as click-to-copy text
+✅ Bluesky CDN photos extracted from `embed.images` blob refs
+✅ CommunityDatasources updated: six → seven sources
+
+### Bluesky Feed Browse (`/recipes/feeds/bluesky`)
+✅ `feed.pantryhost.app` — Cloudflare Worker + D1 handle registry
+   (cron every 15 min, scrapes recipe.exchange for publishers)
+✅ Browse page on both packages — fetches handle list from
+   feed.pantryhost.app, loads live recipes from each PDS
+✅ Search + category/cuisine filter chips
+✅ One-tap import per card
+✅ Banner CTA on `/recipes` linking to feed page
+
+### Marketing
+✅ "Share to Bluesky" section with butterfly logo, "Coming soon"
+✅ "Plus Bluesky" card in ImportSources section
+✅ ATPROTO-SCOPE.md and ATPROTO-TIER-1.5.md architecture docs
+✅ Upgrade plan: `packages/feed/UPGRADE-TO-FIREHOSE.md`
+
+## Weekend Scope (remaining)
+
+### Export (not started)
 
 - **Recipe → `exchange.recipe.recipe`**: map Pantry Host recipe schema
   to lexicon, publish to user's PDS via `@atproto/api`
@@ -14,28 +42,19 @@ requirements, and AT URI paste-import via the existing URL textarea.
   then publish a collection record with `strongRef` pointers to each.
   Maps `name` → menu title, `text` → menu description, `recipes[]` →
   array of recipe AT URI + CID pairs
-- **Auth**: app password flow (not OAuth for v1)
+- **Auth**: OAuth 2.0 / DPoP via `@atproto/oauth-client-browser`
 - **Share UI**: copy AT URI, optionally post a Bluesky skeet
 - **Re-share attribution**: when sharing an imported recipe, use the
   lexicon's `attribution` union with `adaptedFrom` pointing to the
   original AT URI — never re-publish the original author's record as
   your own
 
-### Import
+### Import (shipped — see above)
 
-- **AT URI paste**: extend the existing "paste URLs" textarea on
-  `/recipes/import` to recognize `at://` URIs alongside `https://`
-- **Mixed paste**: a single paste can contain `https://`, `at://`
-  recipe URIs, and `at://` collection URIs — all processed in one batch
-- **Recipe import**: fetch `exchange.recipe.recipe` by AT URI from the
-  author's PDS (no auth required — public records), map to Pantry Host
-  schema
-- **Collection import**: fetch `exchange.recipe.collection`, resolve
-  each `strongRef`, import all referenced recipes, create a Pantry Host
-  menu linking them
-- **Claude-assisted ingredient parsing**: normalize flat ingredient
-  strings ("2 cups flour, sifted") into structured quantity/unit/name
-- **Idempotency**: existing 60-second `createRecipe` guard applies
+All import features are shipped. Remaining import work:
+- **AT URI in paste textarea**: recognize `at://` URIs in the
+  existing URL paste flow (stretch — Bluesky tab + feed page cover
+  the primary use cases)
 
 ### Attribution & Provenance (5 requirements)
 
