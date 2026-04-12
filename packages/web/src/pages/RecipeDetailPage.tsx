@@ -247,9 +247,10 @@ export default function RecipeDetailPage() {
   // Runtime Cooklang: if instructions contain .cook syntax, parse it
   // live for display. The raw syntax stays in the DB for round-trip
   // editing; we just strip it here for readability.
-  const isCooklang = hasCooklangSyntax(recipe.instructions);
-  const cooklangData = isCooklang ? extractCooklang(recipe.instructions) : null;
-  const displayInstructions = cooklangData?.cleanedText ?? recipe.instructions;
+  const rawInstructions = recipe.instructions ?? '';
+  const isCooklang = hasCooklangSyntax(rawInstructions);
+  const cooklangData = isCooklang ? extractCooklang(rawInstructions) : null;
+  const displayInstructions = cooklangData?.cleanedText ?? rawInstructions;
   const steps = displayInstructions.split('\n').map((s) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
 
   return (
@@ -391,7 +392,11 @@ export default function RecipeDetailPage() {
       {/* Source */}
       {recipe.sourceUrl && (
         <p className="mt-4 text-xs text-[var(--color-text-secondary)]">
-          Source: <a href={recipe.sourceUrl} className="underline" rel="noopener noreferrer" target="_blank">{recipe.sourceUrl.includes('github.com') ? recipe.sourceUrl.replace('https://github.com/', '').split('/').slice(0, 2).join('/') : new URL(recipe.sourceUrl).hostname}</a>
+          {recipe.sourceUrl.startsWith('at://') ? (
+            <>Source: <button type="button" onClick={() => { navigator.clipboard.writeText(recipe.sourceUrl!); }} title="Copy AT URI" className="font-mono text-[10px] truncate block overflow-hidden hover:underline cursor-copy">{recipe.sourceUrl}</button></>
+          ) : (
+            <>Source: <a href={recipe.sourceUrl} className="underline" rel="noopener noreferrer" target="_blank">{recipe.sourceUrl.includes('github.com') ? recipe.sourceUrl.replace('https://github.com/', '').split('/').slice(0, 2).join('/') : (() => { try { return new URL(recipe.sourceUrl).hostname; } catch { return recipe.sourceUrl; } })()}</a></>
+          )}
         </p>
       )}
 
