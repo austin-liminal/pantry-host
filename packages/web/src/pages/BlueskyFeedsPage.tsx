@@ -249,12 +249,12 @@ export default function BlueskyFeedsPage() {
           </ImportGrid>
 
           {selected.size > 0 && (
-            <div className="text-center">
+            <div className="sticky bottom-4 mt-6 flex justify-center">
               <button
                 type="button"
                 onClick={handleBulkImport}
                 disabled={importing}
-                className="btn-primary disabled:opacity-50"
+                className="btn-primary disabled:opacity-50 shadow-lg"
               >
                 Import {selected.size} selected
               </button>
