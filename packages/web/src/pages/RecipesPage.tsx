@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { getFileURL } from '@/lib/storage-opfs';
@@ -164,10 +164,36 @@ function usePixabaySettings(): { key: string | null; enabled: boolean } {
   return state;
 }
 
+const RECIPE_FILTERS: { key: string; label: string; tags: string[] }[] = [
+  // Dietary
+  { key: 'gluten-free', label: 'Gluten-Free', tags: ['gluten-free'] },
+  { key: 'vegan', label: 'Vegan', tags: ['vegan'] },
+  { key: 'vegetarian', label: 'Vegetarian', tags: ['vegetarian', 'vegan'] },
+  { key: 'keto', label: 'Keto', tags: ['keto'] },
+  // Meal
+  { key: 'breakfast', label: 'Breakfast', tags: ['breakfast', 'brunch'] },
+  { key: 'lunch', label: 'Lunch', tags: ['lunch'] },
+  { key: 'dinner', label: 'Dinner', tags: ['dinner'] },
+  { key: 'dessert', label: 'Dessert', tags: ['dessert'] },
+  { key: 'snack', label: 'Snack', tags: ['snack'] },
+  { key: 'drink', label: 'Drink', tags: ['drink', 'juice', 'milkshake', 'coffee'] },
+  // Method
+  { key: 'instant-pot', label: 'Instant Pot', tags: ['instant-pot'] },
+  { key: 'griddle', label: 'Griddle', tags: ['griddle'] },
+  { key: 'no-cook', label: 'No Cook', tags: ['no-cook', 'no-bake'] },
+  { key: 'quick', label: 'Quick', tags: ['quick', 'quick-dinner'] },
+  // Lifestyle
+  { key: 'breastfeeding-safe', label: 'Breastfeeding Safe', tags: ['breastfeeding-safe'] },
+  { key: 'baby-food', label: 'Baby Food', tags: ['baby-food', 'first-foods'] },
+  { key: 'lactation', label: 'Lactation', tags: ['lactation'] },
+  { key: 'sustainable', label: 'Sustainable', tags: ['sustainable', 'local'] },
+];
+
 export default function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const pixabay = usePixabaySettings();
 
   useEffect(() => {
@@ -188,11 +214,34 @@ export default function RecipesPage() {
     }
   }
 
-  const filtered = recipes.filter(
+  const availableFilters = useMemo(() =>
+    RECIPE_FILTERS.filter((f) =>
+      recipes.some((r) => r.tags.some((t) => f.tags.includes(t.toLowerCase())))
+    ), [recipes]);
+
+  function toggleFilter(key: string) {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  const searched = recipes.filter(
     (r) =>
       r.title.toLowerCase().includes(search.toLowerCase()) ||
       r.tags.some((t) => t.toLowerCase().includes(search.toLowerCase())),
   );
+  const filtered = activeFilters.size === 0
+    ? searched
+    : searched.filter((r) => {
+        const tags = r.tags.map((t) => t.toLowerCase());
+        return [...activeFilters].every((fKey) => {
+          const f = RECIPE_FILTERS.find((rf) => rf.key === fKey);
+          return f && tags.some((t) => f.tags.includes(t));
+        });
+      });
 
   return (
     <div>
@@ -219,8 +268,45 @@ export default function RecipesPage() {
         placeholder="Search recipes..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="field-input w-full mb-6"
+        className="field-input w-full mb-4"
       />
+
+      {/* Skip link — visible only on keyboard focus */}
+      <a href="#recipe-list" className="sr-only focus:not-sr-only focus:inline-block focus:mb-2 focus:text-sm focus:underline focus:text-[var(--color-accent)]">
+        Skip to recipes
+      </a>
+
+      {availableFilters.length > 0 && (
+        <div className="mb-6">
+          <p id="filter-desc" className="text-xs text-[var(--color-text-secondary)] mb-2">Filter by tag</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="filter-desc">
+            {availableFilters.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => toggleFilter(f.key)}
+                aria-pressed={activeFilters.has(f.key)}
+                className="text-xs font-medium px-3 py-1.5 rounded-full border-2 transition-colors"
+                style={activeFilters.has(f.key)
+                  ? { backgroundColor: 'var(--color-accent)', color: 'var(--color-bg-body)', borderColor: 'var(--color-accent)', fontWeight: 700 }
+                  : { borderColor: 'var(--color-border-card)', color: 'var(--color-text-secondary)' }
+                }
+              >
+                {f.label}
+              </button>
+            ))}
+            {activeFilters.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveFilters(new Set())}
+                className="text-xs text-[var(--color-text-secondary)] hover:underline px-2 py-1.5"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -235,7 +321,7 @@ export default function RecipesPage() {
             : 'No recipes match your search.'}
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="recipe-list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((r) => (
             <RecipeCard
               key={r.id}

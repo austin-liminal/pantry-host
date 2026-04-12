@@ -151,6 +151,11 @@ export default function RecipesIndexPage({ kitchen }: Props) {
           <input id="recipe-search" type="search" list="recipe-titles" placeholder={placeholder} value={search} onChange={(e) => setSearch(e.target.value)} className="field-input w-full md:max-w-sm" />
         </div>
 
+        {/* Skip link — visible only on keyboard focus */}
+        <a href="#recipe-list" className="sr-only focus:not-sr-only focus:inline-block focus:mb-2 focus:text-sm focus:underline focus:text-accent">
+          Skip to recipes
+        </a>
+
         {availableFilters.length > 0 && (
           <div className="mb-6">
             <p id="filter-desc" className="text-xs text-[var(--color-text-secondary)] mb-2">Filter by tag</p>
@@ -231,7 +236,7 @@ export default function RecipesIndexPage({ kitchen }: Props) {
           );
 
           return (
-            <ul role="list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6">
+            <ul id="recipe-list" role="list" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6">
               {filtered.map((r) => (
                 <li key={r.id} className="grid grid-rows-[subgrid] row-span-4 mb-4">
                   <RecipeCard recipe={r} recipesBase={base} />
