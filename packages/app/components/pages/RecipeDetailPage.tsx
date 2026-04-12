@@ -11,6 +11,7 @@ import { HIDDEN_TAGS, classifyRecipeCourse } from '@pantry-host/shared/constants
 import ResponsiveImage from '@/components/ResponsiveImage';
 import { recipeToDataURI, imageToDataURI } from '@pantry-host/shared/export-recipe';
 import { downloadCooklang, stepPhotoBaseUrl } from '@pantry-host/shared/cooklang';
+import { hasCooklangSyntax, extractCooklang } from '@pantry-host/shared/cooklang-parser';
 import Modal from '@pantry-host/shared/components/Modal';
 import { NutritionFacts } from '@pantry-host/shared/components/NutritionFacts';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
@@ -309,7 +310,14 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const baseServings = recipe?.servings ?? 2;
   const scaleFactor = servings / baseServings;
 
-  const steps = (recipe?.instructions ?? '')
+  // Runtime Cooklang: if instructions contain .cook syntax, parse it
+  // live for display. The raw syntax stays in the DB for round-trip
+  // editing; we just strip it here for readability.
+  const rawInstructions = recipe?.instructions ?? '';
+  const isCooklang = hasCooklangSyntax(rawInstructions);
+  const cooklangData = isCooklang ? extractCooklang(rawInstructions) : null;
+  const displayInstructions = cooklangData?.cleanedText ?? rawInstructions;
+  const steps = displayInstructions
     .split('\n')
     .map((s) => s.replace(/^\d+\.\s*/, '').trim())
     .filter(Boolean);

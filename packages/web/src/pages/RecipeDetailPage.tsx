@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { gql } from '@/lib/gql';
 import { recipeToDataURI, downloadRecipeICS, imageToDataURI } from '@pantry-host/shared/export-recipe';
 import { downloadCooklang, stepPhotoBaseUrl } from '@pantry-host/shared/cooklang';
+import { hasCooklangSyntax, extractCooklang } from '@pantry-host/shared/cooklang-parser';
 import { NutritionFacts } from '@pantry-host/shared/components/NutritionFacts';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
 import { getFileURL } from '@/lib/storage-opfs';
@@ -242,7 +243,14 @@ export default function RecipeDetailPage() {
   }
 
   const totalTime = (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0);
-  const steps = recipe.instructions.split('\n').map((s) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
+
+  // Runtime Cooklang: if instructions contain .cook syntax, parse it
+  // live for display. The raw syntax stays in the DB for round-trip
+  // editing; we just strip it here for readability.
+  const isCooklang = hasCooklangSyntax(recipe.instructions);
+  const cooklangData = isCooklang ? extractCooklang(recipe.instructions) : null;
+  const displayInstructions = cooklangData?.cleanedText ?? recipe.instructions;
+  const steps = displayInstructions.split('\n').map((s) => s.replace(/^\d+\.\s*/, '').trim()).filter(Boolean);
 
   return (
     <div>
