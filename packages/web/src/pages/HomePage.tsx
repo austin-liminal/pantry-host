@@ -101,10 +101,23 @@ export default function HomePage() {
 
       <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6">
         <h2 className="font-semibold mb-2">Browser-native mode</h2>
-        <p className="text-sm text-[var(--color-text-secondary)]">
-          All your data is stored locally in your browser using PGlite. No server required.
-          Your recipes, ingredients, and cookware persist across sessions.
+        <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+          All your data is stored locally in your browser using PGlite. No server, no account, no tracking.
+          Your recipes, ingredients, and cookware persist across sessions on this device.
         </p>
+        <div className="border-t border-[var(--color-border-card)] pt-4">
+          <p className="text-sm font-semibold mb-1">Ready for more?</p>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-3">
+            Self-host on a Mac&nbsp;Mini or Raspberry&nbsp;Pi to sync across every device in your household.
+            One kitchen, shared by everyone at&nbsp;home.
+          </p>
+          <a
+            href="https://pantryhost.app#getting-started"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent)] hover:underline"
+          >
+            See all three tiers &rarr;
+          </a>
+        </div>
       </div>
     </div>
   );
