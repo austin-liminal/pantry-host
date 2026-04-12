@@ -52,7 +52,7 @@ export default function PixabayImage({ recipe, apiKey, alt }: Props) {
   });
 
   useEffect(() => {
-    if (state.status !== 'idle') return;
+    if (state.status !== 'idle' && state.status !== 'loading') return;
     let cancelled = false;
     setState({ status: 'loading' });
     searchPixabayPhoto(recipe.title, apiKey)
