@@ -13,6 +13,7 @@ import MenusPage from './pages/MenusPage';
 import MenuDetailPage from './pages/MenuDetailPage';
 import MenuNewPage from './pages/MenuNewPage';
 import MenuEditPage from './pages/MenuEditPage';
+import BlueskyFeedsPage from './pages/BlueskyFeedsPage';
 import RecipeImportPage from './pages/RecipeImportPage';
 import AccessibilityPage from './pages/AccessibilityPage';
 import SettingsPage from './pages/SettingsPage';
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/recipes" element={<RecipesPage />} />
           <Route path="/recipes/new" element={<RecipeNewPage />} />
           <Route path="/recipes/import" element={<RecipeImportPage />} />
+          <Route path="/recipes/feeds/bluesky" element={<BlueskyFeedsPage />} />
           <Route path="/recipes/:slug" element={<RecipeDetailPage />} />
           <Route path="/recipes/:slug/edit" element={<RecipeEditPage />} />
           <Route path="/ingredients" element={<IngredientsPage />} />
