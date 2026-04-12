@@ -1,0 +1,14 @@
+name = "feed-pantryhost"
+main = "src/index.ts"
+compatibility_date = "2024-12-01"
+
+[triggers]
+crons = ["*/15 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "recipe-publishers"
+database_id = "096adb49-6963-45ce-b9d6-4f3f55fdec34"
+
+[vars]
+CORS_ORIGIN = "*"
