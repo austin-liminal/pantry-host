@@ -600,7 +600,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
             </div>
           ) : pixabayEnabled && pixabayKey ? (
             <div className="mb-8">
-              <PixabayImage recipe={{ id: recipe.id, title: recipe.title }} apiKey={pixabayKey} alt={recipe.title} />
+              <PixabayImage recipe={{ id: recipe.id, title: recipe.title }} apiKey={pixabayKey} alt={recipe.title} hidePlaceholder />
             </div>
           ) : null}
 

@@ -31,6 +31,10 @@ interface Props {
   recipe: { id: string; title: string };
   apiKey: string;
   alt: string;
+  /** When true, render nothing instead of the CookingPot placeholder
+   *  for loading/miss states. Use on detail pages where a blank space
+   *  is better than a faint icon in a hero slot. */
+  hidePlaceholder?: boolean;
 }
 
 type State =
@@ -43,7 +47,7 @@ type State =
 // key is bad or rate-limited, not once per recipe card.
 let warnedThisSession = false;
 
-export default function PixabayImage({ recipe, apiKey, alt }: Props) {
+export default function PixabayImage({ recipe, apiKey, alt, hidePlaceholder }: Props) {
   const [state, setState] = useState<State>(() => {
     const cached = getPixabayCacheEntry(recipe.id);
     if (!cached) return { status: 'idle' };
@@ -125,7 +129,8 @@ export default function PixabayImage({ recipe, apiKey, alt }: Props) {
     );
   }
 
-  // loading / idle / miss → placeholder
+  // loading / idle / miss → placeholder (or nothing on detail pages)
+  if (hidePlaceholder) return null;
   return (
     <div className="aspect-[16/9] flex items-center justify-center bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] opacity-30">
       <CookingPot size={48} weight="light" aria-hidden />
