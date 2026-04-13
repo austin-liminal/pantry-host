@@ -417,20 +417,19 @@ export function recipeToICSDataURI(recipe: ExportableRecipe): string {
 export function downloadRecipeICS(recipe: ExportableRecipe, apiBase = ''): void {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  if (isIOS && recipe.slug) {
-    // iOS Safari requires a real HTTP response with text/calendar content type.
+  if (isIOS && apiBase && recipe.slug) {
+    // iOS Safari needs a real HTTP response — only works with a server
     window.location.href = `${apiBase}/api/recipe-ics?slug=${encodeURIComponent(recipe.slug)}`;
     return;
   }
 
+  // Use data: URI — embeds MIME type inline, works without a server
+  // or HTTP headers. Avoids Blob URL issues with Cloudflare Workers.
   const ics = generateRecipeICS(recipe);
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
+  a.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
   a.download = `${recipe.slug || 'recipe'}.ics`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
