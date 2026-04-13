@@ -103,7 +103,7 @@ export default function PixabayImage({ recipe, apiKey, alt, hidePlaceholder }: P
             }}
           />
         </picture>
-        <div className="absolute bottom-0 left-0 right-0 px-2 py-1 bg-black/50 text-white text-[10px] leading-tight truncate text-right">
+        <div className="absolute bottom-0 left-0 right-0 px-2 py-1 text-white text-[10px] leading-tight truncate text-right" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           Photo by{' '}
           <a
             href={withPixabayUtm(hit.pageUrl)}

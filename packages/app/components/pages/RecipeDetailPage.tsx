@@ -585,7 +585,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
             type="button"
             onClick={exitZen}
             aria-label="Exit full screen"
-            className="zen-exit-btn fixed top-4 right-4 z-50 bg-black/70 hover:bg-black/90 text-white p-2 rounded-full backdrop-blur transition-colors hidden outline outline-1 outline-current"
+            className="zen-exit-btn fixed top-4 right-4 z-50 bg-[rgba(0,0,0,0.7)] hover:bg-[rgba(0,0,0,0.9)] text-white p-2 rounded-full backdrop-blur transition-colors hidden outline outline-1 outline-current"
           >
             <ArrowsIn size={18} aria-hidden />
           </button>
