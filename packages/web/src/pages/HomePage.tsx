@@ -115,7 +115,7 @@ export default function HomePage() {
             href="https://pantryhost.app#getting-started"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-accent)] hover:underline"
           >
-            See all three tiers &rarr;
+            See self-hosted capabilities &rarr;
           </a>
         </div>
       </div>
