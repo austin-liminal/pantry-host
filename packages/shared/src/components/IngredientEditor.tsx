@@ -306,9 +306,9 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
                   onClick={() => removeRow(idx)}
                   aria-label={`Remove ingredient ${idx + 1}`}
                   disabled={rows.length <= 1}
-                  className="text-[var(--color-text-secondary)] hover:text-red-500 p-2 disabled:opacity-30"
+                  className="text-[var(--color-text-secondary)] hover:text-red-500 p-1 shrink-0 self-start mt-2.5 disabled:opacity-30"
                 >
-                  <X size={16} aria-hidden />
+                  <X size={14} aria-hidden />
                 </button>
               </li>
             ))}
