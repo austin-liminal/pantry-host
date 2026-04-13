@@ -981,7 +981,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
                 type="search"
                 value={clQuery}
                 onChange={(e) => setClQuery(e.target.value)}
-                placeholder="pasta, breakfast, soup"
+                placeholder="banana bread"
                 className="field-input w-full pl-9"
               />
             </div>
@@ -1055,7 +1055,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
                 <label htmlFor="mealdb-search" className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1 block">Search</label>
                 <div className="relative">
                   <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
-                  <input id="mealdb-search" type="search" value={mdQuery} onChange={(e) => setMdQuery(e.target.value)} placeholder="pasta, curry, salad" className="field-input w-full pl-9" />
+                  <input id="mealdb-search" type="search" value={mdQuery} onChange={(e) => setMdQuery(e.target.value)} placeholder="vegetable curry" className="field-input w-full pl-9" />
                 </div>
               </div>
               <div>
@@ -1329,7 +1329,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
                           finally { setCdSearching(false); }
                         }, 300);
                       }}
-                      placeholder="margarita, mojito, old fashioned"
+                      placeholder="margarita"
                       className="field-input w-full pl-9"
                     />
                   </div>
@@ -1476,7 +1476,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
                   <label htmlFor="recipe-api-search" className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1 block">Search</label>
                   <div className="relative">
                     <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
-                    <input id="recipe-api-search" type="search" value={raQuery} onChange={(e) => setRaQuery(e.target.value)} placeholder="chicken, pasta, salad" className="field-input w-full pl-9" />
+                    <input id="recipe-api-search" type="search" value={raQuery} onChange={(e) => setRaQuery(e.target.value)} placeholder="lentil soup" className="field-input w-full pl-9" />
                   </div>
                 </div>
                 <div>

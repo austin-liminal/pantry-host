@@ -233,7 +233,7 @@ export default function IngredientsPage({ kitchen }: Props) {
               list="pantry-filter-suggestions"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="garlic, #organic, dairy"
+              placeholder="garlic"
               className="field-input w-full"
             />
             <datalist id="pantry-filter-suggestions">

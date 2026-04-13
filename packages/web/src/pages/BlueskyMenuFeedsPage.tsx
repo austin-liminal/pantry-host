@@ -172,7 +172,7 @@ export default function BlueskyMenuFeedsPage() {
         <input
           id="bsky-search"
           type="search"
-          placeholder="weeknight dinners, holiday meals"
+          placeholder="weeknight dinners"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="field-input w-full"

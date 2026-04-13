@@ -244,7 +244,7 @@ function CooklangTab({ navigate }: { navigate: ReturnType<typeof useNavigate> })
     <>
       <div className="relative mb-6">
         <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="pasta, breakfast, soup" className="field-input w-full pl-9" autoFocus />
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="banana bread" className="field-input w-full pl-9" autoFocus />
       </div>
       {error && <p role="alert" className="text-sm text-red-400 mb-4">{error}</p>}
       {searching && results.length === 0 && (
@@ -370,7 +370,7 @@ function MealDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> }) {
           <label htmlFor="mealdb-search" className="text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] mb-1 block">Search</label>
           <div className="relative">
             <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-secondary)]" aria-hidden />
-            <input id="mealdb-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="pasta, curry, salad" className="field-input w-full pl-9" />
+            <input id="mealdb-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="vegetable curry" className="field-input w-full pl-9" />
           </div>
         </div>
         <div>
@@ -560,7 +560,7 @@ function CocktailDBTab({ navigate }: { navigate: ReturnType<typeof useNavigate> 
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="margarita, mojito, old fashioned"
+            placeholder="margarita"
             className="field-input w-full pl-9"
           />
           </div>
@@ -1430,7 +1430,7 @@ function RecipeAPITab({ navigate }: { navigate: ReturnType<typeof useNavigate> }
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="chicken, pasta, salad"
+              placeholder="lentil soup"
               className="field-input w-full pl-9"
             />
           </div>

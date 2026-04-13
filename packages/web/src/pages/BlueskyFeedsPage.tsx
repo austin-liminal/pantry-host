@@ -184,7 +184,7 @@ export default function BlueskyFeedsPage() {
           id="bsky-search"
           type="search"
           list="bsky-suggestions"
-          placeholder="vegan dessert, italian dinner, soup"
+          placeholder="mushroom risotto"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="field-input w-full"
