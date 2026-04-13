@@ -20,6 +20,7 @@ const PORT = parseInt(process.env.PORT || '3002', 10);
 const DB_PATH = process.env.DB_PATH || './data/registry.db';
 const FIREHOSE_URL = process.env.FIREHOSE_URL || 'wss://bsky.network';
 const LEXICON_RECIPE = 'exchange.recipe.recipe';
+const LEXICON_COLLECTION = 'exchange.recipe.collection';
 
 // ── Database ─────────────────────────────────────────────────
 
@@ -102,17 +103,17 @@ function startFirehose() {
 
       if (event.event === 'create' || event.event === 'update') {
         const collection = event.collection;
-        if (collection === LEXICON_RECIPE) {
+        if (collection === LEXICON_RECIPE || collection === LEXICON_COLLECTION) {
           const handle = await resolveHandle(event.did);
           upsertStmt.run(event.did, handle);
           recipesFound++;
-          console.log(`[firehose] +recipe from @${handle} (total: ${recipesFound})`);
+          console.log(`[firehose] +${collection === LEXICON_COLLECTION ? 'collection' : 'recipe'} from @${handle} (total: ${recipesFound})`);
         }
       } else if (event.event === 'delete') {
         const collection = event.collection;
-        if (collection === LEXICON_RECIPE) {
+        if (collection === LEXICON_RECIPE || collection === LEXICON_COLLECTION) {
           decrementStmt.run(event.did);
-          console.log(`[firehose] -recipe from ${event.did}`);
+          console.log(`[firehose] -${collection === LEXICON_COLLECTION ? 'collection' : 'recipe'} from ${event.did}`);
         }
       }
 
