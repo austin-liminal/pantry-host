@@ -205,23 +205,23 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
         <form onSubmit={handleSubmit} className="space-y-8">
           {bucketByGroup(schemaForPackage).map((segment, i) => {
             const children = segment.defs.map((def) => (
-              <div key={def.key}>
-                <SettingField
-                  def={def}
-                  field={fields[def.key]}
-                  revealed={revealed.has(def.key)}
-                  canReveal={!!adapter.reveal && def.kind === 'secret'}
-                  onChange={(v) => setField(def.key, v)}
-                  onReveal={() => handleReveal(def.key)}
-                  onHide={() => handleHide(def.key)}
-                />
+              <SettingField
+                key={def.key}
+                def={def}
+                field={fields[def.key]}
+                revealed={revealed.has(def.key)}
+                canReveal={!!adapter.reveal && def.kind === 'secret'}
+                onChange={(v) => setField(def.key, v)}
+                onReveal={() => handleReveal(def.key)}
+                onHide={() => handleHide(def.key)}
+              >
                 {def.key === 'HARVEST_LOCATIONS' && (
                   <NearbyMarkets
                     value={fields[def.key]?.value ?? ''}
                     onChange={(v) => setField(def.key, v)}
                   />
                 )}
-              </div>
+              </SettingField>
             ));
             if (!segment.group) {
               return <div key={`g-${i}`} className="space-y-8">{children}</div>;
@@ -389,6 +389,7 @@ function SettingField({
   onChange,
   onReveal,
   onHide,
+  children,
 }: {
   def: SettingDef;
   field: FieldState | undefined;
@@ -397,6 +398,7 @@ function SettingField({
   onChange: (value: string) => void;
   onReveal: () => void;
   onHide: () => void;
+  children?: React.ReactNode;
 }) {
   const id = `setting-${def.key}`;
   const descId = `${id}-desc`;
@@ -472,6 +474,7 @@ function SettingField({
           </a>
         </p>
       )}
+      {children}
     </div>
   );
 }
