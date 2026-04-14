@@ -28,6 +28,8 @@ export default function Document() {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Pantry Host" />
+        {/* Default og:image — overridden by per-page Head when a recipe/menu photo is available */}
+        <meta property="og:image" content="https://pantryhost.app/icon-512.png" />
         <meta name="build-hash" content={buildHash} />
         {process.env.DEFAULT_THEME && <meta name="default-palette" content={process.env.DEFAULT_THEME} />}
         {/* SHOW_COCKTAILDB no longer injected here — RecipeImportPage fetches
