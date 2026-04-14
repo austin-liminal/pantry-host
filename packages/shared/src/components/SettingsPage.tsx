@@ -308,6 +308,8 @@ function SettingField({
           value={field?.value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           placeholder={def.placeholder}
+          pattern={def.pattern}
+          title={def.patternTitle}
           aria-describedby={descId}
           autoComplete="off"
           spellCheck={false}

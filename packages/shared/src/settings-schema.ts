@@ -41,6 +41,10 @@ export interface SettingDef {
   enumValues?: string[];
   /** Shown as an input placeholder. */
   placeholder?: string;
+  /** HTML pattern attribute for native browser validation. */
+  pattern?: string;
+  /** Title shown when pattern validation fails. */
+  patternTitle?: string;
   /** Optional "Get a key" style external link under the field. */
   externalLinkHref?: string;
   externalLinkLabel?: string;
@@ -111,6 +115,8 @@ export const SETTINGS_SCHEMA: SettingDef[] = [
       'Comma-separated tag list of grocery stores where you shop.',
     kind: 'text',
     placeholder: 'safeway, costco, whole-foods',
+    pattern: '[a-z0-9-]+(,\\s*[a-z0-9-]+)*',
+    patternTitle: 'Lowercase kebab-case tags separated by commas (e.g. safeway, whole-foods)',
     packages: ['app', 'web'],
   },
 ];
