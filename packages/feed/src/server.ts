@@ -215,8 +215,12 @@ app.get('/api/nearby', async (req, res) => {
           continue;
         }
         const data = (await response.json()) as { elements?: typeof elements };
-        elements = data.elements ?? [];
-        break;
+        const parsed = data.elements ?? [];
+        if (parsed.length > 0) {
+          elements = parsed;
+          break;
+        }
+        console.warn(`[nearby] ${url} returned 0 elements, trying next`);
       } catch (err) {
         console.warn(`[nearby] ${url} failed:`, err);
         continue;
