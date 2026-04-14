@@ -117,22 +117,15 @@ export default function GroceryListPage({ kitchen }: Props) {
     } catch { return new Set(); }
   });
 
-  const [harvestLocations, setHarvestLocations] = useState<string[]>([]);
+  const [harvestLocations] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const raw = localStorage.getItem('harvest-locations');
+    return raw ? raw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  });
 
   const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
 
   const cacheKey = `cache:groceryList:${kitchen}`;
-
-  // Read harvest locations from settings
-  useEffect(() => {
-    fetch('/api/settings-read')
-      .then((r) => r.ok ? r.json() : null)
-      .then((j: { values?: Record<string, string | null> } | null) => {
-        const raw = j?.values?.HARVEST_LOCATIONS;
-        if (raw) setHarvestLocations(raw.split(',').map((s) => s.trim()).filter(Boolean));
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -194,7 +187,15 @@ export default function GroceryListPage({ kitchen }: Props) {
 
   const pantryByName = new Map<string, PantryItem>();
   for (const item of pantry) {
-    pantryByName.set(item.name.toLowerCase(), item);
+    const key = item.name.toLowerCase();
+    const existing = pantryByName.get(key);
+    if (existing) {
+      // Merge tags from duplicate entries
+      const merged = new Set([...existing.tags, ...item.tags]);
+      pantryByName.set(key, { ...existing, tags: [...merged] });
+    } else {
+      pantryByName.set(key, item);
+    }
   }
 
   const sortedRecipes = [...recipes].sort((a, b) => a.title.localeCompare(b.title));
