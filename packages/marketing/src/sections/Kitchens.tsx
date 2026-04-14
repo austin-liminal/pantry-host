@@ -5,7 +5,7 @@ const useCases = [
     title: 'Home & Away',
     icon: HouseSimple,
     description:
-      'Separate pantries for your house and vacation cabin. Each kitchen tracks its own ingredients, recipes, and grocery list.',
+      'Separate pantries. Each kitchen tracks its own ingredients, recipes, and grocery list.',
   },
   {
     title: 'Shared Households',
@@ -31,7 +31,7 @@ export default function Kitchens() {
         Kitchens for&nbsp;Everyone
       </h2>
       <p className="text-center text-[var(--color-text-secondary)] text-sm sm:text-base max-w-2xl mx-auto mb-10 leading-relaxed">
-        Your home kitchen, Grandma&rsquo;s house, a vacation cabin, a catering gig.
+        Your home kitchen, Grandma&rsquo;s house, a catering gig.
         Each kitchen has its own pantry, recipes, menus, cookware, and grocery&nbsp;list.
         Available on all three&nbsp;tiers.
       </p>
