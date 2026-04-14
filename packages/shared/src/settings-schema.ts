@@ -108,9 +108,9 @@ export const SETTINGS_SCHEMA: SettingDef[] = [
     key: 'HARVEST_LOCATIONS',
     label: 'Harvest Locations',
     description:
-      'Comma-separated list of grocery stores where you shop.',
+      'Comma-separated tag list of grocery stores where you shop.',
     kind: 'text',
-    placeholder: 'Safeway, Costco, Whole Foods',
+    placeholder: 'safeway, costco, whole-foods',
     packages: ['app', 'web'],
   },
 ];
