@@ -4,7 +4,12 @@ import { gql } from '@/lib/gql';
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
 import { enqueue } from '@/lib/offlineQueue';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
-import { ShoppingCart, Basket } from '@phosphor-icons/react';
+import { ShoppingCart, Basket, MapPin } from '@phosphor-icons/react';
+
+/** Convert a kebab-case tag to Title Case display: "farmers-market" → "Farmers Market" */
+function tagToTitle(tag: string): string {
+  return tag.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 interface RecipeIngredient {
   ingredientName: string;
@@ -424,7 +429,7 @@ export default function GroceryListPage({ kitchen }: Props) {
                   return (
                     <fieldset key={`store-${sg.store}`} className="border-2 border-[var(--color-accent-subtle)] rounded-xl p-4">
                       <legend className="px-2 font-semibold text-sm flex items-center gap-1.5">
-                        <span aria-hidden="true">📍</span> {sg.store}
+                        <MapPin size={14} weight="bold" aria-hidden /> {tagToTitle(sg.store)}
                       </legend>
                       <div className="space-y-4">{recipeFieldsets}</div>
                     </fieldset>

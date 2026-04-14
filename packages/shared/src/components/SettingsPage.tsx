@@ -7,7 +7,7 @@
  * show/hide, and the "locked / not available" empty state.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Info, Eye, EyeSlash, MapPin } from '@phosphor-icons/react';
+import { Info, Eye, EyeSlash, MapPin, SpinnerGap } from '@phosphor-icons/react';
 import {
   SETTINGS_SCHEMA,
   type SettingKey,
@@ -350,7 +350,7 @@ function NearbyMarkets({ value, onChange }: { value: string; onChange: (v: strin
       <div aria-live="polite" aria-atomic="true">
         {status && (
           <p ref={statusRef} className="text-xs text-[var(--color-text-secondary)] mt-2">
-            {loading && <span aria-hidden="true">&#8987; </span>}
+            {loading && <SpinnerGap size={12} className="inline animate-spin mr-1" aria-hidden />}
             {status}
           </p>
         )}
