@@ -12,16 +12,24 @@ const COMMUNITY_SOURCES = [
   { name: 'TheCocktailDB', tab: 'cocktaildb', icon: Wine, catalog: '~600 cocktails', blurb: 'Drinks-only companion to TheMealDB.' },
 ];
 
+interface Kitchen {
+  id: string;
+  slug: string;
+  name: string;
+}
+
 interface Stats {
   recipes: { id: string }[];
   ingredients: { id: string }[];
   cookware: { id: string }[];
+  kitchens: Kitchen[];
 }
 
 const STATS_QUERY = `{
   recipes { id }
   ingredients { id }
   cookware { id }
+  kitchens { id slug name }
 }`;
 
 export default function HomePage() {
@@ -57,6 +65,35 @@ export default function HomePage() {
           </Link>
         ))}
       </div>
+
+      {/* Kitchens */}
+      {stats && stats.kitchens.length > 0 && (
+        <section aria-labelledby="kitchens-heading" className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 id="kitchens-heading" className="text-sm font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">Kitchens</h2>
+            <Link to="/kitchens#stage" className="text-sm font-semibold text-[var(--color-accent)] hover:underline">
+              {stats.kitchens.length > 1 ? 'Manage \u2192' : '+ Add kitchen'}
+            </Link>
+          </div>
+          <ul className="flex flex-wrap gap-3" role="list">
+            {stats.kitchens.map((k) => {
+              const active = k.slug === 'home';
+              return (
+                <li key={k.id}>
+                  <Link
+                    to={active ? '/#stage' : `/kitchens/${k.slug}/recipes#stage`}
+                    aria-current={active ? 'true' : undefined}
+                    className={`card block px-4 py-3 rounded-xl transition-colors ${active ? 'border-[var(--color-accent)] text-[var(--color-accent)]' : 'hover:text-[var(--color-accent)]'}`}
+                  >
+                    <span className="font-medium">{k.name}</span>
+                    {active && <span className="ml-2 text-xs opacity-70">current</span>}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <h2 id="whats-cooking" className="text-3xl font-bold mb-4">What&rsquo;s Cooking?</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">

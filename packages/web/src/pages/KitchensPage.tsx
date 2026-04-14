@@ -98,13 +98,13 @@ export default function KitchensPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <h1 className="text-3xl font-bold">Kitchens</h1>
         <button type="button" onClick={() => setShowForm(!showForm)} aria-expanded={showForm} className="btn-primary">
-          {showForm ? 'Cancel' : '+ New Kitchen'}
+          {showForm ? 'Cancel' : '+ Add Kitchen'}
         </button>
       </div>
 
       {showForm && (
         <section aria-label="Add kitchen" className="mb-8 p-6 card rounded-xl">
-          <h2 className="text-lg font-bold mb-4">New Kitchen</h2>
+          <h2 className="text-lg font-bold mb-4">Add Kitchen</h2>
           <form onSubmit={handleCreate} noValidate>
             <div className="mb-4">
               <label htmlFor="kitchen-name" className="field-label">Name</label>
