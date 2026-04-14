@@ -37,6 +37,7 @@ interface PerRecipeItem {
   quantity: number | null;
   status: ItemStatus;
   pantryQuantity: number | null;
+  stores: string[];
 }
 
 const TOGGLE_QUEUED = `mutation ToggleQueued($id: String!) { toggleRecipeQueued(id: $id) { id queued } }`;
@@ -68,10 +69,12 @@ function resolveStatus(ing: RecipeIngredient, pantryByName: Map<string, PantryIt
   return { status: 'need_more', pantryQuantity };
 }
 
-function buildPerRecipeItems(recipe: QueuedRecipe, pantryByName: Map<string, PantryItem>): PerRecipeItem[] {
+function buildPerRecipeItems(recipe: QueuedRecipe, pantryByName: Map<string, PantryItem>, harvestLocations: string[] = []): PerRecipeItem[] {
   return recipe.groceryIngredients
     .map((ing) => {
       const { status, pantryQuantity } = resolveStatus(ing, pantryByName);
+      const pantryItem = pantryByName.get(ing.ingredientName.toLowerCase());
+      const stores = harvestLocations.filter((loc) => pantryItem?.tags.includes(loc));
       return {
         key: `${recipe.id}::${ing.ingredientName.toLowerCase()}`,
         ingredientName: ing.ingredientName,
@@ -79,6 +82,7 @@ function buildPerRecipeItems(recipe: QueuedRecipe, pantryByName: Map<string, Pan
         quantity: ing.quantity,
         status,
         pantryQuantity,
+        stores,
       };
     })
     .sort((a, b) => a.ingredientName.localeCompare(b.ingredientName));
@@ -113,9 +117,22 @@ export default function GroceryListPage({ kitchen }: Props) {
     } catch { return new Set(); }
   });
 
+  const [harvestLocations, setHarvestLocations] = useState<string[]>([]);
+
   const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
 
   const cacheKey = `cache:groceryList:${kitchen}`;
+
+  // Read harvest locations from settings
+  useEffect(() => {
+    fetch('/api/settings-read')
+      .then((r) => r.ok ? r.json() : null)
+      .then((j: { values?: Record<string, string | null> } | null) => {
+        const raw = j?.values?.HARVEST_LOCATIONS;
+        if (raw) setHarvestLocations(raw.split(',').map((s) => s.trim()).filter(Boolean));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -279,16 +296,71 @@ export default function GroceryListPage({ kitchen }: Props) {
           </section>
         )}
 
-        {/* Grocery list — grouped by recipe */}
-        {!loading && sortedRecipes.length > 0 && (
+        {/* Grocery list — grouped by harvest location → recipe */}
+        {!loading && sortedRecipes.length > 0 && (() => {
+          // Build all items with store tags
+          const allRecipeItems = sortedRecipes.map((recipe) => ({
+            recipe,
+            items: buildPerRecipeItems(recipe, pantryByName, harvestLocations),
+          }));
+
+          // Group by store if harvest locations are configured
+          const hasStoreGrouping = harvestLocations.length > 0 && allRecipeItems.some(({ items }) => items.some((i) => i.stores.length > 0));
+
+          type StoreGroup = { store: string | null; entries: { recipe: QueuedRecipe; items: PerRecipeItem[] }[] };
+          const storeGroups: StoreGroup[] = [];
+
+          if (hasStoreGrouping) {
+            // Build store → recipe → items map
+            const storeMap = new Map<string, Map<string, PerRecipeItem[]>>();
+            const untaggedMap = new Map<string, PerRecipeItem[]>();
+
+            for (const { recipe, items } of allRecipeItems) {
+              for (const item of items) {
+                if (item.stores.length === 0) {
+                  // Untagged
+                  if (!untaggedMap.has(recipe.id)) untaggedMap.set(recipe.id, []);
+                  untaggedMap.get(recipe.id)!.push(item);
+                } else {
+                  for (const store of item.stores) {
+                    if (!storeMap.has(store)) storeMap.set(store, new Map());
+                    const recipeMap = storeMap.get(store)!;
+                    if (!recipeMap.has(recipe.id)) recipeMap.set(recipe.id, []);
+                    recipeMap.get(recipe.id)!.push(item);
+                  }
+                }
+              }
+            }
+
+            // Sorted store groups
+            for (const store of [...storeMap.keys()].sort()) {
+              const recipeMap = storeMap.get(store)!;
+              const entries = sortedRecipes
+                .filter((r) => recipeMap.has(r.id))
+                .map((r) => ({ recipe: r, items: recipeMap.get(r.id)! }));
+              storeGroups.push({ store, entries });
+            }
+            // Untagged at the end (no store wrapper)
+            const untaggedEntries = sortedRecipes
+              .filter((r) => untaggedMap.has(r.id))
+              .map((r) => ({ recipe: r, items: untaggedMap.get(r.id)! }));
+            if (untaggedEntries.length > 0) {
+              storeGroups.push({ store: null, entries: untaggedEntries });
+            }
+          } else {
+            // No store grouping — flat recipe list
+            storeGroups.push({ store: null, entries: allRecipeItems.filter(({ items }) => items.length > 0) });
+          }
+
+          return (
           <section aria-labelledby="grocery-heading">
             <h2 id="grocery-heading" className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-4">
               Ingredients
             </h2>
 
             <div className="space-y-6 grocery-item">
-              {sortedRecipes.map((recipe) => {
-                const items = buildPerRecipeItems(recipe, pantryByName);
+              {storeGroups.map((sg) => {
+                const recipeFieldsets = sg.entries.map(({ recipe, items }) => {
                 if (items.length === 0) return null;
 
                 return (
@@ -345,10 +417,25 @@ export default function GroceryListPage({ kitchen }: Props) {
                     </div>
                   </fieldset>
                 );
+                });
+
+                if (sg.store) {
+                  return (
+                    <fieldset key={`store-${sg.store}`} className="border-2 border-[var(--color-accent-subtle)] rounded-xl p-4">
+                      <legend className="px-2 font-semibold text-sm flex items-center gap-1.5">
+                        <span aria-hidden="true">📍</span> {sg.store}
+                      </legend>
+                      <div className="space-y-4">{recipeFieldsets}</div>
+                    </fieldset>
+                  );
+                }
+                // Untagged — render recipe fieldsets directly (no store wrapper)
+                return <div key="untagged" className="space-y-6">{recipeFieldsets}</div>;
               })}
             </div>
           </section>
-        )}
+          );
+        })()}
       </main>
     </>
   );
