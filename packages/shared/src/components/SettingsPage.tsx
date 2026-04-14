@@ -6,8 +6,8 @@
  * schema rendering, dirty state, save, loading/error states, secret
  * show/hide, and the "locked / not available" empty state.
  */
-import { useState, useEffect, useCallback } from 'react';
-import { Info, Eye, EyeSlash } from '@phosphor-icons/react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Info, Eye, EyeSlash, MapPin } from '@phosphor-icons/react';
 import {
   SETTINGS_SCHEMA,
   type SettingKey,
@@ -205,16 +205,23 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
         <form onSubmit={handleSubmit} className="space-y-8">
           {bucketByGroup(schemaForPackage).map((segment, i) => {
             const children = segment.defs.map((def) => (
-              <SettingField
-                key={def.key}
-                def={def}
-                field={fields[def.key]}
-                revealed={revealed.has(def.key)}
-                canReveal={!!adapter.reveal && def.kind === 'secret'}
-                onChange={(v) => setField(def.key, v)}
-                onReveal={() => handleReveal(def.key)}
-                onHide={() => handleHide(def.key)}
-              />
+              <div key={def.key}>
+                <SettingField
+                  def={def}
+                  field={fields[def.key]}
+                  revealed={revealed.has(def.key)}
+                  canReveal={!!adapter.reveal && def.kind === 'secret'}
+                  onChange={(v) => setField(def.key, v)}
+                  onReveal={() => handleReveal(def.key)}
+                  onHide={() => handleHide(def.key)}
+                />
+                {def.key === 'HARVEST_LOCATIONS' && (
+                  <NearbyMarkets
+                    value={fields[def.key]?.value ?? ''}
+                    onChange={(v) => setField(def.key, v)}
+                  />
+                )}
+              </div>
             ));
             if (!segment.group) {
               return <div key={`g-${i}`} className="space-y-8">{children}</div>;
@@ -246,6 +253,129 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
             </button>
           </div>
         </form>
+      )}
+    </div>
+  );
+}
+
+const NEARBY_API = 'https://feed.pantryhost.app/api/nearby';
+
+interface NearbyMarket {
+  name: string;
+  slug: string;
+  type: string;
+}
+
+function NearbyMarkets({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [enabled, setEnabled] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [markets, setMarkets] = useState<NearbyMarket[]>([]);
+  const [status, setStatus] = useState<string | null>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+
+  const currentTags = value
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  function toggleTag(slug: string) {
+    if (currentTags.includes(slug)) {
+      onChange(currentTags.filter((t) => t !== slug).join(', '));
+    } else {
+      onChange([...currentTags, slug].join(', '));
+    }
+  }
+
+  function handleCheck(checked: boolean) {
+    setEnabled(checked);
+    if (!checked) {
+      setMarkets([]);
+      setStatus(null);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setStatus('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setLoading(true);
+    setStatus('Locating\u2026');
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch(
+            `${NEARBY_API}?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`
+          );
+          if (!res.ok) throw new Error(`API returned ${res.status}`);
+          const data = (await res.json()) as NearbyMarket[];
+          setMarkets(data);
+          setStatus(data.length > 0 ? `Found ${data.length} market${data.length !== 1 ? 's' : ''} nearby.` : 'No markets found nearby.');
+        } catch {
+          setStatus('Failed to fetch nearby markets.');
+        } finally {
+          setLoading(false);
+        }
+      },
+      (err) => {
+        setLoading(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setStatus('Location access denied.');
+          setEnabled(false);
+        } else {
+          setStatus('Unable to determine your location.');
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  }
+
+  // Determine which tags match current input text (for round-trip highlighting)
+  const inputLower = value.toLowerCase();
+
+  return (
+    <div className="mt-4">
+      <label className="flex items-center gap-2 cursor-pointer text-sm">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => handleCheck(e.target.checked)}
+          className="w-4 h-4 accent-[var(--color-accent)]"
+        />
+        <MapPin size={14} weight="light" aria-hidden />
+        Suggest nearby markets based on my location
+      </label>
+
+      <div aria-live="polite" aria-atomic="true">
+        {status && (
+          <p ref={statusRef} className="text-xs text-[var(--color-text-secondary)] mt-2">
+            {loading && <span aria-hidden="true">&#8987; </span>}
+            {status}
+          </p>
+        )}
+      </div>
+
+      {markets.length > 0 && (
+        <div role="group" aria-label="Nearby markets" className="flex flex-wrap gap-2 mt-3">
+          {markets.map((m) => {
+            const active = currentTags.includes(m.slug);
+            const partialMatch = !active && m.slug.includes(inputLower.split(',').pop()?.trim() || '\x00');
+            return (
+              <button
+                key={m.slug}
+                type="button"
+                role="switch"
+                aria-checked={active}
+                data-match={partialMatch || undefined}
+                onClick={() => toggleTag(m.slug)}
+                className="text-xs px-3 py-1.5 rounded-full border-2 transition-colors cursor-pointer"
+              >
+                {m.slug}
+              </button>
+            );
+          })}
+        </div>
       )}
     </div>
   );

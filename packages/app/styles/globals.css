@@ -985,6 +985,26 @@
     background-color: #f87171;
   }
 
+  /* Suggestion tag cloud — state via aria-checked, no CSS classes */
+  button[role="switch"][aria-checked="true"] {
+    background-color: var(--color-accent);
+    color: var(--color-bg-body);
+    border-color: var(--color-accent);
+    font-weight: 700;
+  }
+  button[role="switch"][aria-checked="false"] {
+    border-color: var(--color-border-card);
+    color: var(--color-text-secondary);
+  }
+  button[role="switch"][aria-checked="false"]:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-text-secondary);
+  }
+  button[role="switch"][data-match="true"] {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+  }
+
   /* Form elements */
   .field-label {
     display: block;

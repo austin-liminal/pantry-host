@@ -175,6 +175,62 @@ app.get('/api/handles', (_req, res) => {
   res.json(rows);
 });
 
+// ── Nearby markets (Overpass proxy) ─────────────────────────
+
+const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+app.get('/api/nearby', async (req, res) => {
+  const lat = parseFloat(req.query.lat as string);
+  const lng = parseFloat(req.query.lng as string);
+  if (isNaN(lat) || isNaN(lng)) {
+    res.status(400).json({ error: 'lat and lng query params required' });
+    return;
+  }
+
+  const radius = Math.min(parseInt(req.query.radius as string) || 5000, 10000);
+
+  const query = `[out:json][timeout:10];(node["shop"="supermarket"](around:${radius},${lat},${lng});node["shop"="greengrocer"](around:${radius},${lat},${lng});node["shop"="farm"](around:${radius},${lat},${lng});node["amenity"="marketplace"](around:${radius},${lat},${lng});node["leisure"="garden"]["garden:type"="community"](around:${radius},${lat},${lng}););out body;`;
+
+  try {
+    const response = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(query)}`,
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) {
+      res.status(502).json({ error: `Overpass returned ${response.status}` });
+      return;
+    }
+    const data = (await response.json()) as { elements?: Array<{ tags?: Record<string, string>; lat?: number; lon?: number }> };
+    const elements = data.elements ?? [];
+
+    // Dedupe by slug, prefer named entries
+    const seen = new Map<string, { name: string; slug: string; type: string }>();
+    for (const el of elements) {
+      const name = el.tags?.name;
+      if (!name) continue;
+      const slug = toSlug(name);
+      if (!slug) continue;
+      const type = el.tags?.shop ?? el.tags?.amenity ?? el.tags?.leisure ?? 'market';
+      if (!seen.has(slug)) {
+        seen.set(slug, { name, slug, type });
+      }
+    }
+
+    const markets = [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.json(markets);
+  } catch (err) {
+    console.error('[nearby] Overpass error:', err);
+    res.status(502).json({ error: 'Overpass query failed' });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[api] Listening on port ${PORT}`);
   startFirehose();
