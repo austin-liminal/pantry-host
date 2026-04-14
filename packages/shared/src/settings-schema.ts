@@ -112,11 +112,11 @@ export const SETTINGS_SCHEMA: SettingDef[] = [
     key: 'HARVEST_LOCATIONS',
     label: 'Harvest Locations',
     description:
-      'Comma-separated tag list of grocery stores where you shop.',
+      'Comma-separated tag list of grocery stores where you shop, the farmers-market, or even your garden.',
     kind: 'text',
-    placeholder: 'safeway, costco, whole-foods',
-    pattern: '[a-z0-9-]+(,\\s*[a-z0-9-]+)*',
-    patternTitle: 'Lowercase kebab-case tags separated by commas (e.g. safeway, whole-foods)',
+    placeholder: 'farmers-market, garden, costco',
+    pattern: '[a-z0-9\\-]+(, ?[a-z0-9\\-]+)*',
+    patternTitle: 'Lowercase kebab-case tags separated by commas (e.g. farmers-market, garden)',
     packages: ['app', 'web'],
   },
 ];

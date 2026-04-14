@@ -140,8 +140,12 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
     refresh();
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!e.currentTarget.checkValidity()) {
+      e.currentTarget.reportValidity();
+      return;
+    }
     setSaving(true);
     setError(null);
     setFlash(null);
