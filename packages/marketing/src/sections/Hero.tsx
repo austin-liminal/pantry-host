@@ -20,7 +20,7 @@ export default function Hero() {
           There&rsquo;s already enough of your data in&nbsp;the&nbsp;cloud.
         </h1>
         <p className="pretty mt-6 text-xl sm:text-2xl text-[var(--color-text-secondary)] max-w-2xl mx-auto leading-relaxed font-serif">
-          Pantry&nbsp;Host is a self-hosted, privacy-first kitchen companion for managing recipes, ingredients, cookware, and grocery lists.<br /><em className="not-italic font-semibold text-[var(--color-text-primary)]">All on your&nbsp;own&nbsp;hardware</em>.
+          Pantry&nbsp;Host is a self-hosted, privacy-first kitchen companion for managing recipes, menus, ingredients, cookware, and&nbsp;grocery&nbsp;lists.<br /><em className="not-italic font-semibold text-[var(--color-text-primary)]">All on your&nbsp;own&nbsp;hardware</em>.
         </p>
       </div>
       <div className="flex-1" />
