@@ -194,7 +194,7 @@ app.get('/api/nearby', async (req, res) => {
     return;
   }
 
-  const radius = Math.min(parseInt(req.query.radius as string) || 12000, 25000);
+  const radius = Math.min(parseInt(req.query.radius as string) || 25000, 50000);
 
   const query = `[out:json][timeout:15];(node["shop"="supermarket"](around:${radius},${lat},${lng});way["shop"="supermarket"](around:${radius},${lat},${lng});node["shop"="greengrocer"](around:${radius},${lat},${lng});way["shop"="greengrocer"](around:${radius},${lat},${lng});node["shop"="farm"](around:${radius},${lat},${lng});node["amenity"="marketplace"](around:${radius},${lat},${lng});way["amenity"="marketplace"](around:${radius},${lat},${lng});node["leisure"="garden"]["garden:type"="community"](around:${radius},${lat},${lng}););out tags;`;
 
