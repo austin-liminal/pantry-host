@@ -83,6 +83,11 @@ export default function AppSettingsPage() {
     <>
       <Head>
         <title>Settings | Pantry Host</title>
+        <meta name="description" content="Configure your Pantry Host instance — theme, API keys, and preferences." />
+        <meta property="og:title" content="Settings — Pantry Host" />
+        <meta property="og:description" content="Configure your Pantry Host instance — theme, API keys, and preferences." />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary" />
       </Head>
       <AppSettingsInner />
     </>

@@ -5,6 +5,7 @@ import MenuDetailPage from '@/components/pages/MenuDetailPage';
 interface Props {
   ogTitle?: string;
   ogDescription?: string;
+  ogImage?: string;
 }
 
 // Bypass Rex 0.20.0's V8 SSR bug by going through the standalone GraphQL
@@ -18,19 +19,21 @@ export async function getServerSideProps({ params }: { params: { slug: string } 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query: 'query($id:String!){menu(id:$id){title description}}',
+        query: 'query($id:String!){menu(id:$id){title description recipes{photoUrl}}}',
         variables: { id: params.slug },
       }),
       signal: controller.signal,
     });
     if (res.ok) {
-      const body = (await res.json()) as { data?: { menu?: { title?: string; description?: string } } };
+      const body = (await res.json()) as { data?: { menu?: { title?: string; description?: string; recipes?: { photoUrl?: string }[] } } };
       const row = body.data?.menu;
       if (row) {
+        const firstPhoto = row.recipes?.find((r) => r.photoUrl)?.photoUrl ?? null;
         return {
           props: {
             ogTitle: row.title ?? null,
             ogDescription: row.description ?? null,
+            ogImage: firstPhoto,
           },
         };
       }
@@ -40,7 +43,7 @@ export async function getServerSideProps({ params }: { params: { slug: string } 
   return { props: {} };
 }
 
-export default function MenuPage({ ogTitle, ogDescription }: Props) {
+export default function MenuPage({ ogTitle, ogDescription, ogImage }: Props) {
   const { slug } = useRouter().query;
   const fallback = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean).pop() || '' : '';
   const title = ogTitle ? `${ogTitle} — Pantry Host` : 'Menus — Pantry Host';
@@ -52,7 +55,8 @@ export default function MenuPage({ ogTitle, ogDescription }: Props) {
         <meta property="og:type" content="website" />
         {ogDescription && <meta property="og:description" content={ogDescription} />}
         {ogDescription && <meta name="description" content={ogDescription} />}
-        <meta name="twitter:card" content="summary" />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+        <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
       </Head>
       <MenuDetailPage kitchen="home" menuId={(slug as string) || fallback} />
     </>
