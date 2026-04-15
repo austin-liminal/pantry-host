@@ -112,7 +112,7 @@ export const SETTINGS_SCHEMA: SettingDef[] = [
     key: 'HARVEST_LOCATIONS',
     label: 'Harvest Locations',
     description:
-      'Comma-separated tag list of grocery stores where you shop, the farmers-market, or even your garden.',
+      'Comma-separated tag list of places you get ingredients — grocery stores, the farmers market, your garden. Tag individual ingredients with these names in the pantry, and the grocery list will group items by recipe by store.',
     kind: 'text',
     placeholder: 'farmers-market, garden, costco',
     pattern: '[a-z0-9\\-]+(, ?[a-z0-9\\-]+)*',

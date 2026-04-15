@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import Head from 'next/head';
 import SettingsPage, { type SettingsAdapter } from '@pantry-host/shared/components/SettingsPage';
 import type { SettingKey } from '@pantry-host/shared/settings-schema';
-import { refreshPixabaySettings } from '@/components/RecipeCard';
 
 /**
  * Self-hosted Settings page. Wraps the shared SettingsPage with an adapter
  * that round-trips through /api/settings-read and /api/settings-write,
  * both of which enforce the owner gate (loopback Host header or HTTPS).
+ *
+ * Save uses a native <form method="POST"> — the browser does a full page
+ * navigation, the server writes the overrides file and redirects back to
+ * /settings. No AJAX, no JSON, no client-side state refresh.
  */
 function useAppAdapter(): SettingsAdapter {
   return useMemo<SettingsAdapter>(
@@ -16,6 +19,7 @@ function useAppAdapter(): SettingsAdapter {
       scopeLabel: 'This machine',
       postSaveNotice:
         "Changes take effect on the next page load — no server restart needed.",
+      formAction: '/api/settings-write',
       async load() {
         const res = await fetch('/api/settings-read');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -25,7 +29,6 @@ function useAppAdapter(): SettingsAdapter {
           maskedKeys?: string[];
         };
         if (json.locked || !json.values) {
-          // This adapter instance is now "locked" — caller will re-check.
           return { values: {}, maskedKeys: new Set() };
         }
         return {
@@ -39,20 +42,8 @@ function useAppAdapter(): SettingsAdapter {
         const json = (await res.json()) as { value: string | null };
         return json.value ?? null;
       },
-      async save(changes) {
-        const res = await fetch('/api/settings-write', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ values: changes }),
-        });
-        if (!res.ok) {
-          const body = await res.text().catch(() => '');
-          throw new Error(body || `HTTP ${res.status}`);
-        }
-        // Push any Pixabay setting changes to open RecipeCards in this tab.
-        if ('PIXABAY_API_KEY' in changes || 'PIXABAY_FALLBACK_ENABLED' in changes) {
-          refreshPixabaySettings();
-        }
+      async save() {
+        // Unused in formAction mode — the browser handles the POST.
         return {};
       },
     }),

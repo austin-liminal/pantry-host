@@ -61,6 +61,9 @@ export interface SettingsAdapter {
   /** True to render the "not available to guests" view instead of the form. */
   locked?: boolean;
   lockedMessage?: string;
+  /** When set, the form submits as a native POST to this URL instead of
+   *  calling adapter.save(). The page does a full navigation + redirect. */
+  formAction?: string;
 }
 
 type FieldState = {
@@ -81,6 +84,7 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
+
 
   const refresh = useCallback(async () => {
     try {
@@ -202,7 +206,12 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
       {!loaded && <p className="text-sm text-[var(--color-text-secondary)]">Loading…</p>}
 
       {loaded && (
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form
+          onSubmit={adapter.formAction ? undefined : handleSubmit}
+          action={adapter.formAction}
+          method={adapter.formAction ? 'POST' : undefined}
+          className="space-y-8"
+        >
           {bucketByGroup(schemaForPackage).map((segment, i) => {
             const children = segment.defs.map((def) => (
               <SettingField
@@ -211,6 +220,7 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
                 field={fields[def.key]}
                 revealed={revealed.has(def.key)}
                 canReveal={!!adapter.reveal && def.kind === 'secret'}
+                nativeForm={!!adapter.formAction}
                 onChange={(v) => setField(def.key, v)}
                 onReveal={() => handleReveal(def.key)}
                 onHide={() => handleHide(def.key)}
@@ -240,12 +250,6 @@ export default function SettingsPage({ adapter }: { adapter: SettingsAdapter }) 
           })}
 
           {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
-          {flash && <p className="text-sm text-[var(--color-accent)]">{flash}</p>}
-          {adapter.postSaveNotice && flash === 'Saved.' && (
-            <p className="text-sm text-[var(--color-text-secondary)] legible pretty">
-              {adapter.postSaveNotice}
-            </p>
-          )}
 
           <div className="flex justify-end">
             <button type="submit" disabled={saving} className="btn-primary">
@@ -386,6 +390,7 @@ function SettingField({
   field,
   revealed,
   canReveal,
+  nativeForm,
   onChange,
   onReveal,
   onHide,
@@ -395,6 +400,8 @@ function SettingField({
   field: FieldState | undefined;
   revealed: boolean;
   canReveal: boolean;
+  /** True when the form uses native POST (no JS save). */
+  nativeForm: boolean;
   onChange: (value: string) => void;
   onReveal: () => void;
   onHide: () => void;
@@ -412,8 +419,10 @@ function SettingField({
         <label htmlFor={id} className="flex items-start gap-3 cursor-pointer">
           <input
             id={id}
+            name={def.key}
             type="checkbox"
             checked={checked}
+            value="true"
             onChange={(e) => onChange(e.target.checked ? 'true' : 'false')}
             className="mt-1 w-4 h-4 shrink-0 accent-accent"
             aria-describedby={descId}
@@ -438,8 +447,16 @@ function SettingField({
         {def.description}
       </p>
       <div className="relative">
+        {/* For native form POST: masked, unedited secrets send a sentinel
+            so the server knows to skip them. The visible input loses its
+            name to avoid double-submission. */}
+        {nativeForm && def.kind === 'secret' && field?.masked && !field.dirty && (
+          <input type="hidden" name={def.key} value="__UNCHANGED__" />
+        )}
         <input
           id={id}
+          name={(nativeForm && def.kind === 'secret' && field?.masked && !field.dirty)
+            ? undefined : def.key}
           type={def.kind === 'secret' && !revealed ? 'password' : 'text'}
           value={field?.value ?? ''}
           onChange={(e) => onChange(e.target.value)}
