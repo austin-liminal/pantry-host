@@ -961,6 +961,24 @@ export default function RecipeImportPage() {
     return 'url';
   });
 
+  // When the user uploads a file, its contents are pushed into the URL tab's
+  // textarea and the tab switches. Uploaded content changes the key so URLTab
+  // re-syncs its internal state via the initialText prop.
+  const [uploadedContent, setUploadedContent] = useState<string | undefined>(undefined);
+
+  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setUploadedContent(reader.result);
+        setTab('url');
+      }
+    };
+    reader.readAsText(file);
+  }
+
   const handleTabKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     const idx = TAB_ORDER.indexOf(tab);
     let next = idx;
@@ -1000,6 +1018,30 @@ export default function RecipeImportPage() {
         Search community recipe datasources and import into your local pantry.
       </p>
 
+      {/* Upload a file — mirrors the self-hosted app's layout */}
+      <div className="p-6 mb-6 border border-[var(--color-border-card)] bg-[var(--color-bg-card)] rounded-xl">
+        <h2 className="text-lg font-bold mb-1">Upload a file</h2>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-4 legible pretty">
+          Choose a recipe <span className="font-mono text-xs">.html</span> or provide bookmarks in <span className="font-mono text-xs">.html</span>,
+          <span className="font-mono text-xs"> .csv</span>, or a plain URL list as <span className="font-mono text-xs">.txt</span>
+        </p>
+        <label className="block">
+          <span className="sr-only">Choose file</span>
+          <input
+            type="file"
+            accept=".html,.csv,.txt"
+            onChange={handleFileUpload}
+            className="block w-full text-sm text-[var(--color-text-secondary)]
+              file:mr-4 file:py-2 file:px-4 file:border-0
+              file:text-sm file:font-medium
+              file:bg-[var(--color-accent-subtle)]
+              file:text-[var(--color-text-primary)]
+              hover:file:bg-[var(--color-border-card)]
+              cursor-pointer"
+          />
+        </label>
+      </div>
+
       {/* Tab toggle */}
       <div className="flex gap-1 mb-6 border-b border-[var(--color-border-card)] overflow-x-auto" role="tablist" aria-label="Recipe sources">
         {TAB_ORDER.map((key) => {
@@ -1022,7 +1064,7 @@ export default function RecipeImportPage() {
         })}
       </div>
 
-      {tab === 'url' && <div role="tabpanel" id="tabpanel-url" aria-labelledby="tab-url"><URLTab navigate={navigate} /></div>}
+      {tab === 'url' && <div role="tabpanel" id="tabpanel-url" aria-labelledby="tab-url"><URLTab navigate={navigate} initialText={uploadedContent} /></div>}
       {tab === 'mealdb' && <div role="tabpanel" id="tabpanel-mealdb" aria-labelledby="tab-mealdb"><MealDBTab navigate={navigate} /></div>}
       {tab === 'publicdomain' && <div role="tabpanel" id="tabpanel-publicdomain" aria-labelledby="tab-publicdomain"><PublicDomainTab navigate={navigate} /></div>}
       {tab === 'cooklang' && <div role="tabpanel" id="tabpanel-cooklang" aria-labelledby="tab-cooklang"><CooklangTab navigate={navigate} /></div>}
@@ -1569,12 +1611,20 @@ interface URLImportItem {
   skip?: boolean;
 }
 
-function URLTab({ navigate }: { navigate: (path: string) => void }) {
-  const [pasteText, setPasteText] = useState('');
+function URLTab({ navigate, initialText }: { navigate: (path: string) => void; initialText?: string }) {
+  const [pasteText, setPasteText] = useState(initialText ?? '');
   const [items, setItems] = useState<URLImportItem[]>([]);
   const [step, setStep] = useState<'paste' | 'fetching' | 'review' | 'saving' | 'done'>('paste');
   const [saveProgress, setSaveProgress] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // When parent pushes file contents, overwrite the textarea.
+  useEffect(() => {
+    if (initialText) {
+      setPasteText(initialText);
+      setStep('paste');
+      setItems([]);
+    }
+  }, [initialText]);
 
   function handleParse() {
     // Check for Pantry Host export first
@@ -1671,15 +1721,6 @@ function URLTab({ navigate }: { navigate: (path: string) => void }) {
     setStep('done');
   }
 
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') setPasteText(reader.result);
-    };
-    reader.readAsText(file);
-  }
 
   if (step === 'done') {
     const saved = items.filter((i) => i.status === 'done' && !i.skip).length;
@@ -1775,25 +1816,13 @@ function URLTab({ navigate }: { navigate: (path: string) => void }) {
         placeholder={"https://www.allrecipes.com/recipe/...\nat://did:plc:.../exchange.recipe.recipe/...\nhttps://www.seriouseats.com/..."}
         className="field-input w-full mb-3 font-mono text-sm"
       />
-      <div className="flex gap-3 items-center">
-        <button
-          onClick={handleParse}
-          disabled={!pasteText.trim()}
-          className="btn-primary text-sm"
-        >
-          Parse URLs →
-        </button>
-        <label className="btn-secondary text-sm cursor-pointer">
-          Upload file
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".html,.csv,.txt"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-        </label>
-      </div>
+      <button
+        onClick={handleParse}
+        disabled={!pasteText.trim()}
+        className="btn-primary text-sm"
+      >
+        Parse URLs →
+      </button>
     </>
   );
 }
