@@ -388,7 +388,7 @@ export default function BlueskyFeedsPage() {
               );
 
               if (mode === 'browse') {
-                const path = '/at/' + item.atUri.replace(/^at:\/\//, '');
+                const path = '/at/' + item.atUri.replace(/^at:\/\//, '') + '#stage';
                 return (
                   <Link
                     key={item.atUri}
