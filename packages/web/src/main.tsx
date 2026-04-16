@@ -5,6 +5,14 @@ import { initDB } from '@/lib/db';
 import App from './App';
 import './globals.css';
 
+// Normalize /at:// → /at/ before React Router parses the URL.
+// Supports pasting the "pretty" form `my.pantryhost.app/at://did:plc:.../...`
+// which resembles a real AT URI. Both forms route to the same handler.
+if (typeof window !== 'undefined' && window.location.pathname.startsWith('/at://')) {
+  const newPath = window.location.pathname.replace(/^\/at:\/\//, '/at/');
+  window.history.replaceState({}, '', newPath + window.location.search + window.location.hash);
+}
+
 // Initialize theme immediately
 initTheme();
 

@@ -10,6 +10,13 @@ import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
+    // Normalize /at:// → /at/ so both URL forms route to the same handler.
+    // Supports pasting the "pretty" form that resembles a real AT URI.
+    if (window.location.pathname.startsWith('/at://')) {
+      const newPath = window.location.pathname.replace(/^\/at:\/\//, '/at/');
+      window.history.replaceState({}, '', newPath + window.location.search + window.location.hash);
+    }
+
     if ('serviceWorker' in navigator) {
       const buildHash = document.querySelector<HTMLMetaElement>('meta[name="build-hash"]')?.content || 'dev';
       navigator.serviceWorker.register(`/sw.js?v=${buildHash}`).catch(console.error);
