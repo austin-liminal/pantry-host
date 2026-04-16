@@ -258,7 +258,7 @@ export default function RecipeDetailPage() {
   return (
     <div>
       {/* Action bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 mb-6 border-b" style={{ borderColor: 'var(--color-border-card)' }}>
+      <div className="no-print flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 mb-6 border-b" style={{ borderColor: 'var(--color-border-card)' }}>
         <Link to="/recipes#stage" className="text-sm text-[var(--color-text-secondary)] hover:underline">
           &larr; Recipes
         </Link>

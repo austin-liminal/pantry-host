@@ -341,9 +341,9 @@ export default function Footer() {
   }
 
   return (
-    <footer rel="contentinfo" className="no-print pt-10 pb-8 px-4 sm:px-6 text-xs text-zinc-500 dark:text-zinc-400">
+    <footer rel="contentinfo" className="pt-10 pb-8 px-4 sm:px-6 text-xs text-zinc-500 dark:text-zinc-400">
       <div className="max-w-5xl mx-auto border-t pt-10" style={{ borderColor: 'var(--color-accent-subtle)' }}>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8 print-break-after">
           <div>
             <h3 className="font-semibold text-secondary uppercase tracking-wider mb-3">Volume</h3>
             <dl className="space-y-1">
@@ -406,7 +406,7 @@ export default function Footer() {
 
           {/* Theme toggle + GitHub */}
           <div className="mt-6 flex flex-wrap items-center justify-between gap-y-3">
-            <div className="flex flex-wrap items-center gap-4 gap-y-3">
+            <div className="flex flex-wrap items-center gap-4 gap-y-3 no-print">
               {/* Theme preference */}
               <div role="radiogroup" aria-label="Theme" className="flex items-center gap-1">
                 {THEME_OPTIONS.map(({ value, label, Icon }) => {
@@ -461,7 +461,7 @@ export default function Footer() {
           </div>
 
           {/* Accessibility preferences + Settings links */}
-          <div className="mt-3 flex flex-wrap text-xs" style={{ columnGap: '1rem', rowGap: '0.25rem' }}>
+          <div className="mt-3 flex flex-wrap text-xs no-print" style={{ columnGap: '1rem', rowGap: '0.25rem' }}>
             <a
               href="/accessibility#stage"
               className="underline text-zinc-500 dark:text-zinc-400 hover:text-[var(--color-text-secondary)]"

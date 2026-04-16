@@ -1108,3 +1108,159 @@
     color: ButtonText;
   }
 }
+
+/* ── Print styles ─────────────────────────────────────────────────────
+ * Mirrors the self-hosted app (packages/app/styles/globals.css). Keep
+ * the two in sync — they share Footer.tsx and the .no-print convention.
+ */
+@media print {
+  @page {
+    margin: 1.5cm;
+  }
+
+  /* Hide app chrome. Footer is kept so credits can ride along with the
+     recipe. Interactive bits inside the footer (theme toggle, palette,
+     high-contrast, Accessibility Preferences + Settings links) carry
+     .no-print. The header is kept so the logo + "Pantry Host" lockup
+     prints as branding, but its navs, decorative quote, and scroll
+     chevron go away. */
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Collapse the header's full-height cover so the branding sits as
+     a slim banner above the recipe. */
+  header {
+    min-height: 0 !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    background: transparent !important;
+  }
+  header > blockquote,
+  header > a[aria-label="Scroll to content"] {
+    display: none !important;
+  }
+
+  body {
+    color: #000 !important;
+    background: #fff !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Force single column for recipe layout */
+  .grid {
+    display: block !important;
+  }
+
+  /* Prevent orphaned headings, add spacing */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+    margin-top: 1.5em !important;
+  }
+
+  h1 {
+    margin-top: 0 !important;
+  }
+
+  /* Keep ingredients and short sections together */
+  section {
+    break-inside: avoid;
+  }
+
+  /* Don't split individual list items across pages */
+  li {
+    break-inside: avoid;
+  }
+
+  /* Avoid widows/orphans in paragraphs */
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Recipe photo: keep reasonable size, don't break */
+  img {
+    max-height: 200pt;
+    object-fit: cover;
+    break-inside: avoid;
+  }
+
+  /* Collapse the hero aspect-ratio container */
+  .aspect-\[16\/9\] {
+    aspect-ratio: auto !important;
+    height: auto !important;
+  }
+
+  /* Show link URLs after anchor text */
+  article a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Hide interactive elements */
+  button,
+  input[type="checkbox"] {
+    display: none !important;
+  }
+
+  /* But keep labels readable */
+  label {
+    cursor: default !important;
+  }
+
+  /* Force all elements to print-friendly colors */
+  * {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+  }
+
+  .card {
+    border: 1px solid #ccc !important;
+  }
+
+  .tag {
+    border: 1px solid #999 !important;
+  }
+
+  /* Footer: kept visible, but starts on its own page so users can
+     decide to leave the last page off if they only want the recipe. */
+  footer {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  /* Print utility: force a page break after the marked element.
+     Used on the footer's conversions grid so users can print the
+     recipe + units reference but skip the accessibility / credits
+     legalese by leaving the last page off. */
+  .print-break-after {
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* Force the credits <details> open in print regardless of state —
+     overrides the default display:none that browsers apply to
+     non-summary children of a closed <details>. The chevron hint
+     is meaningless on paper, so drop it. */
+  footer details.credits-details > *:not(summary) {
+    display: block !important;
+  }
+  footer details.credits-details > summary .credits-chevron {
+    display: none !important;
+  }
+  footer details.credits-details > summary {
+    cursor: default !important;
+    list-style: none;
+  }
+}
