@@ -106,6 +106,32 @@ const DEFAULTS: PaletteDefaults = {
     '--color-ring-offset': '#110a1f',
   },
   'claude-light': {
+    '--color-bg-body': '#f8f8f7',
+    '--color-bg-card': '#ffffff',
+    '--color-border-card': '#e2e2e0',
+    '--color-text-primary': '#1a1a1a',
+    '--color-text-secondary': '#6b6b6b',
+    '--color-accent': '#a07850',
+    '--color-accent-hover': '#8c6844',
+    '--color-accent-subtle': '#f2ede8',
+    '--color-bg-nav': '#f8f8f7',
+    '--color-ring-focus': '#c4956b',
+    '--color-ring-offset': '#ffffff',
+  },
+  'claude-dark': {
+    '--color-bg-body': '#191919',
+    '--color-bg-card': '#262626',
+    '--color-border-card': '#333333',
+    '--color-text-primary': '#e8e8e8',
+    '--color-text-secondary': '#8b8b8b',
+    '--color-accent': '#c4956b',
+    '--color-accent-hover': '#d4a57b',
+    '--color-accent-subtle': '#231f1b',
+    '--color-bg-nav': '#191919',
+    '--color-ring-focus': '#c4956b',
+    '--color-ring-offset': '#191919',
+  },
+  'claude-v1-light': {
     '--color-bg-body': '#f5f0eb',
     '--color-bg-card': '#ffffff',
     '--color-border-card': '#e0d5c8',
@@ -118,7 +144,7 @@ const DEFAULTS: PaletteDefaults = {
     '--color-ring-focus': '#d97757',
     '--color-ring-offset': '#ffffff',
   },
-  'claude-dark': {
+  'claude-v1-dark': {
     '--color-bg-body': '#1a1915',
     '--color-bg-card': '#2d2b28',
     '--color-border-card': '#3d3a35',
@@ -372,6 +398,7 @@ const PALETTE_LABELS: Record<ThemePalette, string> = {
   rose: 'Ros\u00e9',
   rebecca: 'Rebecca Purple',
   claude: 'Claude',
+  'claude-v1': 'Claude v1',
   avocado: 'Avocado',
   marrakech: 'Moroccan',
   provencal: 'Proven\u00e7al',
@@ -383,7 +410,7 @@ const PALETTE_LABELS: Record<ThemePalette, string> = {
   ottoman: 'Ottoman',
 };
 
-const PALETTES: ThemePalette[] = ['default', 'rose', 'rebecca', 'claude', 'avocado',
+const PALETTES: ThemePalette[] = ['default', 'rose', 'rebecca', 'claude', 'claude-v1', 'avocado',
   'marrakech', 'provencal', 'kaiseki', 'tuscany', 'oaxacan', 'pompeii', 'nordic', 'ottoman'];
 const MODES: ('light' | 'dark')[] = ['light', 'dark'];
 

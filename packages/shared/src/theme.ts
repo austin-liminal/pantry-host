@@ -9,7 +9,7 @@
  */
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'avocado'
+export type ThemePalette = 'default' | 'rose' | 'rebecca' | 'claude' | 'claude-v1' | 'avocado'
   | 'marrakech' | 'provencal' | 'kaiseki' | 'tuscany'
   | 'oaxacan' | 'pompeii' | 'nordic' | 'ottoman';
 

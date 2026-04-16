@@ -22,6 +22,7 @@ const PALETTE_OPTIONS: { value: ThemePalette; label: string }[] = [
   { value: 'rose', label: 'Rosé' },
 { value: 'rebecca', label: 'Rebecca Purple' },
   { value: 'claude', label: 'Claude' },
+  { value: 'claude-v1', label: 'Claude v1' },
   { value: 'avocado', label: 'Avocado' },
   { value: 'marrakech', label: 'Moroccan' },
   { value: 'provencal', label: 'Proven\u00e7al' },
