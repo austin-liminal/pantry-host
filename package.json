@@ -26,6 +26,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0"
   },
   "optionalDependencies": {
+    "@limlabs/rex-darwin-x64": "^0.20.0",
     "@rollup/rollup-linux-x64-gnu": "^4.60.1",
     "@tailwindcss/oxide-linux-x64-gnu": "^4.2.2",
     "lightningcss-linux-x64-gnu": "^1.32.0"
