@@ -13,10 +13,11 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#18181b" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
-    <!-- iOS Add-to-Home-Screen: launch fullscreen with a dark status bar -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- iOS Add-to-Home-Screen: launch inside Safari (with back button) until
+         we build our own in-app back navigation. Pair with manifest's
+         display: minimal-ui so Android gets the same treatment. -->
+    <meta name="apple-mobile-web-app-capable" content="no" />
+    <meta name="mobile-web-app-capable" content="no" />
     <meta name="apple-mobile-web-app-title" content="Pantry Host" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
