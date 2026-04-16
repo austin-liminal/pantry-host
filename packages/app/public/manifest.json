@@ -2,7 +2,6 @@
   "name": "Pantry Host",
   "short_name": "Pantry Host",
   "description": "Self-hosted pantry and recipe manager. Your data stays home.",
-  "start_url": "/list",
   "display": "minimal-ui",
   "orientation": "portrait",
   "background_color": "#ffffff",
