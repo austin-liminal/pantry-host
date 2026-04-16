@@ -4,6 +4,8 @@ import { gql } from '@/lib/gql';
 import { getFileURL } from '@/lib/storage-opfs';
 import { Trash, ArrowsOut, ArrowsIn } from '@phosphor-icons/react';
 import { classifyRecipeCourse, COURSE_LABELS } from '@pantry-host/shared/constants';
+import PixabayImage from '@pantry-host/shared/components/PixabayImage';
+import { clearPixabayCache } from '@pantry-host/shared/pixabay';
 
 interface Recipe {
   id: string;
@@ -59,6 +61,35 @@ function RecipePhoto({ src, alt, className }: { src: string; alt: string; classN
   return <img src={resolved} alt={alt} className={className} loading="lazy" />;
 }
 
+/** Read Pixabay key + enabled flag from localStorage; live-update on
+ *  Settings saves via the `storage` event. Defaults to disabled until
+ *  the user opts in. Mirrors the hook in RecipesPage. */
+function usePixabaySettings(): { key: string | null; enabled: boolean } {
+  const [state, setState] = useState<{ key: string | null; enabled: boolean }>(() => {
+    if (typeof window === 'undefined') return { key: null, enabled: false };
+    return {
+      key: window.localStorage.getItem('pixabay-api-key'),
+      enabled: window.localStorage.getItem('pixabay-fallback-enabled') === 'true',
+    };
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'pixabay-api-key') {
+        setState((prev) => ({ ...prev, key: e.newValue }));
+        if (!e.newValue) clearPixabayCache();
+      } else if (e.key === 'pixabay-fallback-enabled') {
+        const nextEnabled = e.newValue === 'true';
+        setState((prev) => ({ ...prev, enabled: nextEnabled }));
+        if (!nextEnabled) clearPixabayCache();
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+  return state;
+}
+
 export default function MenuDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -68,6 +99,8 @@ export default function MenuDetailPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [supportsFullscreen, setSupportsFullscreen] = useState(false);
   const articleRef = useRef<HTMLDivElement>(null);
+  const pixabay = usePixabaySettings();
+  const pixabayActive = pixabay.enabled && !!pixabay.key;
 
   useEffect(() => {
     setSupportsFullscreen(Boolean(document.documentElement.requestFullscreen || (document.documentElement as any).webkitRequestFullscreen));
@@ -208,6 +241,8 @@ export default function MenuDetailPage() {
                           <div className="aspect-[16/9] overflow-hidden bg-[var(--color-bg-card)]">
                             <RecipePhoto src={r.photoUrl} alt={r.title} className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform" />
                           </div>
+                        ) : pixabayActive ? (
+                          <PixabayImage recipe={{ id: r.id, title: r.title }} apiKey={pixabay.key!} alt={r.title} inCard />
                         ) : (
                           <div className="aspect-[16/9] bg-[var(--color-bg-card)]" />
                         )}
