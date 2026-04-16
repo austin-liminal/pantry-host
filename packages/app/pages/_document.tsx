@@ -22,11 +22,11 @@ export default function Document() {
         <meta name="theme-color" content="#f4f4f5" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
-        {/* iOS Add-to-Home-Screen: launch fullscreen with a dark status bar. */}
-        {/* Viewport is injected by Rex; viewport-fit=cover would require a Rex override. */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* iOS Add-to-Home-Screen: launch inside Safari (with back button) until
+            we build our own in-app back navigation. Paired with manifest's
+            display: minimal-ui so Android gets the same treatment. */}
+        <meta name="apple-mobile-web-app-capable" content="no" />
+        <meta name="mobile-web-app-capable" content="no" />
         <meta name="apple-mobile-web-app-title" content="Pantry Host" />
         {/* Default og:image — overridden by per-page Head when a recipe/menu photo is available */}
         <meta property="og:image" content="https://pantryhost.app/icon-512.png" />
