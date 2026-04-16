@@ -123,11 +123,23 @@ export default function AtRecipeDetail({
     <div className="max-w-3xl mx-auto py-8 px-4">
       {/* ── Import CTA bar ── */}
       <div className="card p-4 mb-6 flex flex-wrap items-center gap-3">
-        {handle && (
-          <span className="text-sm text-[var(--color-text-secondary)]">
-            by <a href={`https://bsky.app/profile/${handle}`} target="_blank" rel="noopener noreferrer" className="underline">@{handle}</a>
-          </span>
-        )}
+        <div className="flex flex-col items-start gap-1">
+          <svg
+            fill="currentColor"
+            viewBox="0 0 600 530"
+            width={20}
+            height={18}
+            aria-hidden="true"
+            className="shrink-0 opacity-60 text-[var(--color-text-secondary)]"
+          >
+            <path d="M135.72 44.03C202.216 93.951 273.74 195.17 299.91 249.49c26.17-54.32 97.694-155.539 164.19-205.46C512.18 8.005 590 -19.728 590 69.04c0 17.726-10.155 148.928-16.111 170.208-20.703 73.984-96.144 92.854-163.25 81.433 117.262 19.96 147.131 86.084 82.654 152.208-122.385 125.621-175.86-31.511-189.563-71.807-2.512-7.387-3.687-10.832-3.69-7.905-.003-2.927-1.179.518-3.69 7.905-13.704 40.296-67.18 197.428-189.563 71.807-64.477-66.124-34.61-132.251 82.65-152.208-67.105 11.421-142.548-7.45-163.25-81.433C20.232 217.968 10.077 86.766 10.077 69.04c0-88.768 77.82-61.035 125.9-25.01z" />
+          </svg>
+          {handle && (
+            <span className="text-sm text-[var(--color-text-secondary)]">
+              by <a href={`https://bsky.app/profile/${handle}`} target="_blank" rel="noopener noreferrer" className="underline">@{handle}</a>
+            </span>
+          )}
+        </div>
         <div className="flex-1" />
         <button
           onClick={() => setQrOpen(true)}
@@ -196,9 +208,9 @@ export default function AtRecipeDetail({
         <h2 className="text-xl font-semibold mb-3">Ingredients</h2>
         {groupIngredients(recipe.ingredients).map((g, gi) => {
           const list = (
-            <ul className="space-y-1.5">
+            <ul className="list-disc pl-6 space-y-1.5 marker:text-[var(--color-text-secondary)]">
               {g.items.map((ing, ii) => (
-                <li key={ii} className="text-sm">
+                <li key={ii} className="text-sm pl-1">
                   {ing.quantity != null && <span className="font-medium">{Math.round(ing.quantity * 100) / 100}</span>}
                   {ing.unit && <span className="text-[var(--color-text-secondary)]"> {ing.unit}</span>}
                   {' '}{ing.ingredientName}
@@ -219,9 +231,11 @@ export default function AtRecipeDetail({
       {/* ── Instructions ── */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-3">Instructions</h2>
-        <div className="prose prose-sm max-w-none text-[var(--color-text-primary)] legible pretty whitespace-pre-line">
-          {recipe.instructions}
-        </div>
+        <ol className="list-decimal pl-6 space-y-3 text-[var(--color-text-primary)] legible pretty marker:text-[var(--color-text-secondary)]">
+          {recipe.instructions.split(/\n+/).filter((s) => s.trim()).map((step, i) => (
+            <li key={i} className="text-sm pl-1">{step.replace(/^\d+\.\s*/, '')}</li>
+          ))}
+        </ol>
       </section>
 
       {/* ── Source ── */}
