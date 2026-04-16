@@ -4,7 +4,7 @@
 
 <sub><em>\*The optional AI&ndash;powered recipe creation feature sends your ingredient list to [Anthropic](https://docs.anthropic.com/en/docs/about-claude/models) to generate suggestions. Everything else stays entirely on your local machine.</em></sub>
 
-A self-hosted Progressive Web&nbsp;App for managing your kitchen. Track your pantry and cookware, import recipes from URLs, generate AI-suggested meals from what you already have, and take your grocery list, fully informed by a recipe queue, to the store — even offline.
+A self-hosted Progressive Web&nbsp;App for managing your kitchen. Track your pantry and cookware, import recipes from URLs or `at://` AT Protocol URIs, generate AI-suggested meals from what you already have, and take your grocery list, fully informed by a recipe queue, to the store — even offline.
 
 Built with Rex (React + rolldown), GraphQL (Pothos + graphql-yoga), PostgreSQL, and Tailwind CSS. Runs great on a Mac Mini, or whatever.
 
@@ -22,6 +22,7 @@ Pantry Host was founded in Forest Grove, Oregon (45.5246° N, 123.1106° W), on 
 
 - **Pantry** — track ingredients by category with quantities and tags; batch-scan groceries with your camera
 - **Recipes** — add recipes manually or import from a URL; AI-generate recipes from your pantry
+- **Federated recipes** — import from Bluesky via `at://` URIs, or browse publishers aggregated at [feed.pantryhost.app](https://feed.pantryhost.app/api/recipes) (paste any `at://…` URI into the browser's address bar on `my.pantryhost.app/at/…` to open it as a first-class detail page with QR sharing)
 - **Grocery list** — queue recipes to cook; see what ingredients you're missing
 - **Cookware** — track what equipment you have so AI suggestions stay realistic
 - **Multiple kitchens** — separate pantries and recipes for different households (e.g. a guest kitchen, a relative's)
@@ -284,6 +285,10 @@ No server? No problem. Open [my.pantryhost.app](https://my.pantryhost.app) in Ch
 
 ```
 Import this recipe: https://www.seriouseats.com/the-best-slow-cooked-bolognese-sauce-recipe
+```
+
+```
+Import this Bluesky recipe: at://did:plc:7ojp52ncy5ay6ldsj3db6joj/exchange.recipe.recipe/01KKVFB0KTWVFXG493PZQG6T83
 ```
 
 ```

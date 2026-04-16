@@ -17,7 +17,7 @@ This project was built on land ceded under the 1855 Willamette Valley Treaty. Th
 
 ### Integrate, don't rebuild
 
-Pantry Host is a kitchen app, not a platform. We export `.ics` instead of building a calendar. We export `.cook` instead of inventing a recipe format. We ship an MCP server instead of building chat UIs. We adopt `exchange.recipe.recipe` instead of defining a competing lexicon.
+Pantry Host is a kitchen app, not a platform. We export `.ics` instead of building a calendar. We export `.cook` instead of inventing a recipe format. We ship an MCP server instead of building chat UIs. We adopt `exchange.recipe.recipe` and `exchange.recipe.collection` instead of defining competing lexicons, and render `at://` URIs natively via the shared `AtRecipeDetail` and `AtMenuDetail` components so any compatible client's records open as first-class detail pages.
 
 When a standard, format, or community already exists, use it. When the user's data can travel to another tool, let it. Features that duplicate what the ecosystem already provides well are out of scope — interoperability is in scope.
 
@@ -38,4 +38,5 @@ See [CLAUDE.md](CLAUDE.md) for the full development guide, monorepo structure, a
 1. Fork the repository and create a branch.
 2. Follow existing code conventions (semantic CSS tokens, Tailwind v4, shared components).
 3. Test on both the self-hosted app (:3000) and the web demo (:5174) when applicable.
-4. Open a pull request with a clear description of the change.
+4. Keep `packages/web/lib/schema/index.ts` in sync with `packages/app/lib/schema/index.ts` when adding queries or mutations (web is a copy of app minus AI generation). When adding a new shared component or module, register it in `packages/shared/package.json` `exports` so Rex can resolve it.
+5. Open a pull request with a clear description of the change.

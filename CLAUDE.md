@@ -90,6 +90,7 @@ packages/app/
 │   ├── cookware.tsx     # Cookware
 │   ├── recipes/         # Recipe CRUD + import
 │   ├── menus/           # Menu CRUD
+│   ├── at/[...path].tsx # AT Protocol detail (recipe or collection)
 │   └── kitchens/        # Multi-kitchen variants
 ├── components/          # React components
 ├── lib/
@@ -117,6 +118,11 @@ Exports used by all packages:
 | `@pantry-host/shared/dailyQuote` | Seasonal daily quotes |
 | `@pantry-host/shared/types` | TypeScript interfaces (Kitchen, Recipe, etc.) |
 | `@pantry-host/shared/components/Footer` | Footer with conversions + theme controls |
+| `@pantry-host/shared/components/AtRecipeDetail` | Detail view + import CTA for `exchange.recipe.recipe` AT URIs |
+| `@pantry-host/shared/components/AtMenuDetail` | Detail view + import CTA for `exchange.recipe.collection` AT URIs |
+| `@pantry-host/shared/components/PixabayImage` | Borrowed photo for recipe cards. Pass `inCard` to suppress grid tab-stop bloat (attribution anchors get `tabindex=-1`, overlay gets `aria-hidden`) |
+| `@pantry-host/shared/bluesky` | Read-only AT Protocol client (`fetchBlueskyRecipe`, `fetchBlueskyCollection`, `listBlueskyRecipes`, etc.) |
+| `@pantry-host/shared/bluesky-import` | `importBlueskyCollection({ atUri, gql, kitchenSlug?, onProgress? })` — fetches collection + each recipe + creates menu |
 | `@pantry-host/shared/adapters/database` | DatabaseAdapter interface |
 | `@pantry-host/shared/adapters/file-storage` | FileStorageAdapter interface |
 
@@ -239,6 +245,19 @@ packages/mcp/
 - `zod` — Input schema validation (required by MCP SDK)
 - Requires the GraphQL server to be running on port 4001
 
+## packages/feed — Firehose indexer (Fly.io)
+
+A thin AT Protocol firehose indexer that powers the Bluesky feed pages in both web and app packages. Runs on Fly.io at `feed.pantryhost.app`; clients call it cross-origin.
+
+- Subscribes to the AT firehose for `exchange.recipe.recipe` and `exchange.recipe.collection`
+- Stores record pointers + values in SQLite (`better-sqlite3` + WAL), cursor-indexed on `(collection, created_at, at_uri)`
+- `GET /api/recipes?collection=&cursor=&limit=` — paginated feed. Cursor format `"<createdAt>|<atUri>"`. Defaults to `exchange.recipe.recipe`; pass `collection=exchange.recipe.collection` for menus
+- `GET /api/handles` — all publishers that have ever appeared in the firehose
+- `GET /api/recipe-url?url=…` — cross-origin URL proxy for the browser PWA (bypasses CORS for sites that don't set `access-control-allow-origin: *`)
+- `GET /api/markets?lat=&lng=` — OSM Overpass proxy for nearby farmers' markets and farms
+- No auth on reads; cache-control: 30s on `/api/recipes`
+- Data is always re-fetched live from each author's PDS at render time. The indexer only tells us records exist — values in the response are the most recent seen, but the detail page re-fetches to guarantee freshness.
+
 ## Conventions
 
 ### Styling
@@ -265,10 +284,24 @@ Font Awesome Pro 5.15.4 **Light** SVGs as inline React components. Source: `/Use
 - Same API signature: `gql<T>(query, variables): Promise<T>`
 - Queries accept `$kitchenSlug: String` for multi-kitchen filtering
 
+### AT Protocol / Bluesky
+- **`/at/{did}/{collection}/{rkey}#stage` route** in both packages dispatches by collection type:
+  - `exchange.recipe.recipe` → `AtRecipeDetail` (shared component)
+  - `exchange.recipe.collection` → `AtMenuDetail` (shared component)
+  - Other lexicons are rejected with a user-facing error
+- **URL variant normalization**: `/at://…` and URL-encoded `/at%3A/…` are rewritten to `/at/…` at the Cloudflare edge (web) and by a client-side fallback in `main.tsx` / `_app.tsx`. Paste any `at://` form and it resolves.
+- **QR share**: every AT detail page has a Share button that opens `QRCodeModal` with the current URL — scan to pick up the recipe/menu on another device.
+- **Author handle resolution**: `fetchBlueskyRecipe` / `fetchBlueskyCollection` call `com.atproto.repo.describeRepo` to turn a DID into a handle. Best-effort; falls back to the DID if the lookup fails.
+- **`sourceUrl`**: AT URIs (`at://did:plc:.../exchange.recipe.recipe/…`) are valid values and are rendered as Bluesky links on detail pages. Auto-tag `bluesky` on imports.
+- **Bluesky feed pages** (`/recipes/feeds/bluesky`, `/menus/feeds/bluesky`) fetch from `feed.pantryhost.app/api/recipes` with cursor pagination. A "User Flow" fieldset toggles Browse & Import (cards are links to `/at/{uri}#stage`) vs Bulk Import (cards are checkboxes + a single Import CTA). Mode persists in `localStorage` under `bsky-feeds-mode` / `bsky-menu-feeds-mode`.
+- **Bulk collection import** uses the shared `importBlueskyCollection` helper from `@pantry-host/shared/bluesky-import` — single helper, used by both the feed's bulk flow and the AT menu detail page's single-menu Import CTA, so the two flows can't drift.
+
 ### Recipe creation
 When creating or suggesting recipes (via AI generation, MCP, or conversational requests):
 - Always search for and set a `photoUrl` on new recipes. Use `WebSearch` to find a relevant recipe photo, then `WebFetch` to extract the image URL from the page's structured data or hero image.
 - Use the `updateRecipe` mutation to set the `photoUrl` after creation if needed.
+- If a recipe ships without a `photoUrl`, card grids fall back to Pixabay (opt-in; requires a key + the `pixabay-fallback-enabled` setting). Still prefer a real photo for detail-page heroes — the fallback is a nicety for grids, not a substitute.
+- `sourceUrl` accepts both `https://…` URLs and `at://did:plc:.../exchange.recipe.recipe/…` AT URIs. AT URIs are rendered as Bluesky links on detail pages; auto-tag `bluesky` on imports.
 
 ### Recipe images
 `photoUrl` supports two modes:
@@ -377,3 +410,7 @@ cd packages/web && npx vite build         # → dist/
 8. **Schema sync**: `packages/web/lib/schema/index.ts` is a copy of `packages/app/lib/schema/index.ts` minus AI generation. Keep them in sync when adding queries/mutations.
 9. **Rex router `query` unreliable in prod**: `useRouter().query` sometimes returns empty on dynamic routes in production builds. Always fall back to parsing `window.location.pathname` for route params (see `MenuDetailPage.tsx` for the pattern).
 10. **Shared component Tailwind classes missing in app**: Rex's Tailwind v4 only scans `@source` paths. Add `@source "../../shared/src/components/";` to `globals.css` so shared component classes (grid-cols-7, flex-1, etc.) are generated.
+11. **Rex SSR hook-state bug (local dev, Rex 0.20.0)**: a known regression can make every SSR route fail with `TypeError: Cannot read properties of null (reading 'useState')` — React resolves to null. Not caused by user code; reproduces at pristine `HEAD`. The pm2 prod build on the Mini is unaffected. Workaround: clear `.rex/build`, `npm install`, restart. If persistent, rebuild from a clean worktree.
+12. **Adding a new shared component or module**: register it in `packages/shared/package.json` `exports` explicitly — Rex resolves shared modules through the exports map. After adding, stop the Rex dev server, clear `packages/app/.rex/build`, and restart. Hot-reload doesn't pick up new exports.
+13. **`#stage` hash convention**: every internal link should end with `#stage` unless a specific anchor is intended. Both packages' Layout/shell wire the main content region as `<main id="stage">` and handle the hash scroll on route change. New internal links without `#stage` will appear to work but skip the intended scroll behavior.
+14. **`data-bsky-card` marker**: every Bluesky feed card (recipes and menus, both browse and bulk modes) carries `data-bsky-card`. The Load more button's focus-management effect queries `[data-bsky-card]` to find the first newly-appended card after React paints so keyboard focus lands there. Don't rename or forget to add this on new feed layouts.

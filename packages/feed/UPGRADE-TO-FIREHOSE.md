@@ -1,5 +1,7 @@
 # Upgrade feed.pantryhost.app: Cloudflare Cron → Firehose VPS
 
+> **Status as of 2026-04-16:** SHIPPED. This doc is retained as the historical design record; the implementation landed on Fly.io (not Hetzner) and expanded the HTTP surface beyond what's described here. See `packages/feed/src/server.ts` for the live code and `CLAUDE.md`'s `packages/feed` section for the current `/api/*` surface (recipes with cursor pagination, handles, recipe URL proxy, OSM markets).
+
 ## When to run this plan
 
 After `feature/atproto` merges to main and the Bluesky integration

@@ -1,5 +1,7 @@
 # Tier 1.5: Pantry Host on AT Protocol — Architecture Vision
 
+> **Status as of 2026-04-16:** vision doc, not yet implemented. Read-side AT Protocol integration (import, browse, deep-link, QR share) has shipped but the dual-schema / PDS-as-database approach described here remains aspirational. Treat this as a design exploration, not current architecture.
+
 ## Context
 
 Pantry Host has three tiers today:

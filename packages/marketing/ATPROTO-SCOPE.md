@@ -1,5 +1,7 @@
 # AT Protocol Weekend Hackathon — Updated Scope
 
+> **Status as of 2026-04-16:** AT URI paste-import, `/at/{uri}` first-class detail routes (recipes + collections), QR sharing, and the Fly.io firehose indexer at `feed.pantryhost.app` have all **shipped**. The export/publish path (one-tap "Share to Bluesky" from inside Pantry Host) remains the outstanding milestone. Treat sections below labeled "remaining" with that context — some have shipped since this doc was written.
+
 Addendum to `pantryhost-atproto-hack.docx.md`. Incorporates the
 `exchange.recipe.collection` lexicon (menus), import attribution
 requirements, and AT URI paste-import via the existing URL textarea.

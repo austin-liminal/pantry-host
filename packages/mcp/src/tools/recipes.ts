@@ -18,7 +18,7 @@ export function registerRecipeTools(server: McpServer) {
     'Search recipes. Filter by title, tags, required cookware, or queued status.',
     {
       title: z.string().optional().describe('Search by recipe title (partial match, case-insensitive)'),
-      tags: z.array(z.string()).optional().describe('Filter by recipe tags (OR match)'),
+      tags: z.array(z.string()).optional().describe('Filter by recipe tags (OR match). Examples: "dinner", "vegan", "bluesky" (AT Protocol imports)'),
       cookware: z.array(z.string()).optional().describe('Filter by required cookware (OR match)'),
       queued: z.boolean().optional().describe('Filter by queued status'),
       kitchenSlug: z.string().optional().describe('Kitchen slug (default: home)'),
@@ -60,7 +60,7 @@ export function registerRecipeTools(server: McpServer) {
 
   server.tool(
     'create_recipe',
-    'Create a new recipe with ingredients.',
+    'Create a new recipe with ingredients. Accepts at:// AT Protocol URIs in sourceUrl; tag with "bluesky" for federated imports.',
     {
       title: z.string().describe('Recipe title'),
       instructions: z.string().describe('Cooking instructions (full text)'),
@@ -69,10 +69,10 @@ export function registerRecipeTools(server: McpServer) {
       servings: z.number().int().optional().describe('Number of servings (default: 2)'),
       prepTime: z.number().int().optional().describe('Prep time in minutes'),
       cookTime: z.number().int().optional().describe('Cook time in minutes'),
-      tags: z.array(z.string()).optional().describe('Tags (e.g. dinner, vegan, quick)'),
+      tags: z.array(z.string()).optional().describe('Tags (e.g. dinner, vegan, quick). Use "bluesky" for AT Protocol imports.'),
       requiredCookware: z.array(z.string()).optional().describe('Required cookware names'),
-      photoUrl: z.string().optional().describe('Photo URL'),
-      sourceUrl: z.string().optional().describe('Source URL if imported'),
+      photoUrl: z.string().optional().describe('Photo URL. When omitted, card grids fall back to Pixabay if the user enabled it in Settings.'),
+      sourceUrl: z.string().optional().describe('Source URL if imported. Accepts https:// and at:// AT Protocol URIs (e.g. at://did:plc:.../exchange.recipe.recipe/...). AT URIs are rendered as Bluesky links on detail pages.'),
       kitchenSlug: z.string().optional().describe('Kitchen slug (default: home)'),
     },
     async (args) => {
