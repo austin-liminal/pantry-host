@@ -1,13 +1,13 @@
-import { Share, IdentificationCard, Globe } from '@phosphor-icons/react';
+import { LinkSimple, RssSimple, QrCode, IdentificationCard, Share, Globe } from '@phosphor-icons/react';
 
 /**
- * AT Protocol / Bluesky teaser section.
+ * AT Protocol federation section.
  *
- * This is a marketing-first announcement: the integration itself is
- * scheduled as a weekend hackathon project (with Austin), and the
- * implementation lives on the `feature/atproto` branch. This section
- * tells the story so the announcement and the build can ship in
- * either order.
+ * Frames what's live today: at:// deep-linking, the feed.pantryhost.app
+ * firehose indexer, and QR sharing. The one remaining milestone (one-tap
+ * publish from Pantry Host back to the user's PDS) is noted as a single
+ * muted "Coming next" line at the bottom — honest without burying the
+ * shipped work.
  *
  * Visual style mirrors `Integrations.tsx` so the page reads as one
  * coherent story about open ecosystems.
@@ -20,6 +20,42 @@ const BLUESKY_VIEWBOX = '0 0 600 530';
 const BLUESKY_PATH =
   'M135.72 44.03C202.216 93.951 273.74 195.17 299.91 249.49c26.17-54.32 97.694-155.539 164.19-205.46C512.18 8.005 590 -19.728 590 69.04c0 17.726-10.155 148.928-16.111 170.208-20.703 73.984-96.144 92.854-163.25 81.433 117.262 19.96 147.131 86.084 82.654 152.208-122.385 125.621-175.86-31.511-189.563-71.807-2.512-7.387-3.687-10.832-3.69-7.905-.003-2.927-1.179.518-3.69 7.905-13.704 40.296-67.18 197.428-189.563 71.807-64.477-66.124-34.61-132.251 82.65-152.208-67.105 11.421-142.548-7.45-163.25-81.433C20.232 217.968 10.077 86.766 10.077 69.04c0-88.768 77.82-61.035 125.9-25.01z';
 
+// Sample AT URI used by the "Open by AT URI" tile to prove the deep-link
+// path works. Stable because it's a `recipe.exchange` publisher we index.
+const SAMPLE_AT_HREF = 'https://my.pantryhost.app/at/did:plc:7ojp52ncy5ay6ldsj3db6joj/exchange.recipe.recipe/01KKVFB0KTWVFXG493PZQG6T83#stage';
+
+const liveTiles = [
+  {
+    title: 'Open by AT URI',
+    icon: LinkSimple,
+    href: SAMPLE_AT_HREF,
+    description: (
+      <>
+        Visit <code className="text-xs">my.pantryhost.app/at/&#123;uri&#125;</code> &mdash; or paste <code className="text-xs">at://&hellip;</code> straight into the browser. The record resolves to a detail page you can read, QR-share, or import in one&nbsp;tap.
+      </>
+    ),
+  },
+  {
+    title: 'Browse the feed',
+    icon: RssSimple,
+    href: 'https://my.pantryhost.app/recipes/feeds/bluesky',
+    description: (
+      <>
+        <code className="text-xs">feed.pantryhost.app</code> indexes the AT firehose for <code className="text-xs">exchange.recipe.*</code> records and serves them as a paginated feed. No account, no sign-in, always up to&nbsp;date.
+      </>
+    ),
+  },
+  {
+    title: 'Share via QR',
+    icon: QrCode,
+    description: (
+      <>
+        Every detail page has a Share button that opens a QR&nbsp;code &mdash; scan it from your phone to pick the recipe up where you left off, or hand it to a&nbsp;friend.
+      </>
+    ),
+  },
+];
+
 const principles = [
   {
     title: 'Your records, your PDS',
@@ -30,13 +66,13 @@ const principles = [
   {
     title: 'Two open lexicons',
     description:
-      <>We adopt the existing <code>exchange.recipe.recipe</code> and <code>exchange.recipe.collection</code> lexicons from <code>recipe.exchange</code>. Share individual recipes or entire menus&nbsp;&mdash; visible on every compatible&nbsp;client.</>,
+      <>Pantry&nbsp;Host adopts the existing <code>exchange.recipe.recipe</code> and <code>exchange.recipe.collection</code> lexicons from <code>recipe.exchange</code>. Share individual recipes or entire menus&nbsp;&mdash; visible on every compatible&nbsp;client.</>,
     icon: Share,
   },
   {
     title: 'Federated',
     description:
-      <>No <code>pantryhost.app/recipe/123</code> URL — by design. Recipes are addressable by AT URI and travel with your identity, not ours.</>,
+      <>No <code>pantryhost.app/recipe/123</code> URL &mdash; by design. Recipes are addressable by AT&nbsp;URI and travel with your identity, not&nbsp;ours.</>,
     icon: Globe,
   },
 ];
@@ -57,63 +93,74 @@ export default function AtProtocol() {
         </svg>
       </div>
       <p className="text-center text-xs uppercase tracking-wider text-[var(--color-text-secondary)] mb-2">
-        Coming soon
+        Federation &middot; Live today
       </p>
       <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">
-        Share to&nbsp;Bluesky
+        AT&nbsp;Protocol, first-class
       </h2>
       <p className="text-center text-[var(--color-text-secondary)] text-sm sm:text-base max-w-2xl mx-auto mb-12 leading-relaxed pretty">
-        Pantry&nbsp;Host is getting native <abbr title="The protocol behind Bluesky">AT&nbsp;Protocol</abbr> support so you can publish a recipe, or even a full menu, to your own Bluesky identity in one&nbsp;tap.
+        Every <code className="text-xs">exchange.recipe</code> record is available to browse and import as a recipe in Pantry&nbsp;Host. Paste an <code className="text-xs">at://</code> URL, scan a QR, or browse the live feed. The source record stays on its author&rsquo;s PDS, and imports go straight to your own hardware. Pantry&nbsp;Host infrastructure never stores&nbsp;either.
       </p>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-6">
-        {principles.map((p) => (
-          <div
-            key={p.title}
-            className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-5"
-          >
-            <div className="mb-3 opacity-60">
-              <p.icon size={24} weight="light" />
+      {/* 3-up — What's live today */}
+      <div className="grid md:grid-cols-3 gap-6 mb-10">
+        {liveTiles.map((tile) => {
+          const inner = (
+            <>
+              <div className="mb-3 opacity-60">
+                <tile.icon size={24} weight="light" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">{tile.title}</h3>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed pretty">
+                {tile.description}
+              </p>
+            </>
+          );
+          const classes =
+            'rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-5 block transition-colors';
+          if (tile.href) {
+            return (
+              <a
+                key={tile.title}
+                href={tile.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${classes} hover:border-[var(--color-accent)]`}
+              >
+                {inner}
+              </a>
+            );
+          }
+          return (
+            <div key={tile.title} className={classes}>
+              {inner}
             </div>
-            <h3 className="text-xl font-bold mb-2">{p.title}</h3>
-            <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed pretty">
-              {p.description}
-            </p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
+      {/* Principles — secondary callout */}
       <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-6 sm:p-8">
-        <h3 className="text-xl sm:text-2xl font-bold mb-3 text-center">
-          How it&rsquo;ll work
+        <h3 className="text-xl sm:text-2xl font-bold mb-6 text-center">
+          Built on open infrastructure
         </h3>
-        <ol className="grid sm:grid-cols-2 gap-x-8 gap-y-3 text-sm text-[var(--color-text-secondary)] leading-relaxed max-w-3xl mx-auto list-decimal pl-5 marker:text-[var(--color-accent)] marker:font-semibold">
-          <li>
-            Hit <em>Share to Bluesky</em> on any recipe or menu and sign in with Bluesky.
-          </li>
-          <li>
-            Pantry&nbsp;Host maps your data to the <code className="text-xs">exchange.recipe.recipe</code> or <code className="text-xs">collection</code> lexicon.
-          </li>
-          <li>
-            The record gets published to your own <abbr title="Personal Data Server">PDS</abbr> &mdash; Pantry&nbsp;Host never touches&nbsp;it.
-          </li>
-          <li>
-            Anyone with the AT&nbsp;URI can import it back into their own pantry, or browse it on{' '}
-            <a
-              href="https://recipe.exchange/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-[var(--color-accent)]"
-            >
-              recipe.exchange
-            </a>
-            .
-          </li>
-        </ol>
+        <div className="grid md:grid-cols-3 gap-6">
+          {principles.map((p) => (
+            <div key={p.title}>
+              <div className="mb-3 opacity-60">
+                <p.icon size={24} weight="light" />
+              </div>
+              <h4 className="text-lg font-bold mb-2">{p.title}</h4>
+              <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed pretty">
+                {p.description}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <p className="text-center text-xs text-[var(--color-text-secondary)] mt-6 max-w-2xl mx-auto pretty">
-        AT&nbsp;Protocol integration enables you to share just the recipes you choose to, on your own Personal Data&nbsp;Server, in an open&nbsp;format.
+      <p className="text-center text-xs text-[var(--color-text-secondary)] mt-8 max-w-2xl mx-auto pretty">
+        Coming next: one-tap publish to your own PDS from within Pantry&nbsp;Host. Expected in <time dateTime="2026">v0.2</time>.
       </p>
     </section>
   );

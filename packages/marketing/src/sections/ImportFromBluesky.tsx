@@ -54,7 +54,7 @@ export default function ImportFromBluesky() {
       </div>
 
       <p className="text-center text-xs text-[var(--color-text-secondary)] mt-8 max-w-2xl mx-auto pretty">
-        Recipe data is fetched live from each author&rsquo;s Personal Data&nbsp;Server.
+        Recipes surface via <code className="text-xs">feed.pantryhost.app</code>, a thin firehose indexer that watches for <code className="text-xs">exchange.recipe.*</code> records. Data is always re-fetched live from each author&rsquo;s PDS &mdash; the indexer just tells us they&nbsp;exist.
       </p>
     </section>
   );
