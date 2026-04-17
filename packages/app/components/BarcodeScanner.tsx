@@ -7,6 +7,9 @@ export interface ScannedProduct {
   category?: string;
   quantity?: number;
   unit?: string;
+  /** Per-item size from OFF product_quantity (e.g. 12 fl oz per jar) */
+  itemSize?: number;
+  itemSizeUnit?: string;
 }
 
 interface Props {
@@ -40,7 +43,7 @@ export default function BarcodeScanner({ onScan, onError, cooldownMs = 2000 }: P
           onError?.(`Product not found for barcode ${code}: ${json.error}`);
           return;
         }
-        const product = await res.json() as { name: string; brand?: string; category?: string; quantity?: number; unit?: string };
+        const product = await res.json() as { name: string; brand?: string; category?: string; quantity?: number; unit?: string; itemSize?: number; itemSizeUnit?: string };
         onScan({ barcode: code, ...product });
       } catch {
         onError?.(`Failed to look up barcode ${code}`);

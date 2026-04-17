@@ -45,17 +45,17 @@ const CAT_ICONS: Record<string, ReactNode> = {
 import IngredientForm, { type IngredientFormVariables, type IngredientData } from '@pantry-host/shared/components/IngredientForm';
 import BatchScanSession from '../components/BatchScanSession';
 
-const QUERY = `{ ingredients { id name category quantity unit alwaysOnHand tags } }`;
+const QUERY = `{ ingredients { id name category quantity unit itemSize itemSizeUnit alwaysOnHand tags } }`;
 
 const ADD_MUTATION = `
-  mutation($name: String!, $category: String, $quantity: Float, $unit: String, $alwaysOnHand: Boolean, $tags: [String!]) {
-    addIngredient(name: $name, category: $category, quantity: $quantity, unit: $unit, alwaysOnHand: $alwaysOnHand, tags: $tags) { id }
+  mutation($name: String!, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!]) {
+    addIngredient(name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags) { id }
   }
 `;
 
 const UPDATE_MUTATION = `
-  mutation($id: String!, $name: String, $category: String, $quantity: Float, $unit: String, $alwaysOnHand: Boolean, $tags: [String!]) {
-    updateIngredient(id: $id, name: $name, category: $category, quantity: $quantity, unit: $unit, alwaysOnHand: $alwaysOnHand, tags: $tags) { id }
+  mutation($id: String!, $name: String, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!]) {
+    updateIngredient(id: $id, name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags) { id }
   }
 `;
 
@@ -218,6 +218,9 @@ export default function IngredientsPage() {
                         {ing.quantity != null && (
                           <span className="ml-2 text-xs text-[var(--color-text-secondary)]">
                             {ing.quantity}{ing.unit && ing.unit !== 'whole' ? ` ${ing.unit}` : ''}
+                            {ing.itemSize != null && (
+                              <> • {ing.itemSize}{ing.itemSizeUnit ? ` ${ing.itemSizeUnit}` : ''}</>
+                            )}
                           </span>
                         )}
                         {ing.alwaysOnHand && (

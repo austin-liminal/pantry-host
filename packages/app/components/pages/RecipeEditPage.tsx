@@ -31,7 +31,7 @@ const EDIT_QUERY = `
     recipe(id: $id) {
       id title description instructions servings prepTime cookTime
       tags requiredCookware { id name } photoUrl stepPhotos
-      ingredients { ingredientName quantity unit sourceRecipeId }
+      ingredients { ingredientName quantity unit itemSize itemSizeUnit sourceRecipeId }
     }
     recipes { id slug title source tags }
     cookware(kitchenSlug: $kitchenSlug) { id name tags }

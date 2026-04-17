@@ -9,6 +9,9 @@ export interface BarcodeResult {
   category?: string;
   quantity?: number;
   unit?: string;
+  /** Per-item size from OFF product_quantity (e.g. 12 fl oz per jar) */
+  itemSize?: number;
+  itemSizeUnit?: string;
   brand?: string;
 }
 
@@ -142,5 +145,15 @@ export async function lookupBarcode(code: string): Promise<BarcodeResult> {
     unit = converted.unit;
   }
 
-  return { name, brand, category, quantity: qty, unit };
+  // Promote measurable size into item_size so "3 jars × 12 fl_oz" stays expressible.
+  let itemSize: number | undefined;
+  let itemSizeUnit: string | undefined;
+  if (qty != null && unit && unit !== 'whole') {
+    itemSize = qty;
+    itemSizeUnit = unit;
+    qty = 1;
+    unit = 'whole';
+  }
+
+  return { name, brand, category, quantity: qty, unit, itemSize, itemSizeUnit };
 }

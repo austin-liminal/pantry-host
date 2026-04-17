@@ -8,12 +8,18 @@
 import { useState } from 'react';
 import { CATEGORY_GROUPS, UNIT_GROUPS, COMMON_INGREDIENTS } from '../constants';
 
+/** Units from the "Count" group — the only ones where a per-item measurable size makes sense.
+ * "3 jars × 12 fl oz" is meaningful; "2 cups × 4 cups" is not. */
+const COUNT_UNITS: readonly string[] = UNIT_GROUPS.find((g) => g.label === 'Count')?.units ?? [];
+
 export interface IngredientData {
   id: string;
   name: string;
   category: string | null;
   quantity: number | null;
   unit: string | null;
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
   alwaysOnHand: boolean;
   tags: string[];
 }
@@ -24,6 +30,8 @@ export interface IngredientFormVariables {
   category: string | null;
   quantity: number | null;
   unit: string | null;
+  itemSize: number | null;
+  itemSizeUnit: string | null;
   alwaysOnHand: boolean;
   tags: string[];
 }
@@ -51,6 +59,8 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
   const [qtyMode, setQtyMode] = useState<QtyMode>(initialQtyMode(ingredient));
   const [quantity, setQuantity] = useState<string>(ingredient?.quantity?.toString() ?? '');
   const [unit, setUnit] = useState(ingredient?.unit ?? 'whole');
+  const [itemSize, setItemSize] = useState<string>(ingredient?.itemSize?.toString() ?? '');
+  const [itemSizeUnit, setItemSizeUnit] = useState<string>(ingredient?.itemSizeUnit ?? '');
   const [tagInput, setTagInput] = useState(ingredient?.tags?.join(', ') ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +75,11 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
     const tags = tagInput.split(',').map((t) => t.trim()).filter(Boolean);
     const resolvedQty = qtyMode === 'amount' ? (quantity ? parseFloat(quantity) : null) : null;
     const resolvedUnit = qtyMode === 'amount' ? (unit || null) : null;
+    // Per-item size is only meaningful when unit is from the Count group
+    // (whole, jar, can, etc.). Non-Count units → drop any item_size data.
+    const supportsItemSize = qtyMode === 'amount' && COUNT_UNITS.includes(unit);
+    const resolvedItemSize = supportsItemSize && itemSize ? parseFloat(itemSize) : null;
+    const resolvedItemSizeUnit = supportsItemSize && resolvedItemSize != null ? (itemSizeUnit || null) : null;
     const alwaysOnHand = qtyMode === 'always';
 
     try {
@@ -74,6 +89,8 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
         category: category || null,
         quantity: resolvedQty,
         unit: resolvedUnit,
+        itemSize: resolvedItemSize,
+        itemSizeUnit: resolvedItemSizeUnit,
         alwaysOnHand,
         tags,
       });
@@ -157,32 +174,78 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
         </div>
 
         {qtyMode === 'amount' && (
-          <div className="flex gap-2 mt-3">
-            <input
-              id="ing-quantity"
-              type="number"
-              min="0"
-              step="any"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              placeholder="0"
-              aria-label="Quantity amount"
-              className="field-input w-28"
-            />
-            <select
-              id="ing-unit"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              aria-label="Unit"
-              className="field-select flex-1"
+          <>
+            <div className="qty-unit-grid mt-3">
+              <input
+                id="ing-quantity"
+                type="number"
+                min="0"
+                step="any"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="0"
+                aria-label="Quantity amount"
+                className="field-input"
+              />
+              <select
+                id="ing-unit"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                aria-label="Unit"
+                className="field-select"
+              >
+                {UNIT_GROUPS.map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+
+            {/* Per-item size disclosure — only offered for Count units (whole, jar, can, etc.)
+                where "3 jars × 12 fl oz" is meaningful. Non-Count units like "2 cups" have
+                no per-item dimension to add. */}
+            {COUNT_UNITS.includes(unit) && (
+            <details
+              className="mt-3"
+              open={itemSize !== '' || (itemSizeUnit !== '' && itemSizeUnit !== unit)}
             >
-              {UNIT_GROUPS.map((g) => (
-                <optgroup key={g.label} label={g.label}>
-                  {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </div>
+              <summary className="cursor-pointer text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] select-none">
+                Per-item size <span className="font-normal">(optional)</span>
+              </summary>
+              <p className="mt-2 text-xs text-[var(--color-text-secondary)]">
+                Use when each unit has a known size — e.g. 3 jars × 12 fl oz.
+              </p>
+              <div className="qty-unit-grid mt-2">
+                <input
+                  id="ing-item-size"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={itemSize}
+                  onChange={(e) => setItemSize(e.target.value)}
+                  placeholder="size"
+                  aria-label="Per-item size"
+                  className="field-input"
+                />
+                <select
+                  id="ing-item-size-unit"
+                  value={itemSizeUnit}
+                  onChange={(e) => setItemSizeUnit(e.target.value)}
+                  aria-label="Per-item size unit"
+                  className="field-select"
+                >
+                  <option value="">— size unit —</option>
+                  {UNIT_GROUPS.map((g) => (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            </details>
+            )}
+          </>
         )}
 
         {qtyMode === 'always' && (

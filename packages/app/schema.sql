@@ -106,3 +106,13 @@ CREATE INDEX IF NOT EXISTS idx_recipe_cookware_cookware ON recipe_cookware(cookw
 
 -- v0.3.0: Step-by-step photos for recipes
 ALTER TABLE recipes ADD COLUMN IF NOT EXISTS step_photos TEXT[] DEFAULT '{}';
+
+-- v0.4.0: Two-dimension quantity on ingredients + recipe_ingredients.
+-- Lets users express "3 jars × 12 fl_oz each" in the pantry and "2 16oz
+-- pepper steaks" in a recipe. When item_size is set, the row's effective
+-- total is quantity × item_size measured in item_size_unit. When null,
+-- the row behaves exactly as before.
+ALTER TABLE ingredients         ADD COLUMN IF NOT EXISTS item_size      DECIMAL;
+ALTER TABLE ingredients         ADD COLUMN IF NOT EXISTS item_size_unit VARCHAR(50);
+ALTER TABLE recipe_ingredients  ADD COLUMN IF NOT EXISTS item_size      DECIMAL;
+ALTER TABLE recipe_ingredients  ADD COLUMN IF NOT EXISTS item_size_unit VARCHAR(50);

@@ -5,6 +5,10 @@ interface BarcodeResult {
   category?: string;
   quantity?: number;
   unit?: string;
+  /** Per-item size (size of one packaged unit, e.g. 12 for a 12 fl oz jar) */
+  itemSize?: number;
+  /** Unit of the per-item size (e.g. "fl oz") */
+  itemSizeUnit?: string;
   brand?: string;
 }
 
@@ -166,7 +170,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       unit = converted.unit;
     }
 
-    return res.json({ name, brand, category, quantity: qty, unit });
+    // When the product has a measurable size (volume or weight), record it as
+    // per-item size so "3 jars × 12 fl oz" stays expressible. The quantity
+    // defaults to 1 (one package) with unit "whole" — users can increment
+    // if they have multiple. Skip for unitless "whole" products.
+    let itemSize: number | undefined;
+    let itemSizeUnit: string | undefined;
+    if (qty != null && unit && unit !== 'whole') {
+      itemSize = qty;
+      itemSizeUnit = unit;
+      qty = 1;
+      unit = 'whole';
+    }
+
+    return res.json({ name, brand, category, quantity: qty, unit, itemSize, itemSizeUnit });
   } catch (err) {
     return res.status(502).json({ error: `Lookup failed: ${(err as Error).message}` });
   }

@@ -16,7 +16,7 @@ export interface ExportableRecipe {
   source: string;
   sourceUrl: string | null;
   photoUrl: string | null;
-  ingredients: { ingredientName: string; quantity: number | null; unit: string | null }[];
+  ingredients: { ingredientName: string; quantity: number | null; unit: string | null; itemSize?: number | null; itemSizeUnit?: string | null }[];
 }
 
 function esc(s: string): string {
@@ -30,10 +30,16 @@ function formatDuration(minutes: number | null): string | undefined {
   return `PT${h ? h + 'H' : ''}${m ? m + 'M' : ''}`;
 }
 
-function formatIngredient(ing: { ingredientName: string; quantity: number | null; unit: string | null }): string {
+function formatIngredient(ing: { ingredientName: string; quantity: number | null; unit: string | null; itemSize?: number | null; itemSizeUnit?: string | null }): string {
   const parts: string[] = [];
   if (ing.quantity != null) parts.push(String(ing.quantity));
-  if (ing.unit) parts.push(ing.unit);
+  // When item_size is set, express as "{qty} {item_size}{item_size_unit} {name}"
+  // e.g. "2 16oz pepper steaks". Fall back to single-dim unit if not set.
+  if (ing.itemSize != null) {
+    parts.push(`${ing.itemSize}${ing.itemSizeUnit ?? ''}`);
+  } else if (ing.unit) {
+    parts.push(ing.unit);
+  }
   parts.push(ing.ingredientName);
   return parts.join(' ');
 }
@@ -72,6 +78,8 @@ function buildJsonLd(recipe: ExportableRecipe): string {
     name: ing.ingredientName,
     quantity: ing.quantity,
     unit: ing.unit,
+    itemSize: ing.itemSize ?? null,
+    itemSizeUnit: ing.itemSizeUnit ?? null,
   }));
 
   return JSON.stringify(ld, null, 2);

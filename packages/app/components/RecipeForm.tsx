@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { UNIT_GROUPS, COMMON_INGREDIENTS } from '@pantry-host/shared/constants';
+
+/** Units from the "Count" group — where per-item-size makes sense. */
+const COUNT_UNITS: readonly string[] = UNIT_GROUPS.find((g) => g.label === 'Count')?.units ?? [];
 import IngredientEditor, { resolveIngredients, type IngredientRow } from '@pantry-host/shared/components/IngredientEditor';
 import { extractCooklang, hasCooklangSyntax, updateCooklangIngredient, parseCooklangMetadata } from '@pantry-host/shared/cooklang-parser';
 import { gql } from '@/lib/gql';
@@ -10,6 +13,8 @@ interface RecipeIngredient {
   ingredientName: string;
   quantity: number | null;
   unit: string | null;
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
   sourceRecipeId?: string | null;
 }
 
@@ -82,6 +87,8 @@ type IngredientRow = {
   ingredientName: string;
   quantity: string;
   unit: string;
+  itemSize?: string;
+  itemSizeUnit?: string;
   sourceRecipeId: string | null; // null = plain ingredient, string = another recipe's id
 };
 
@@ -106,6 +113,8 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
       ingredientName: i.ingredientName,
       quantity: i.quantity?.toString() ?? '',
       unit: i.unit ?? 'whole',
+      itemSize: i.itemSize?.toString() ?? '',
+      itemSizeUnit: i.itemSizeUnit ?? '',
       sourceRecipeId: i.sourceRecipeId ?? null,
     })) ?? [{ ingredientName: '', quantity: '', unit: 'whole', sourceRecipeId: null }],
   );
@@ -377,14 +386,22 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
     }
     const ingredients = ingredientRows
       .filter((r) => r.sourceRecipeId ? true : r.ingredientName.trim())
-      .map((r) => ({
-        ingredientName: r.sourceRecipeId
-          ? (existingRecipes.find((rec) => rec.id === r.sourceRecipeId)?.title ?? r.ingredientName.trim())
-          : r.ingredientName.trim(),
-        quantity: r.quantity ? parseFloat(r.quantity) : null,
-        unit: r.unit || null,
-        sourceRecipeId: r.sourceRecipeId || null,
-      }));
+      .map((r) => {
+        // Drop item_size data unless unit is from the Count group.
+        const rowSupportsItemSize = COUNT_UNITS.includes(r.unit || 'whole');
+        const itemSizeNum = rowSupportsItemSize && r.itemSize ? parseFloat(r.itemSize) : NaN;
+        const itemSize = Number.isFinite(itemSizeNum) ? itemSizeNum : null;
+        return {
+          ingredientName: r.sourceRecipeId
+            ? (existingRecipes.find((rec) => rec.id === r.sourceRecipeId)?.title ?? r.ingredientName.trim())
+            : r.ingredientName.trim(),
+          quantity: r.quantity ? parseFloat(r.quantity) : null,
+          unit: r.unit || null,
+          itemSize,
+          itemSizeUnit: itemSize != null && r.itemSizeUnit ? r.itemSizeUnit : null,
+          sourceRecipeId: r.sourceRecipeId || null,
+        };
+      });
 
     if (editing && initial?.id) {
       const variables = {

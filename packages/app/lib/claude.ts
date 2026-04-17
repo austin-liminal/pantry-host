@@ -9,6 +9,9 @@ interface GeneratedIngredient {
   ingredientName: string;
   quantity?: number | null;
   unit?: string | null;
+  /** Per-item size when ingredient comes in discrete packaged units (e.g. 16 oz per steak) */
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
 }
 
 interface GeneratedRecipe {
@@ -24,13 +27,16 @@ interface GeneratedRecipe {
 }
 
 export async function generateRecipes(
-  ingredients: { name: string; quantity: number | null; unit: string | null }[],
+  ingredients: { name: string; quantity: number | null; unit: string | null; itemSize?: number | null; itemSizeUnit?: string | null }[],
   cookware: { name: string; tags?: string[]; notes?: string | null }[],
 ): Promise<GeneratedRecipe[]> {
   const ingredientList = ingredients
     .map((i) => {
       const qty = i.quantity != null ? `${i.quantity} ${i.unit ?? ''}`.trim() : '';
-      return qty ? `${i.name} (${qty})` : i.name;
+      // Include per-item size context: "tomato paste (3 can × 6 oz)"
+      const size = i.itemSize != null ? ` × ${i.itemSize}${i.itemSizeUnit ?? ''}` : '';
+      const qtyPart = qty || size ? `${qty}${size}`.trim() : '';
+      return qtyPart ? `${i.name} (${qtyPart})` : i.name;
     })
     .join(', ');
 
@@ -54,7 +60,11 @@ Generate 3 practical family recipes using primarily these ingredients. Favor coo
 Tag guidance:
 - If a recipe contains alcohol, high-mercury fish (swordfish, king mackerel, tilefish, bigeye tuna), or excessive caffeine, add the "breastfeeding-alert" tag.
 - If a recipe features galactagogues (oats, fenugreek, brewer's yeast, flaxseed, fennel), add the "lactation" tag.
-- Do NOT add "breastfeeding-safe" automatically — that is user opt-in only.${compostContext}
+- Do NOT add "breastfeeding-safe" automatically — that is user opt-in only.
+
+Ingredient item_size guidance:
+- Use itemSize / itemSizeUnit when an ingredient is packaged in discrete countable units with a measurable size (e.g. "2 16oz pepper steaks" → quantity 2, unit "whole", itemSize 16, itemSizeUnit "oz"; "1 15oz can of beans" → quantity 1, unit "can", itemSize 15, itemSizeUnit "oz").
+- Leave itemSize/itemSizeUnit null for bulk measurements (e.g. "2 cups flour" → quantity 2, unit "cup", itemSize null).${compostContext}
 
 Respond with ONLY a valid JSON array — no markdown, no explanation — matching this schema:
 [
@@ -68,7 +78,7 @@ Respond with ONLY a valid JSON array — no markdown, no explanation — matchin
     "tags": ["string"],
     "requiredCookware": ["string"],
     "ingredients": [
-      { "ingredientName": "string", "quantity": number | null, "unit": "string | null" }
+      { "ingredientName": "string", "quantity": number | null, "unit": "string | null", "itemSize": number | null, "itemSizeUnit": "string | null" }
     ]
   }
 ]`;

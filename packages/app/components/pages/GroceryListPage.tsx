@@ -14,6 +14,8 @@ function tagToTitle(tag: string): string {
 
 interface RecipeIngredient {
   ingredientName: string;
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
   quantity: number | null;
   unit: string | null;
 }
@@ -30,6 +32,8 @@ interface PantryItem {
   name: string;
   quantity: number | null;
   unit: string | null;
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
   alwaysOnHand: boolean;
   tags: string[];
 }
@@ -41,6 +45,8 @@ interface PerRecipeItem {
   ingredientName: string;
   unit: string | null;
   quantity: number | null;
+  itemSize: number | null;
+  itemSizeUnit: string | null;
   status: ItemStatus;
   pantryQuantity: number | null;
   stores: string[];
@@ -52,14 +58,14 @@ const QUEUED_RECIPES_QUERY = `
   query QueuedRecipes($kitchenSlug: String) {
     recipes(queued: true, kitchenSlug: $kitchenSlug) {
       id slug title
-      groceryIngredients { ingredientName quantity unit }
+      groceryIngredients { ingredientName quantity unit itemSize itemSizeUnit }
     }
   }
 `;
 
 const INGREDIENTS_QUERY = `
   query Ingredients($kitchenSlug: String) {
-    ingredients(kitchenSlug: $kitchenSlug) { id name quantity unit alwaysOnHand tags }
+    ingredients(kitchenSlug: $kitchenSlug) { id name quantity unit itemSize itemSizeUnit alwaysOnHand tags }
   }
 `;
 
@@ -81,6 +87,8 @@ function buildPerRecipeItems(recipe: QueuedRecipe, pantryByName: Map<string, Pan
         ingredientName: ing.ingredientName,
         unit: ing.unit,
         quantity: ing.quantity,
+        itemSize: ing.itemSize ?? null,
+        itemSizeUnit: ing.itemSizeUnit ?? null,
         status,
         pantryQuantity,
         stores,
@@ -93,6 +101,16 @@ function fmtQty(qty: number | null, unit: string | null): string {
   if (qty == null) return unit ?? '';
   const n = Math.round(qty * 100) / 100;
   return unit ? `${n} ${unit}` : `${n}`;
+}
+
+/** Format qty × item_size display — e.g. "2 16oz" for "2 16-ounce steaks" */
+function fmtItem(item: PerRecipeItem): string {
+  const qtyPart = item.quantity != null ? `${Math.round(item.quantity * 100) / 100}` : '';
+  if (item.itemSize != null) {
+    const sizePart = `${item.itemSize}${item.itemSizeUnit ?? ''}`;
+    return [qtyPart, sizePart].filter(Boolean).join(' ');
+  }
+  return fmtQty(item.quantity, item.unit);
 }
 
 interface Props { kitchen: string; }
@@ -389,7 +407,7 @@ export default function GroceryListPage({ kitchen }: Props) {
                                 />
                                 <span className={`flex-1 leading-snug ${isChecked || isHave ? 'text-[var(--color-text-secondary)]' : ''}`}>
                                   <span className={`font-medium ${isChecked || isHave ? 'line-through' : ''}`}>
-                                    {fmtQty(item.quantity, item.unit)} {item.ingredientName}
+                                    {fmtItem(item)} {item.ingredientName}
                                   </span>
                                   {original?.status === 'need_more' && original.pantryQuantity != null && (
                                     <span className="ml-2 text-xs text-[var(--color-text-secondary)]">(have {fmtQty(original.pantryQuantity, item.unit)})</span>

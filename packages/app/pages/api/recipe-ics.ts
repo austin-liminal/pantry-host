@@ -47,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!row) return res.status(404).send('Recipe not found');
 
     const ingredients = await sql`
-      SELECT ingredient_name, quantity, unit
+      SELECT ingredient_name, quantity, unit, item_size, item_size_unit
       FROM recipe_ingredients
       WHERE recipe_id = ${row.id}
       ORDER BY sort_order
@@ -78,10 +78,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sourceUrl: row.source_url,
       photoUrl,
       requiredCookware: cookware.map((c: { name: string }) => c.name),
-      ingredients: ingredients.map((i: { ingredient_name: string; quantity: number | null; unit: string | null }) => ({
+      ingredients: ingredients.map((i: { ingredient_name: string; quantity: number | null; unit: string | null; item_size: number | null; item_size_unit: string | null }) => ({
         ingredientName: i.ingredient_name,
         quantity: i.quantity,
         unit: i.unit,
+        itemSize: i.item_size,
+        itemSizeUnit: i.item_size_unit,
       })),
     };
 

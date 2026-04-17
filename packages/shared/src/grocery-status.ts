@@ -7,8 +7,14 @@
  *   - 'have'           — pantry has enough (alwaysOnHand OR quantity >= needed)
  *   - 'need_more'      — pantry has some, but not enough
  *   - 'check_pantry'   — pantry has the item but can't compare quantities
- *                        (missing on one side, or unit mismatch)
+ *                        (missing on one side, or cross-category units)
  *   - 'buy'            — not in the pantry at all
+ *
+ * Two-dimension quantity: rows can carry an optional `itemSize` +
+ * `itemSizeUnit` pair in addition to `quantity` + `unit`. When set, the
+ * row's effective *total* is `quantity × itemSize` measured in
+ * `itemSizeUnit`. Lets the user express "3 jars × 12 fl_oz" on the
+ * pantry side and "2 16oz steaks" on the recipe side.
  *
  * Used by:
  *   - Grocery list (status chips + grey-out)
@@ -16,12 +22,16 @@
  *   - Future surfaces (meal planner, recipe card indicators)
  */
 
+import { convert, normalizeUnit } from './units';
+
 export type GroceryStatus = 'have' | 'need_more' | 'check_pantry' | 'buy';
 
 export interface PantryItemForStatus {
   name: string;
   quantity?: number | null;
   unit?: string | null;
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
   alwaysOnHand: boolean;
 }
 
@@ -29,6 +39,27 @@ export interface RecipeIngredientForStatus {
   ingredientName: string;
   quantity?: number | null;
   unit?: string | null;
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
+}
+
+/**
+ * Collapse a (quantity, unit, itemSize, itemSizeUnit) row into a single
+ * (total, totalUnit) pair. When itemSize is set, the total is expressed
+ * in itemSizeUnit — i.e., "3 whole × 12 fl_oz" collapses to "36 fl_oz".
+ * When itemSize is null, the row collapses to its (quantity, unit) as-is.
+ */
+function toTotal(row: {
+  quantity?: number | null;
+  unit?: string | null;
+  itemSize?: number | null;
+  itemSizeUnit?: string | null;
+}): { total: number | null; unit: string | null } {
+  if (row.itemSize != null) {
+    const qty = row.quantity ?? 1; // no outer count → one pack
+    return { total: qty * row.itemSize, unit: row.itemSizeUnit ?? null };
+  }
+  return { total: row.quantity ?? null, unit: row.unit ?? null };
 }
 
 /**
@@ -52,19 +83,29 @@ export function resolveGroceryStatus(
   if (!pantryItem) return 'buy';
   if (pantryItem.alwaysOnHand) return 'have';
 
-  // Pantry item exists but has no measured quantity — user is tracking
-  // its presence, not its amount. Treat as on-hand (same as alwaysOnHand).
+  const pantry = toTotal(pantryItem);
+  const recipe = toTotal(ing);
+
+  // Pantry has no measured total — user is tracking presence, not amount.
+  // Treat as on-hand (same semantics as alwaysOnHand).
   // Follow-up: surface this as a visually-distinct "assumed on-hand" state
   // (e.g., asterisk next to the checkbox) so users know which auto-checks
   // were inferred vs. measured.
-  if (pantryItem.quantity == null) return 'have';
+  if (pantry.total == null) return 'have';
 
-  // Pantry has a quantity but the recipe doesn't — can't compare.
-  if (ing.quantity == null) return 'check_pantry';
+  // Recipe-side ambiguity — can't compare.
+  if (recipe.total == null) return 'check_pantry';
 
-  if (pantryItem.unit != null && ing.unit != null && pantryItem.unit !== ing.unit) {
-    return 'check_pantry';
+  // Same unit (or both missing a unit): direct compare.
+  const pantryUnit = normalizeUnit(pantry.unit);
+  const recipeUnit = normalizeUnit(recipe.unit);
+  if (pantryUnit === recipeUnit) {
+    return pantry.total >= recipe.total ? 'have' : 'need_more';
   }
-  if (pantryItem.quantity >= ing.quantity) return 'have';
-  return 'need_more';
+
+  // Different units: try conversion (volume↔volume, weight↔weight).
+  // Cross-category or unknown-unit returns null → fall back to check_pantry.
+  const converted = convert(pantry.total, pantry.unit, recipe.unit);
+  if (converted == null) return 'check_pantry';
+  return converted >= recipe.total ? 'have' : 'need_more';
 }

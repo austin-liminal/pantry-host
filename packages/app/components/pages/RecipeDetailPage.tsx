@@ -23,6 +23,8 @@ interface RecipeIngredient {
   ingredientName: string;
   quantity: number | null;
   unit: string | null;
+  itemSize: number | null;
+  itemSizeUnit: string | null;
   sourceRecipeId: string | null;
 }
 
@@ -65,7 +67,7 @@ const RECIPE_QUERY = `
     recipe(id: $id) {
       id slug title description instructions servings prepTime cookTime
       tags requiredCookware { id name brand } source sourceUrl photoUrl stepPhotos lastMadeAt queued
-      ingredients { ingredientName quantity unit sourceRecipeId }
+      ingredients { ingredientName quantity unit itemSize itemSizeUnit sourceRecipeId }
       usedIn { id slug title cookTime prepTime servings source tags photoUrl queued }
     }
   }
@@ -74,10 +76,10 @@ const RECIPE_QUERY = `
 const DELETE_RECIPE = `mutation DeleteRecipe($id: String!) { deleteRecipe(id: $id) }`;
 const COMPLETE_RECIPE = `mutation CompleteRecipe($id: String!, $servings: Int) { completeRecipe(id: $id, servings: $servings) { id lastMadeAt } }`;
 const TOGGLE_QUEUED = `mutation ToggleQueued($id: String!) { toggleRecipeQueued(id: $id) { id queued } }`;
-const PANTRY_QUERY = `query Ingredients($kitchenSlug: String) { ingredients(kitchenSlug: $kitchenSlug) { id name quantity unit alwaysOnHand } }`;
+const PANTRY_QUERY = `query Ingredients($kitchenSlug: String) { ingredients(kitchenSlug: $kitchenSlug) { id name quantity unit itemSize itemSizeUnit alwaysOnHand } }`;
 const UPDATE_INGREDIENT = `mutation UpdateIngredient($id: String!, $quantity: Float) { updateIngredient(id: $id, quantity: $quantity) { id quantity } }`;
 
-interface PantryItem { id: string; name: string; quantity: number | null; unit: string | null; alwaysOnHand: boolean; }
+interface PantryItem { id: string; name: string; quantity: number | null; unit: string | null; itemSize: number | null; itemSizeUnit: string | null; alwaysOnHand: boolean; }
 
 interface Props { kitchen: string; recipeId: string; }
 
@@ -795,13 +797,19 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                       {g.items.map((ing) => {
                         const checked = checkedIngredients.has(ing.index);
                         const scaledQty = scaleQty(ing.quantity);
+                        // When item_size is set, display as "{qty} {item_size}{item_size_unit} {name}"
+                        // e.g. "2 16oz pepper steak". Scaling scales qty only; item_size is preserved.
+                        const hasItemSize = ing.itemSize != null;
                         return (
                           <li key={ing.index}>
                             <label className="flex items-start gap-3 cursor-pointer group">
                               <input type="checkbox" checked={checked} onChange={() => toggleIngredient(ing.index)} aria-label={ing.ingredientName} className="mt-1 w-5 h-5 border-2 border-[var(--color-border-card)] accent-accent shrink-0" />
                               <span className={checked ? 'line-through text-[var(--color-text-secondary)]' : ''}>
                                 {scaledQty != null && <span className="font-semibold tabular-nums">{scaledQty}{' '}</span>}
-                                {ing.unit && <span>{ing.unit} </span>}
+                                {hasItemSize && (
+                                  <span className="tabular-nums">{ing.itemSize}{ing.itemSizeUnit ?? ''} </span>
+                                )}
+                                {!hasItemSize && ing.unit && <span>{ing.unit} </span>}
                                 {ing.ingredientName}
                               </span>
                             </label>

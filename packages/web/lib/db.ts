@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS ingredients (
   category       VARCHAR(100),
   quantity       DECIMAL,
   unit           VARCHAR(50),
+  item_size      DECIMAL,
+  item_size_unit VARCHAR(50),
   always_on_hand BOOLEAN NOT NULL DEFAULT false,
   tags           TEXT[] DEFAULT '{}',
   kitchen_id     TEXT NOT NULL REFERENCES kitchens(id) ON DELETE CASCADE,
@@ -93,6 +95,8 @@ CREATE TABLE IF NOT EXISTS recipe_ingredients (
   ingredient_name  VARCHAR(255) NOT NULL,
   quantity         DECIMAL,
   unit             VARCHAR(50),
+  item_size        DECIMAL,
+  item_size_unit   VARCHAR(50),
   source_recipe_id UUID REFERENCES recipes(id) ON DELETE SET NULL,
   sort_order       INTEGER DEFAULT 0
 );
@@ -163,6 +167,11 @@ async function getDB(): Promise<PGlite> {
       await instance.query(`CREATE INDEX IF NOT EXISTS idx_recipe_cookware_cookware ON recipe_cookware(cookware_id)`);
       // v0.3.0: Step-by-step photos
       await instance.query(`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS step_photos TEXT[] DEFAULT '{}'`);
+      // v0.4.0: Two-dimension quantity on ingredients + recipe_ingredients
+      await instance.query(`ALTER TABLE ingredients         ADD COLUMN IF NOT EXISTS item_size      DECIMAL`);
+      await instance.query(`ALTER TABLE ingredients         ADD COLUMN IF NOT EXISTS item_size_unit VARCHAR(50)`);
+      await instance.query(`ALTER TABLE recipe_ingredients  ADD COLUMN IF NOT EXISTS item_size      DECIMAL`);
+      await instance.query(`ALTER TABLE recipe_ingredients  ADD COLUMN IF NOT EXISTS item_size_unit VARCHAR(50)`);
     }
 
     // Only expose db after schema is fully initialized

@@ -8,6 +8,8 @@ interface BatchItem extends ScannedProduct {
   key: string;
   quantity: number;
   unit: string;
+  itemSize?: number;
+  itemSizeUnit?: string;
   alwaysOnHand: boolean;
   tags: string[];
 }
@@ -75,6 +77,8 @@ export default function BatchScanSession({ open, onComplete, onCancel }: Props) 
           category: i.category ?? null,
           quantity: i.alwaysOnHand ? null : i.quantity,
           unit: i.alwaysOnHand ? null : i.unit,
+          itemSize: i.alwaysOnHand ? null : (i.itemSize ?? null),
+          itemSizeUnit: i.alwaysOnHand ? null : (i.itemSizeUnit ?? null),
           alwaysOnHand: i.alwaysOnHand,
           tags: i.tags,
         })),

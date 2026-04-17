@@ -162,7 +162,7 @@ export function recipeToCooklang(recipe: {
   cookTime?: number | null;
   tags?: string[];
   sourceUrl?: string | null;
-  ingredients?: { ingredientName: string; quantity?: number | null; unit?: string | null }[];
+  ingredients?: { ingredientName: string; quantity?: number | null; unit?: string | null; itemSize?: number | null; itemSizeUnit?: string | null }[];
 }): string {
   const lines: string[] = [];
 
@@ -192,7 +192,16 @@ export function recipeToCooklang(recipe: {
     .map((ing, i) => ({ ing, i }))
     .sort((a, b) => b.ing.ingredientName.length - a.ing.ingredientName.length);
 
-  function formatCooklang(ing: { ingredientName: string; quantity?: number | null; unit?: string | null }): string {
+  function formatCooklang(ing: { ingredientName: string; quantity?: number | null; unit?: string | null; itemSize?: number | null; itemSizeUnit?: string | null }): string {
+    // Cooklang has no per-item-size concept. When itemSize is set, flatten to
+    // quantity × itemSize in itemSizeUnit — lossy round-trip, but preserves the
+    // measurable total so importers get a sensible single-dim value.
+    if (ing.itemSize != null && ing.quantity != null) {
+      const total = ing.quantity * ing.itemSize;
+      const unit = ing.itemSizeUnit ?? ing.unit ?? '';
+      if (unit) return `@${ing.ingredientName}{${total}%${unit}}`;
+      return `@${ing.ingredientName}{${total}}`;
+    }
     if (ing.quantity != null && ing.unit) return `@${ing.ingredientName}{${ing.quantity}%${ing.unit}}`;
     if (ing.quantity != null) return `@${ing.ingredientName}{${ing.quantity}}`;
     return `@${ing.ingredientName}{}`;

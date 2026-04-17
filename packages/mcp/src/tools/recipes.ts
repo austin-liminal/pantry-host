@@ -10,7 +10,7 @@ async function resolveCookwareIds(names: string[]): Promise<string[]> {
   const map = Object.fromEntries(data.cookware.map((c) => [c.name, c.id]));
   return names.map((n) => map[n]).filter(Boolean) as string[];
 }
-const RECIPE_FULL = `${RECIPE_SUMMARY} instructions ingredients { ingredientName quantity unit sourceRecipeId } groceryIngredients { ingredientName quantity unit }`;
+const RECIPE_FULL = `${RECIPE_SUMMARY} instructions ingredients { ingredientName quantity unit itemSize itemSizeUnit sourceRecipeId } groceryIngredients { ingredientName quantity unit itemSize itemSizeUnit }`;
 
 export function registerRecipeTools(server: McpServer) {
   server.tool(
@@ -53,8 +53,10 @@ export function registerRecipeTools(server: McpServer) {
 
   const recipeIngredientInput = z.object({
     ingredientName: z.string().describe('Ingredient name'),
-    quantity: z.number().optional().describe('Quantity'),
-    unit: z.string().optional().describe('Unit'),
+    quantity: z.number().optional().describe('Quantity (count scales with servings)'),
+    unit: z.string().optional().describe('Unit (e.g. cup, tbsp, whole, jar)'),
+    itemSize: z.number().optional().describe('Per-item size — e.g. 16 for "2 16oz steaks" (quantity=2, unit="whole", itemSize=16, itemSizeUnit="oz"). Preserved when scaling servings.'),
+    itemSizeUnit: z.string().optional().describe('Unit of the per-item size (e.g. "oz", "fl oz", "g")'),
     sourceRecipeId: z.string().optional().describe('ID of sub-recipe if this ingredient is another recipe'),
   });
 

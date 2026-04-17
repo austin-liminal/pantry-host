@@ -9,8 +9,12 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { TextAlignLeft, Table, X } from '@phosphor-icons/react';
+import { TextAlignLeft, Table, X, CaretDown, CaretUp } from '@phosphor-icons/react';
 import { UNIT_GROUPS, ALL_UNITS, COMMON_INGREDIENTS } from '../constants';
+
+/** Units from the "Count" group — the only ones where per-item-size makes sense.
+ * "2 16oz pepper steaks" is meaningful; "2 cups × 16oz" is not. */
+const COUNT_UNITS: readonly string[] = UNIT_GROUPS.find((g) => g.label === 'Count')?.units ?? [];
 
 /** Map of common aliases and plurals → canonical unit from UNIT_GROUPS */
 const UNIT_ALIASES: Record<string, string> = {
@@ -54,6 +58,8 @@ export interface IngredientRow {
   ingredientName: string;
   quantity: string;
   unit: string;
+  itemSize?: string;
+  itemSizeUnit?: string;
   sourceRecipeId: string | null;
 }
 
@@ -117,7 +123,24 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
   const [mode, setMode] = useState<ViewMode>(defaultMode);
   const [textValue, setTextValue] = useState('');
   const [freeformUnits, setFreeformUnits] = useState<Set<number>>(new Set());
+  const [expandedSize, setExpandedSize] = useState<Set<number>>(
+    () => new Set(rows.map((r, i) => (r.itemSize || r.itemSizeUnit) ? i : -1).filter((i) => i >= 0)),
+  );
   const textareaFocused = useRef(false);
+
+  function toggleSize(idx: number) {
+    setExpandedSize((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+        // Clear item_size when collapsing
+        onChange(rows.map((r, i) => (i === idx ? { ...r, itemSize: '', itemSizeUnit: '' } : r)));
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  }
 
   function switchToTextarea() {
     setTextValue(rowsToText(rows, recipes));
@@ -156,15 +179,17 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
   function removeRow(idx: number) {
     if (rows.length <= 1) return;
     onChange(rows.filter((_, i) => i !== idx));
-    // Re-index freeform set after removal
-    setFreeformUnits((prev) => {
+    // Re-index freeform + size-expanded sets after removal
+    const reindex = (prev: Set<number>) => {
       const next = new Set<number>();
       for (const i of prev) {
         if (i < idx) next.add(i);
         else if (i > idx) next.add(i - 1);
       }
       return next;
-    });
+    };
+    setFreeformUnits(reindex);
+    setExpandedSize(reindex);
   }
 
   function addRow() {
@@ -237,83 +262,137 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
             {COMMON_INGREDIENTS.map((c) => <option key={c} value={c} />)}
           </datalist>
           <ul className="space-y-2">
-            {rows.map((row, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <div className="flex flex-wrap items-start gap-2 flex-1 min-w-0">
-                  {row.sourceRecipeId ? (
-                    <select
-                      value={row.sourceRecipeId === '__pick__' ? '' : (row.sourceRecipeId || '')}
-                      onChange={(e) => {
-                        const recipe = recipes.find((r) => r.id === e.target.value);
-                        if (recipe) updateRow(idx, { sourceRecipeId: recipe.id, ingredientName: recipe.title });
-                      }}
-                      aria-label={`Ingredient ${idx + 1}: select recipe`}
-                      className="field-select flex-1"
-                    >
-                      <option value="" disabled>Choose a recipe…</option>
-                      {recipes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      list="form-ingredients"
-                      value={row.ingredientName}
-                      onChange={(e) => updateRow(idx, { ingredientName: e.target.value })}
-                      placeholder="Ingredient"
-                      aria-label={`Ingredient ${idx + 1} name`}
-                      className="field-input flex-1"
-                    />
-                  )}
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={row.quantity}
-                    onChange={(e) => updateRow(idx, { quantity: e.target.value })}
-                    placeholder="Qty"
-                    aria-label={`Ingredient ${idx + 1} quantity`}
-                    className="field-input w-20"
-                  />
-                  {!freeformUnits.has(idx) ? (
-                    <select
-                      value={row.unit || 'whole'}
-                      onChange={(e) => updateRow(idx, { unit: e.target.value })}
-                      aria-label={`Ingredient ${idx + 1} unit`}
-                      className="field-select w-28"
-                    >
-                      {UNIT_GROUPS.map((g) => (
-                        <optgroup key={g.label} label={g.label}>
-                          {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
-                        </optgroup>
-                      ))}
-                    </select>
-                  ) : (
-                    <>
+            {rows.map((row, idx) => {
+              const isSizeExpanded = expandedSize.has(idx);
+              const hasRecipeRef = Boolean(row.sourceRecipeId);
+              // Per-item size is only meaningful for Count units
+              // (whole, jar, can, dozen, bunch, head, clove, stalk, slice).
+              const supportsItemSize = COUNT_UNITS.includes(row.unit || 'whole');
+              return (
+                <li key={idx} className="flex items-start gap-2">
+                  <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-start gap-2">
+                      {hasRecipeRef ? (
+                        <select
+                          value={row.sourceRecipeId === '__pick__' ? '' : (row.sourceRecipeId || '')}
+                          onChange={(e) => {
+                            const recipe = recipes.find((r) => r.id === e.target.value);
+                            if (recipe) updateRow(idx, { sourceRecipeId: recipe.id, ingredientName: recipe.title });
+                          }}
+                          aria-label={`Ingredient ${idx + 1}: select recipe`}
+                          className="field-select flex-1"
+                        >
+                          <option value="" disabled>Choose a recipe…</option>
+                          {recipes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          list="form-ingredients"
+                          value={row.ingredientName}
+                          onChange={(e) => updateRow(idx, { ingredientName: e.target.value })}
+                          placeholder="Ingredient"
+                          aria-label={`Ingredient ${idx + 1} name`}
+                          className="field-input flex-1"
+                        />
+                      )}
                       <input
-                        type="text"
-                        list={`unit-suggestions-${idx}`}
-                        value={row.unit}
-                        onChange={(e) => updateRow(idx, { unit: e.target.value })}
-                        aria-label={`Ingredient ${idx + 1} unit`}
-                        className="field-input w-28"
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={row.quantity}
+                        onChange={(e) => updateRow(idx, { quantity: e.target.value })}
+                        placeholder="Qty"
+                        aria-label={`Ingredient ${idx + 1} quantity`}
+                        className="field-input ing-qty"
                       />
-                      <datalist id={`unit-suggestions-${idx}`}>
-                        {ALL_UNITS.map((u) => <option key={u} value={u} />)}
-                      </datalist>
-                    </>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeRow(idx)}
-                  aria-label={`Remove ingredient ${idx + 1}`}
-                  disabled={rows.length <= 1}
-                  className="text-[var(--color-text-secondary)] hover:text-red-500 p-1 shrink-0 mt-2.5 disabled:opacity-30"
-                >
-                  <X size={14} aria-hidden />
-                </button>
-              </li>
-            ))}
+                      {!freeformUnits.has(idx) ? (
+                        <select
+                          value={row.unit || 'whole'}
+                          onChange={(e) => updateRow(idx, { unit: e.target.value })}
+                          aria-label={`Ingredient ${idx + 1} unit`}
+                          className="field-select ing-unit"
+                        >
+                          {UNIT_GROUPS.map((g) => (
+                            <optgroup key={g.label} label={g.label}>
+                              {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
+                            </optgroup>
+                          ))}
+                        </select>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            list={`unit-suggestions-${idx}`}
+                            value={row.unit}
+                            onChange={(e) => updateRow(idx, { unit: e.target.value })}
+                            aria-label={`Ingredient ${idx + 1} unit`}
+                            className="field-input ing-unit"
+                          />
+                          <datalist id={`unit-suggestions-${idx}`}>
+                            {ALL_UNITS.map((u) => <option key={u} value={u} />)}
+                          </datalist>
+                        </>
+                      )}
+                    </div>
+                    {/* Per-item size disclosure — only for Count-unit rows
+                        ("2 16oz pepper steaks"); hidden for bulk units like "2 cups flour". */}
+                    {!hasRecipeRef && supportsItemSize && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => toggleSize(idx)}
+                          aria-expanded={isSizeExpanded}
+                          aria-controls={`ing-size-${idx}`}
+                          className="self-start inline-flex items-center gap-1 text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:underline select-none"
+                        >
+                          {isSizeExpanded
+                            ? <CaretUp size={12} aria-hidden />
+                            : <CaretDown size={12} aria-hidden />}
+                          per-item size
+                        </button>
+                        {isSizeExpanded && (
+                          <div id={`ing-size-${idx}`} className="size-unit-grid">
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={row.itemSize ?? ''}
+                              onChange={(e) => updateRow(idx, { itemSize: e.target.value })}
+                              placeholder="Size"
+                              aria-label={`Ingredient ${idx + 1} per-item size`}
+                              className="field-input"
+                            />
+                            <select
+                              value={row.itemSizeUnit ?? ''}
+                              onChange={(e) => updateRow(idx, { itemSizeUnit: e.target.value })}
+                              aria-label={`Ingredient ${idx + 1} per-item size unit`}
+                              className="field-select"
+                            >
+                              <option value="">— unit —</option>
+                              {UNIT_GROUPS.map((g) => (
+                                <optgroup key={g.label} label={g.label}>
+                                  {g.units.map((u) => <option key={u} value={u}>{u}</option>)}
+                                </optgroup>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeRow(idx)}
+                    aria-label={`Remove ingredient ${idx + 1}`}
+                    disabled={rows.length <= 1}
+                    className="text-[var(--color-text-secondary)] hover:text-red-500 p-1 shrink-0 mt-2.5 disabled:opacity-30"
+                  >
+                    <X size={14} aria-hidden />
+                  </button>
+                </li>
+              );
+            })}
           </ul>
           <div className="flex gap-3 mt-3">
             <button type="button" onClick={addRow} className="btn-secondary text-sm">+ Add ingredient</button>
@@ -337,7 +416,7 @@ export default function IngredientEditor({ rows, onChange, error, onClearError, 
 export function resolveIngredients(
   rows: IngredientRow[],
   recipes: RecipeRef[],
-): { ingredients: { ingredientName: string; quantity: number | null; unit: string | null; sourceRecipeId?: string | null }[]; error: string | null } {
+): { ingredients: { ingredientName: string; quantity: number | null; unit: string | null; itemSize: number | null; itemSizeUnit: string | null; sourceRecipeId?: string | null }[]; error: string | null } {
   const slugMap = new Map(recipes.map((r) => [r.slug, r]));
   const unresolved: string[] = [];
 
@@ -346,20 +425,28 @@ export function resolveIngredients(
     .map((r) => {
       if (r.sourceRecipeId === '__pick__') {
         unresolved.push('unselected recipe');
-        return { ingredientName: '', quantity: null, unit: null, sourceRecipeId: null };
+        return { ingredientName: '', quantity: null, unit: null, itemSize: null, itemSizeUnit: null, sourceRecipeId: null };
       }
       if (r.sourceRecipeId === '__pending__') {
         const recipe = slugMap.get(r.ingredientName);
         if (!recipe) {
           unresolved.push(r.ingredientName);
-          return { ingredientName: r.ingredientName, quantity: null, unit: null, sourceRecipeId: null };
+          return { ingredientName: r.ingredientName, quantity: null, unit: null, itemSize: null, itemSizeUnit: null, sourceRecipeId: null };
         }
-        return { ingredientName: recipe.title, quantity: null, unit: null, sourceRecipeId: recipe.id };
+        return { ingredientName: recipe.title, quantity: null, unit: null, itemSize: null, itemSizeUnit: null, sourceRecipeId: recipe.id };
       }
+      // Per-item size only persists for Count-unit rows. Drop any stale size
+      // data if the user switched to a bulk unit like cup/tbsp/oz/g.
+      const rowSupportsItemSize = COUNT_UNITS.includes(r.unit || 'whole');
+      const itemSizeNum = rowSupportsItemSize && r.itemSize ? parseFloat(r.itemSize) : NaN;
+      const itemSize = Number.isFinite(itemSizeNum) ? itemSizeNum : null;
+      const itemSizeUnit = itemSize != null && r.itemSizeUnit ? r.itemSizeUnit : null;
       return {
         ingredientName: r.ingredientName,
         quantity: r.quantity ? parseFloat(r.quantity) || null : null,
         unit: r.unit && r.unit !== 'whole' ? r.unit : null,
+        itemSize,
+        itemSizeUnit,
         sourceRecipeId: r.sourceRecipeId || null,
       };
     });

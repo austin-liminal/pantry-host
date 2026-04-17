@@ -29,6 +29,8 @@ interface RecipeIngredient {
   ingredientName: string;
   quantity: number | null;
   unit: string | null;
+  itemSize: number | null;
+  itemSizeUnit: string | null;
   sourceRecipeId: string | null;
 }
 
@@ -67,7 +69,7 @@ const RECIPE_QUERY = `query($id: String!) {
   recipe(id: $id) {
     id slug title description instructions servings prepTime cookTime
     tags requiredCookware { id name brand } photoUrl stepPhotos sourceUrl queued createdAt
-    ingredients { ingredientName quantity unit sourceRecipeId }
+    ingredients { ingredientName quantity unit itemSize itemSizeUnit sourceRecipeId }
     usedIn { id slug title cookTime prepTime servings tags photoUrl }
   }
 }`;
@@ -150,6 +152,8 @@ interface PantryItemForCheck {
   name: string;
   quantity: number | null;
   unit: string | null;
+  itemSize: number | null;
+  itemSizeUnit: string | null;
   alwaysOnHand: boolean;
 }
 
@@ -185,7 +189,7 @@ export default function RecipeDetailPage() {
   // recipe load so both can resolve in parallel.
   useEffect(() => {
     gql<{ ingredients: PantryItemForCheck[] }>(
-      `{ ingredients { name quantity unit alwaysOnHand } }`,
+      `{ ingredients { name quantity unit itemSize itemSizeUnit alwaysOnHand } }`,
     )
       .then((d) => setPantry(d.ingredients ?? []))
       .catch((err) => { console.warn('[pantry fetch]', err); setPantry([]); });
@@ -495,7 +499,11 @@ export default function RecipeDetailPage() {
                             />
                             <span className={checked ? 'line-through text-[var(--color-text-secondary)]' : ''}>
                               {scaleQty(ing.quantity) != null && <span className="font-semibold tabular-nums">{scaleQty(ing.quantity)}{' '}</span>}
-                              {ing.unit && <span>{ing.unit} </span>}
+                              {ing.itemSize != null ? (
+                                <span className="tabular-nums">{ing.itemSize}{ing.itemSizeUnit ?? ''} </span>
+                              ) : (
+                                ing.unit && <span>{ing.unit} </span>
+                              )}
                               {ing.ingredientName}
                             </span>
                           </label>

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { gql } from '../graphql-client.js';
 
-const INGREDIENT_FIELDS = `id name category quantity unit alwaysOnHand tags createdAt`;
+const INGREDIENT_FIELDS = `id name category quantity unit itemSize itemSizeUnit alwaysOnHand tags createdAt`;
 
 export function registerIngredientTools(server: McpServer) {
   server.tool(
@@ -26,20 +26,22 @@ export function registerIngredientTools(server: McpServer) {
 
   server.tool(
     'add_ingredient',
-    'Add an ingredient to the pantry.',
+    'Add an ingredient to the pantry. Use itemSize + itemSizeUnit for packaged goods with known per-item sizing (e.g. "3 jars × 12 fl oz": quantity=3, unit="jar", itemSize=12, itemSizeUnit="fl oz").',
     {
       name: z.string().describe('Ingredient name'),
       category: z.enum(['vegetables', 'fruit', 'fresh herbs', 'dairy', 'meat & poultry', 'seafood & fish', 'eggs', 'tofu & tempeh', 'legumes & pulses', 'nuts & seeds', 'plant-based milks', 'dry goods & grains', 'canned & jarred', 'condiments & sauces', 'herbs & spices', 'oils & vinegars', 'baking', 'frozen', 'deli & charcuterie', 'beverages', 'snacks', 'other']).optional().describe('Category'),
       quantity: z.number().optional().describe('Quantity'),
       unit: z.string().optional().describe('Unit (e.g. cup, oz, lb, whole)'),
+      itemSize: z.number().optional().describe('Per-item size — the measurable size of one unit (e.g. 12 for a 12 fl oz jar)'),
+      itemSizeUnit: z.string().optional().describe('Unit of the per-item size (e.g. "fl oz", "oz", "g")'),
       alwaysOnHand: z.boolean().optional().describe('If true, never track quantity'),
       tags: z.array(z.string()).optional().describe('Tags'),
       kitchenSlug: z.string().optional().describe('Kitchen slug (default: home)'),
     },
     async (args) => {
       const data = await gql<{ addIngredient: unknown }>(
-        `mutation($name: String!, $category: String, $quantity: Float, $unit: String, $alwaysOnHand: Boolean, $tags: [String!], $kitchenSlug: String) {
-          addIngredient(name: $name, category: $category, quantity: $quantity, unit: $unit, alwaysOnHand: $alwaysOnHand, tags: $tags, kitchenSlug: $kitchenSlug) { ${INGREDIENT_FIELDS} }
+        `mutation($name: String!, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!], $kitchenSlug: String) {
+          addIngredient(name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags, kitchenSlug: $kitchenSlug) { ${INGREDIENT_FIELDS} }
         }`,
         args,
       );
@@ -49,13 +51,15 @@ export function registerIngredientTools(server: McpServer) {
 
   server.tool(
     'add_ingredients',
-    'Bulk-add multiple ingredients to the pantry.',
+    'Bulk-add multiple ingredients to the pantry. Set itemSize + itemSizeUnit for packaged goods with known per-item sizing.',
     {
       ingredients: z.array(z.object({
         name: z.string(),
         category: z.string().optional(),
         quantity: z.number().optional(),
         unit: z.string().optional(),
+        itemSize: z.number().optional(),
+        itemSizeUnit: z.string().optional(),
         alwaysOnHand: z.boolean().optional(),
         tags: z.array(z.string()).optional(),
       })).describe('Array of ingredients to add'),
@@ -81,13 +85,15 @@ export function registerIngredientTools(server: McpServer) {
       category: z.string().optional().describe('New category'),
       quantity: z.number().optional().describe('New quantity. Set to 0 to mark as out of stock while keeping tags and metadata.'),
       unit: z.string().optional().describe('New unit'),
+      itemSize: z.number().optional().describe('New per-item size (e.g. 12 for a 12 fl oz jar)'),
+      itemSizeUnit: z.string().optional().describe('New per-item size unit'),
       alwaysOnHand: z.boolean().optional().describe('Mark as always on hand'),
       tags: z.array(z.string()).optional().describe('New tags (e.g. harvest location tags like costco, farmers-market)'),
     },
     async (args) => {
       const data = await gql<{ updateIngredient: unknown }>(
-        `mutation($id: String!, $name: String, $category: String, $quantity: Float, $unit: String, $alwaysOnHand: Boolean, $tags: [String!]) {
-          updateIngredient(id: $id, name: $name, category: $category, quantity: $quantity, unit: $unit, alwaysOnHand: $alwaysOnHand, tags: $tags) { ${INGREDIENT_FIELDS} }
+        `mutation($id: String!, $name: String, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!]) {
+          updateIngredient(id: $id, name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags) { ${INGREDIENT_FIELDS} }
         }`,
         args,
       );

@@ -36,6 +36,11 @@ const IngredientType = builder.objectType('Ingredient', {
     category: t.string({ nullable: true, resolve: (r) => r.category }),
     quantity: t.float({ nullable: true, resolve: (r) => r.quantity }),
     unit: t.string({ nullable: true, resolve: (r) => r.unit }),
+    // Two-dimension quantity: when set, the row's total is
+    // quantity × itemSize measured in itemSizeUnit. Lets users express
+    // "3 jars × 12 fl_oz each". Null on existing rows (no behavior change).
+    itemSize: t.float({ nullable: true, resolve: (r) => r.item_size }),
+    itemSizeUnit: t.string({ nullable: true, resolve: (r) => r.item_size_unit }),
     alwaysOnHand: t.boolean({ resolve: (r) => r.always_on_hand ?? false }),
     tags: t.stringList({ resolve: (r) => r.tags ?? [] }),
     createdAt: t.string({ resolve: (r) => r.created_at?.toISOString() ?? '' }),
@@ -48,6 +53,8 @@ const IngredientInputType = builder.inputType('IngredientInput', {
     category: t.string(),
     quantity: t.float(),
     unit: t.string(),
+    itemSize: t.float(),
+    itemSizeUnit: t.string(),
     alwaysOnHand: t.boolean(),
     tags: t.stringList(),
   }),
@@ -60,6 +67,8 @@ const RecipeIngredientType = builder.objectType('RecipeIngredient', {
     ingredientName: t.string({ resolve: (r) => r.ingredient_name }),
     quantity: t.float({ nullable: true, resolve: (r) => r.quantity }),
     unit: t.string({ nullable: true, resolve: (r) => r.unit }),
+    itemSize: t.float({ nullable: true, resolve: (r) => r.item_size }),
+    itemSizeUnit: t.string({ nullable: true, resolve: (r) => r.item_size_unit }),
     sourceRecipeId: t.string({
       nullable: true,
       resolve: async (r) => {
@@ -212,6 +221,8 @@ const RecipeIngredientInputType = builder.inputType('RecipeIngredientInput', {
     ingredientName: t.string({ required: true }),
     quantity: t.float(),
     unit: t.string(),
+    itemSize: t.float(),
+    itemSizeUnit: t.string(),
     sourceRecipeId: t.string(),
   }),
 });
@@ -426,6 +437,8 @@ builder.mutationField('addIngredient', (t) =>
       category: t.arg.string(),
       quantity: t.arg.float(),
       unit: t.arg.string(),
+      itemSize: t.arg.float(),
+      itemSizeUnit: t.arg.string(),
       alwaysOnHand: t.arg.boolean(),
       tags: t.arg.stringList(),
       kitchenSlug: t.arg.string(),
@@ -433,12 +446,14 @@ builder.mutationField('addIngredient', (t) =>
     resolve: async (_, args) => {
       const kitchenId = await resolveKitchenId(args.kitchenSlug);
       const [row] = await sql`
-        INSERT INTO ingredients (name, category, quantity, unit, always_on_hand, tags, kitchen_id)
+        INSERT INTO ingredients (name, category, quantity, unit, item_size, item_size_unit, always_on_hand, tags, kitchen_id)
         VALUES (
           ${args.name},
           ${args.category ?? null},
           ${args.quantity ?? null},
           ${args.unit ?? null},
+          ${args.itemSize ?? null},
+          ${args.itemSizeUnit ?? null},
           ${args.alwaysOnHand ?? false},
           ${sql.array(args.tags ?? [])},
           ${kitchenId}
@@ -464,11 +479,13 @@ builder.mutationField('addIngredients', (t) =>
             category: i.category ?? null,
             quantity: i.quantity ?? null,
             unit: i.unit ?? null,
+            item_size: i.itemSize ?? null,
+            item_size_unit: i.itemSizeUnit ?? null,
             always_on_hand: i.alwaysOnHand ?? false,
             tags: i.tags ?? [],
             kitchen_id: kitchenId,
           })),
-          'name', 'category', 'quantity', 'unit', 'always_on_hand', 'tags', 'kitchen_id',
+          'name', 'category', 'quantity', 'unit', 'item_size', 'item_size_unit', 'always_on_hand', 'tags', 'kitchen_id',
         )}
         RETURNING *
       `;
@@ -486,6 +503,8 @@ builder.mutationField('updateIngredient', (t) =>
       category: t.arg.string(),
       quantity: t.arg.float(),
       unit: t.arg.string(),
+      itemSize: t.arg.float(),
+      itemSizeUnit: t.arg.string(),
       alwaysOnHand: t.arg.boolean(),
       tags: t.arg.stringList(),
     },
@@ -497,6 +516,8 @@ builder.mutationField('updateIngredient', (t) =>
           always_on_hand = COALESCE(${args.alwaysOnHand ?? null}, always_on_hand),
           quantity = CASE WHEN ${args.alwaysOnHand ?? null} = true THEN NULL ELSE ${args.quantity ?? null}::numeric END,
           unit = CASE WHEN ${args.alwaysOnHand ?? null} = true THEN NULL ELSE ${args.unit ?? null}::text END,
+          item_size = COALESCE(${args.itemSize ?? null}, item_size),
+          item_size_unit = COALESCE(${args.itemSizeUnit ?? null}, item_size_unit),
           tags = COALESCE(${args.tags ? sql.array(args.tags) : null}, tags),
           updated_at = NOW()
         WHERE id = ${args.id}
@@ -536,7 +557,7 @@ async function insertRecipe(
     stepPhotos?: string[] | null;
     kitchenId?: string;
   },
-  ingredients: { ingredientName: string; quantity?: number | null; unit?: string | null; sourceRecipeId?: string | null }[],
+  ingredients: { ingredientName: string; quantity?: number | null; unit?: string | null; itemSize?: number | null; itemSizeUnit?: string | null; sourceRecipeId?: string | null }[],
 ) {
   const kitchenId = data.kitchenId ?? await resolveKitchenId('home');
   const slug = await uniqueSlug(data.title);
@@ -580,10 +601,12 @@ async function insertRecipe(
           ingredient_name: i.ingredientName,
           quantity: i.quantity ?? null,
           unit: i.unit ?? null,
+          item_size: i.itemSize ?? null,
+          item_size_unit: i.itemSizeUnit ?? null,
           source_recipe_id: i.sourceRecipeId ?? null,
           sort_order: idx,
         })),
-        'recipe_id', 'ingredient_name', 'quantity', 'unit', 'source_recipe_id', 'sort_order',
+        'recipe_id', 'ingredient_name', 'quantity', 'unit', 'item_size', 'item_size_unit', 'source_recipe_id', 'sort_order',
       )}
     `;
   }
@@ -705,6 +728,8 @@ builder.mutationField('updateRecipe', (t) =>
               ingredientName: i.ingredientName,
               quantity: i.quantity ?? null,
               unit: i.unit ?? null,
+              itemSize: i.itemSize ?? null,
+              itemSizeUnit: i.itemSizeUnit ?? null,
               sourceRecipeId: i.sourceRecipeId ?? null,
             })),
             args.id,
@@ -716,10 +741,12 @@ builder.mutationField('updateRecipe', (t) =>
                 ingredient_name: i.ingredientName,
                 quantity: i.quantity ?? null,
                 unit: i.unit ?? null,
+                item_size: i.itemSize ?? null,
+                item_size_unit: i.itemSizeUnit ?? null,
                 source_recipe_id: i.sourceRecipeId ?? null,
                 sort_order: idx,
               })),
-              'recipe_id', 'ingredient_name', 'quantity', 'unit', 'source_recipe_id', 'sort_order',
+              'recipe_id', 'ingredient_name', 'quantity', 'unit', 'item_size', 'item_size_unit', 'source_recipe_id', 'sort_order',
             )}
           `;
         }

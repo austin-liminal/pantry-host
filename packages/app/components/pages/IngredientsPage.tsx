@@ -54,13 +54,15 @@ interface Ingredient {
   category: string | null;
   quantity: number | null;
   unit: string | null;
+  itemSize: number | null;
+  itemSizeUnit: string | null;
   alwaysOnHand: boolean;
   tags: string[];
 }
 
 const INGREDIENTS_QUERY = `
   query Ingredients($kitchenSlug: String) {
-    ingredients(kitchenSlug: $kitchenSlug) { id name category quantity unit alwaysOnHand tags }
+    ingredients(kitchenSlug: $kitchenSlug) { id name category quantity unit itemSize itemSizeUnit alwaysOnHand tags }
   }
 `;
 
@@ -294,6 +296,9 @@ export default function IngredientsPage({ kitchen }: Props) {
                         ) : (ing.quantity != null || ing.unit) && (
                           <span className="ml-2 text-sm text-[var(--color-text-secondary)]">
                             {ing.quantity != null ? ing.quantity : ''} {ing.unit ?? ''}
+                            {ing.itemSize != null && (
+                              <> • {ing.itemSize}{ing.itemSizeUnit ? ` ${ing.itemSizeUnit}` : ''}</>
+                            )}
                           </span>
                         )}
                         {ing.tags.filter((t) => !HIDDEN_TAGS.has(t.toLowerCase())).length > 0 && (
