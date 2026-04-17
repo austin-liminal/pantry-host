@@ -7,6 +7,7 @@ import { hasCooklangSyntax, extractCooklang } from '@pantry-host/shared/cooklang
 import PixabayImage from '@pantry-host/shared/components/PixabayImage';
 import { NutritionFacts } from '@pantry-host/shared/components/NutritionFacts';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
+import { resolveGroceryStatus, pantryIndex } from '@pantry-host/shared/grocery-status';
 import { getFileURL } from '@/lib/storage-opfs';
 import { PencilSimple, Trash, Printer, CalendarPlus, Export, Code, ShareNetwork, Rows, Columns, GridNine, ArrowsOut, ArrowsIn } from '@phosphor-icons/react';
 
@@ -145,6 +146,13 @@ function StepPhotos({ instructions, sourceUrl, dbStepPhotos }: { instructions: s
   );
 }
 
+interface PantryItemForCheck {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  alwaysOnHand: boolean;
+}
+
 export default function RecipeDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -154,6 +162,11 @@ export default function RecipeDetailPage() {
   const [displayPhotoUrl, setDisplayPhotoUrl] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
+  // Pantry snapshot for ingredient auto-check. Fetched once on mount; the
+  // merge effect below ticks checkboxes for ingredients whose grocery
+  // status would be 'have' (see packages/shared/src/grocery-status.ts).
+  const [pantry, setPantry] = useState<PantryItemForCheck[] | null>(null);
+  const pantryAutoCheckedRef = useRef(false);
   const [subRecipes, setSubRecipes] = useState<SubRecipe[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [supportsFullscreen, setSupportsFullscreen] = useState(false);
@@ -167,6 +180,40 @@ export default function RecipeDetailPage() {
     document.addEventListener('fullscreenchange', onFSChange);
     return () => document.removeEventListener('fullscreenchange', onFSChange);
   }, []);
+
+  // Pantry fetch for ingredient auto-check. Runs independently of the
+  // recipe load so both can resolve in parallel.
+  useEffect(() => {
+    gql<{ ingredients: PantryItemForCheck[] }>(
+      `{ ingredients { name quantity unit alwaysOnHand } }`,
+    )
+      .then((d) => setPantry(d.ingredients ?? []))
+      .catch((err) => { console.warn('[pantry fetch]', err); setPantry([]); });
+  }, []);
+
+  // One-shot merge: when both recipe + pantry are loaded, auto-check
+  // ingredients whose grocery status resolves to 'have'. Guarded by a
+  // ref so user unchecks aren't overwritten by subsequent refetches.
+  useEffect(() => {
+    if (!recipe || pantry === null || pantryAutoCheckedRef.current) return;
+    if (pantry.length === 0 || recipe.ingredients.length === 0) {
+      pantryAutoCheckedRef.current = true;
+      return;
+    }
+    const index = pantryIndex(pantry);
+    const autoChecked = new Set<number>();
+    recipe.ingredients.forEach((ing, i) => {
+      const match = index.get((ing.ingredientName ?? '').toLowerCase());
+      if (resolveGroceryStatus(match, ing) === 'have') autoChecked.add(i);
+    });
+    pantryAutoCheckedRef.current = true;
+    if (autoChecked.size === 0) return;
+    setCheckedIngredients((prev) => {
+      const merged = new Set(prev);
+      for (const i of autoChecked) merged.add(i);
+      return merged;
+    });
+  }, [recipe, pantry]);
 
   // Fetch sub-recipes (recipes used as ingredients)
   useEffect(() => {

@@ -16,6 +16,7 @@ import PixabayImage from '@pantry-host/shared/components/PixabayImage';
 import Modal from '@pantry-host/shared/components/Modal';
 import { NutritionFacts } from '@pantry-host/shared/components/NutritionFacts';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
+import { resolveGroceryStatus, pantryIndex } from '@pantry-host/shared/grocery-status';
 import { isOwner } from '@/lib/isTrustedNetwork';
 
 interface RecipeIngredient {
@@ -200,6 +201,13 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const [checkedIngredients, setCheckedIngredients] = useState<Set<number>>(new Set());
   const [servings, setServings] = useState(cachedRecipe?.servings ?? 2);
 
+  // Pantry snapshot for auto-check. Fetched once on mount in parallel
+  // with the recipe; the merge effect below initializes checkboxes for
+  // ingredients that resolveGroceryStatus() calls 'have'. Also used later
+  // by the "Update Pantry" modal on complete.
+  const [pantry, setPantry] = useState<PantryItem[] | null>(null);
+  const pantryAutoCheckedRef = useRef(false);
+
   const [subRecipes, setSubRecipes] = useState<SubRecipe[]>([]);
 
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -287,6 +295,39 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
       setFavorited(!favorited);
     } catch { /* ignored */ }
   }
+
+  // Pantry fetch for ingredient auto-check. Runs in parallel with the
+  // recipe load; the merge effect below reads both when ready.
+  useEffect(() => {
+    gql<{ ingredients: PantryItem[] }>(PANTRY_QUERY, { kitchenSlug: kitchen })
+      .then((d) => setPantry(d.ingredients ?? []))
+      .catch((err) => { console.warn('[pantry fetch]', err); setPantry([]); });
+  }, [kitchen]);
+
+  // One-shot: when both recipe + pantry are loaded, auto-check ingredients
+  // that resolve to 'have'. Guarded by a ref so the merge happens exactly
+  // once per recipe — user unchecks are preserved against subsequent
+  // pantry refetches (e.g., after completing the recipe).
+  useEffect(() => {
+    if (!recipe || pantry === null || pantryAutoCheckedRef.current) return;
+    if (pantry.length === 0 || recipe.ingredients.length === 0) {
+      pantryAutoCheckedRef.current = true;
+      return;
+    }
+    const index = pantryIndex(pantry);
+    const autoChecked = new Set<number>();
+    recipe.ingredients.forEach((ing, i) => {
+      const match = index.get((ing.ingredientName ?? '').toLowerCase());
+      if (resolveGroceryStatus(match, ing) === 'have') autoChecked.add(i);
+    });
+    pantryAutoCheckedRef.current = true;
+    if (autoChecked.size === 0) return;
+    setCheckedIngredients((prev) => {
+      const merged = new Set(prev);
+      for (const i of autoChecked) merged.add(i);
+      return merged;
+    });
+  }, [recipe, pantry]);
 
   useEffect(() => {
     if (!recipeId) return;

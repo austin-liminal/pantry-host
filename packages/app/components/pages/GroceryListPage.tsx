@@ -4,6 +4,7 @@ import { gql } from '@/lib/gql';
 import { cacheSet, cacheGet } from '@pantry-host/shared/cache';
 import { enqueue } from '@/lib/offlineQueue';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
+import { resolveGroceryStatus, type GroceryStatus } from '@pantry-host/shared/grocery-status';
 import { ShoppingCart, Basket, MapPin } from '@phosphor-icons/react';
 
 /** Convert a kebab-case tag to Title Case display: "farmers-market" → "Farmers Market" */
@@ -33,7 +34,7 @@ interface PantryItem {
   tags: string[];
 }
 
-type ItemStatus = 'buy' | 'need_more' | 'check_pantry' | 'have';
+type ItemStatus = GroceryStatus;
 
 interface PerRecipeItem {
   key: string;
@@ -64,14 +65,9 @@ const INGREDIENTS_QUERY = `
 
 function resolveStatus(ing: RecipeIngredient, pantryByName: Map<string, PantryItem>): { status: ItemStatus; pantryQuantity: number | null } {
   const pantryItem = pantryByName.get(ing.ingredientName.toLowerCase());
-  if (!pantryItem) return { status: 'buy', pantryQuantity: null };
-  if (pantryItem.alwaysOnHand) return { status: 'have', pantryQuantity: null };
-
-  const pantryQuantity = pantryItem.quantity;
-  if (pantryQuantity == null || ing.quantity == null) return { status: 'check_pantry', pantryQuantity };
-  if (pantryItem.unit != null && ing.unit != null && pantryItem.unit !== ing.unit) return { status: 'check_pantry', pantryQuantity };
-  if (pantryQuantity >= ing.quantity) return { status: 'have', pantryQuantity };
-  return { status: 'need_more', pantryQuantity };
+  const status = resolveGroceryStatus(pantryItem, ing);
+  const pantryQuantity = pantryItem && !pantryItem.alwaysOnHand ? pantryItem.quantity : null;
+  return { status, pantryQuantity };
 }
 
 function buildPerRecipeItems(recipe: QueuedRecipe, pantryByName: Map<string, PantryItem>, harvestLocations: string[] = []): PerRecipeItem[] {
