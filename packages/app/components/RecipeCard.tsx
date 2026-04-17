@@ -143,6 +143,7 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
   const isLactation = recipe.tags.some((t) => t.toLowerCase() === 'lactation');
   const isBreastfeedingAlert = recipe.tags.some((t) => t.toLowerCase() === 'breastfeeding-alert');
   const isPregnancySafe = recipe.tags.some((t) => t.toLowerCase() === 'pregnancy-safe');
+  const isPescatarian = recipe.tags.some((t) => t.toLowerCase() === 'pescatarian');
 
   async function handleToggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -273,6 +274,12 @@ export default function RecipeCard({ recipe, recipesBase = '/recipes' }: Props) 
             <span className="sr-only">Pregnancy safe</span>
           </span>
         )}
+        {isPescatarian && (
+          <span className="text-sky-600 dark:text-sky-400 flex items-center gap-1" title="Pescatarian">
+            <FishIcon />
+            <span className="sr-only">Pescatarian</span>
+          </span>
+        )}
       </div>
 
       {/* Row 4: Tags */}
@@ -346,6 +353,15 @@ function ExclamationTriangleIcon(props: React.SVGProps<SVGSVGElement>) {
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 576 512" fill="currentColor" aria-hidden="true">
       {/* Font Awesome Pro 5.15.4 - fa-exclamation-triangle (light) */}
       <path d="M270.2 160h35.5c3.4 0 6.1 2.8 6 6.2l-7.5 196c-.1 3.2-2.8 5.8-6 5.8h-20.5c-3.2 0-5.9-2.5-6-5.8l-7.5-196c-.1-3.4 2.6-6.2 6-6.2zM288 388c-15.5 0-28 12.5-28 28s12.5 28 28 28 28-12.5 28-28-12.5-28-28-28zm281.5 52L329.6 24c-18.4-32-64.7-32-83.2 0L6.5 440c-18.4 31.9 4.6 72 41.6 72H528c36.8 0 60-40 41.5-72zM528 480H48c-12.3 0-20-13.3-13.9-24l240-416c6.1-10.6 21.6-10.7 27.7 0l240 416c6.2 10.6-1.5 24-13.8 24z" />
+    </svg>
+  );
+}
+
+function FishIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 640 512" fill="currentColor" aria-hidden="true">
+      {/* Font Awesome Pro 5.15.4 - fa-fish (light) */}
+      <path d="M363.44 80c-99.96 0-187.27 60.25-235.86 111.79l-97.04-72.66c-3.65-2.73-7.78-3.94-11.8-3.94-10.85 0-20.87 8.78-18.36 20.06L27.27 256 .39 376.74c-2.51 11.28 7.52 20.06 18.36 20.06 4.02 0 8.15-1.21 11.8-3.94l97.04-72.66C176.17 371.75 263.48 432 363.44 432 516.18 432 640 291.2 640 256c0-35.2-123.82-176-276.56-176zm0 320c-86.02 0-166.21-52.56-212.57-101.74l-19.6-20.79-22.87 17.12-68.33 51.17 18.43-82.8 1.55-6.95-1.55-6.95-18.43-82.8 68.33 51.17 22.87 17.12 19.6-20.79C197.23 164.56 277.42 112 363.44 112 489 112 595.86 223.33 607.5 256 595.86 288.67 489 400 363.44 400zM448 232c-13.25 0-24 10.74-24 24 0 13.25 10.75 24 24 24s24-10.75 24-24c0-13.26-10.75-24-24-24z" />
     </svg>
   );
 }

@@ -462,7 +462,7 @@ export default function RecipeDetailPage() {
 
         <section>
           <h2 className="text-xl font-bold mb-4">Instructions</h2>
-          <ol className="space-y-6 legible">
+          <ol className="space-y-3 legible">
             {steps.map((step, idx) => (
               <li key={idx} className="flex items-baseline gap-4">
                 <span className="shrink-0 w-8 text-right text-sm tabular-nums text-[var(--color-text-secondary)] select-none" aria-hidden="true">{idx + 1}.</span>

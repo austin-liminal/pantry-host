@@ -7,6 +7,7 @@ const FEATURED_TAGS = [
   { value: 'gluten-free', label: 'Gluten-free' },
   { value: 'vegetarian', label: 'Vegetarian' },
   { value: 'vegan', label: 'Vegan' },
+  { value: 'pescatarian', label: 'Pescatarian' },
   { value: 'pregnancy-safe', label: 'Pregnancy safe' },
   { value: 'breastfeeding-safe', label: 'Breastfeeding safe' },
   { value: 'lactation', label: 'Supports lactation' },

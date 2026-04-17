@@ -515,6 +515,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
   const isLactation = recipe.tags.some((t) => t.toLowerCase() === 'lactation');
   const isBreastfeedingAlert = recipe.tags.some((t) => t.toLowerCase() === 'breastfeeding-alert');
   const isPregnancySafe = recipe.tags.some((t) => t.toLowerCase() === 'pregnancy-safe');
+  const isPescatarian = recipe.tags.some((t) => t.toLowerCase() === 'pescatarian');
 
   if (isAdult && !ageVerified) {
     return (
@@ -657,7 +658,13 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                   pregnancy-safe
                 </span>
               )}
-              {recipe.tags.filter((t) => !HIDDEN_TAGS.has(t.toLowerCase()) && !['gluten-free', '420', 'cannabis', 'adult-only', 'sustainable', 'local', 'breastfeeding-safe', 'lactation', 'breastfeeding-alert', 'pregnancy-safe'].includes(t.toLowerCase())).map((t) => <span key={t} className="tag">{t}</span>)}
+              {isPescatarian && (
+                <span className="tag inline-flex items-center gap-1 text-sky-600 dark:text-sky-400" title="Pescatarian">
+                  <FishIcon />
+                  pescatarian
+                </span>
+              )}
+              {recipe.tags.filter((t) => !HIDDEN_TAGS.has(t.toLowerCase()) && !['gluten-free', '420', 'cannabis', 'adult-only', 'sustainable', 'local', 'breastfeeding-safe', 'lactation', 'breastfeeding-alert', 'pregnancy-safe', 'pescatarian'].includes(t.toLowerCase())).map((t) => <span key={t} className="tag">{t}</span>)}
             </div>
             <h1 className="text-4xl font-bold mb-4">{recipe.title}</h1>
             {recipe.description && (
@@ -768,7 +775,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
 
             <section aria-labelledby="instructions-heading">
               <h2 id="instructions-heading" className="text-xl font-bold mb-4">Instructions</h2>
-              <ol role="list" className="space-y-6 legible">
+              <ol role="list" className="space-y-3 legible">
                 {steps.map((step, idx) => (
                   <li key={idx} className="flex items-baseline gap-4">
                     <span className="shrink-0 w-8 text-right text-sm tabular-nums text-[var(--color-text-secondary)] select-none" aria-hidden="true">{idx + 1}.</span>
@@ -1164,6 +1171,14 @@ function HeartIcon() {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 512 512" fill="currentColor" aria-hidden="true">
       <path d="M462.3 62.7c-54.5-46.4-136-38.7-186.6 13.5L256 96.6l-19.7-20.3C195.5 34.1 113.2 8.7 49.7 62.7c-62.8 53.6-66.1 149.8-9.9 207.8l193.5 199.8c6.2 6.4 14.4 9.7 22.6 9.7 8.2 0 16.4-3.2 22.6-9.7L472 270.5c56.4-58 53.1-154.2-9.7-207.8zm-13.1 185.6L256.4 448.1 62.8 248.3c-38.4-39.6-46.4-115.1 7.7-161.2 54.8-46.8 119.2-12.9 142.8 11.5l42.7 44.1 42.7-44.1c23.2-24 88.2-58 142.8-11.5 54 46 46.1 121.5 7.7 161.2z" />
+    </svg>
+  );
+}
+
+function FishIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 640 512" fill="currentColor" aria-hidden="true">
+      <path d="M363.44 80c-99.96 0-187.27 60.25-235.86 111.79l-97.04-72.66c-3.65-2.73-7.78-3.94-11.8-3.94-10.85 0-20.87 8.78-18.36 20.06L27.27 256 .39 376.74c-2.51 11.28 7.52 20.06 18.36 20.06 4.02 0 8.15-1.21 11.8-3.94l97.04-72.66C176.17 371.75 263.48 432 363.44 432 516.18 432 640 291.2 640 256c0-35.2-123.82-176-276.56-176zm0 320c-86.02 0-166.21-52.56-212.57-101.74l-19.6-20.79-22.87 17.12-68.33 51.17 18.43-82.8 1.55-6.95-1.55-6.95-18.43-82.8 68.33 51.17 22.87 17.12 19.6-20.79C197.23 164.56 277.42 112 363.44 112 489 112 595.86 223.33 607.5 256 595.86 288.67 489 400 363.44 400zM448 232c-13.25 0-24 10.74-24 24 0 13.25 10.75 24 24 24s24-10.75 24-24c0-13.26-10.75-24-24-24z" />
     </svg>
   );
 }
