@@ -66,23 +66,21 @@ function toTotal(row: {
  * Normalize an ingredient name for matching. Strips:
  * - prep notes after the first comma (", softened", ", diced", ", to taste")
  * - parenthetical annotations ("(8 oz)", "(about 2 cups)")
- * - leading articles ("a ", "an ", "the ")
  * - leading/trailing whitespace; collapses internal runs of whitespace
  * Then lowercases the result.
  *
  * "Cream cheese, softened" → "cream cheese"
  * "Tomato sauce (15 oz can)" → "tomato sauce"
- * "A pinch of salt" → "pinch of salt"
+ * "All-purpose flour" → "all-purpose flour"
  */
 export function normalizeIngredientName(name: string | null | undefined): string {
   if (!name) return '';
   return name
-    .replace(/\([^)]*\)/g, ' ')           // drop parentheticals
-    .split(',')[0]                         // drop anything after first comma
+    .replace(/\([^)]*\)/g, ' ')   // drop parentheticals
+    .split(',')[0]                 // drop anything after first comma
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .replace(/^(?:a|an|the) /, '');       // drop leading article
+    .replace(/\s+/g, ' ');
 }
 
 /**
@@ -121,11 +119,14 @@ export function pantryIndex<T extends PantryItemForStatus>(pantry: T[]): PantryL
     // Earlier entries "win" the normalized slot so exact-intent pantry rows
     // aren't shadowed by a later, more-specific collision.
     if (!normalized.has(norm)) normalized.set(norm, item);
-    // Cap suffix match to short names (≤3 words) so "salt", "butter",
-    // "olive oil" participate, but "monterey jack cheese with jalapeno
-    // peppers" doesn't attempt suffix matching.
+    // Cap suffix match to 2–3 word pantry names. Single-word keys are
+    // excluded because they produce too many false positives with compound
+    // ingredients ("peanut butter" → "butter", "brown sugar" → "sugar",
+    // "almond milk" → "milk"). Users whose recipes say "a pinch of salt"
+    // still match pantry "Salt" because the normalizer strips the
+    // "pinch of" prefix — tier 2 handles that case.
     const wordCount = norm.split(' ').length;
-    if (wordCount <= 3) suffix.push({ key: norm, item });
+    if (wordCount >= 2 && wordCount <= 3) suffix.push({ key: norm, item });
   }
   // Longest first: "olive oil" beats "oil" when both are in the pantry.
   suffix.sort((a, b) => b.key.length - a.key.length);
