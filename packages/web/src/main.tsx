@@ -5,18 +5,22 @@ import { initDB } from '@/lib/db';
 import App from './App';
 import './globals.css';
 
-// Normalize all "at:" URL variants to /at/ before React Router parses.
-// Users (or shared links) may arrive via:
-//   /at://did:plc:.../...        (literal :// in path)
-//   /at://did%3Aplc%3A.../...    (percent-encoded DID)
-//   /at%3A/did%3Aplc%3A.../...   (Cloudflare 307-rewrites /at:// to /at%3A/)
-//   /at%3A//did%3Aplc%3A.../...  (variant of the same)
-// All route to the same /at/{did}/{collection}/{rkey} handler.
+// Normalize scheme-prefixed URL variants (at:, http:, https:) to their
+// scheme-named route so React Router matches. Users may paste:
+//   /at://did:plc:.../...                    → /at/...
+//   /at%3A/... or /at%3A//...                → /at/...
+//   /https://example.com/recipe              → /https/example.com/recipe
+//   /https%3A//... or /https%3A%2F%2F...     → /https/...
+//   /http://… and /http%3A/… equivalents    → /http/...
 if (typeof window !== 'undefined') {
   const p = window.location.pathname;
   const rewritten = p
     .replace(/^\/at%3A\/\/?/i, '/at/')
-    .replace(/^\/at:\/\//, '/at/');
+    .replace(/^\/at:\/\//, '/at/')
+    .replace(/^\/https%3A(?:%2F%2F|\/\/?)/i, '/https/')
+    .replace(/^\/https:\/\//i, '/https/')
+    .replace(/^\/http%3A(?:%2F%2F|\/\/?)/i, '/http/')
+    .replace(/^\/http:\/\//i, '/http/');
   if (rewritten !== p) {
     window.history.replaceState({}, '', rewritten + window.location.search + window.location.hash);
   }

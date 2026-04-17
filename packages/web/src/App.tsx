@@ -20,6 +20,7 @@ import KitchensPage from './pages/KitchensPage';
 import AccessibilityPage from './pages/AccessibilityPage';
 import SettingsPage from './pages/SettingsPage';
 import AtImportPage from './pages/AtImportPage';
+import UrlImportPage from './pages/UrlImportPage';
 
 /**
  * Kitchen-scoped routes — rendered at both top level (home kitchen)
@@ -60,6 +61,8 @@ export default function App() {
             <Route key={`k-${r.path}`} path={`/kitchens/:kitchen/${r.path}`} element={r.element} />
           ))}
           <Route path="/at/*" element={<AtImportPage />} />
+          <Route path="/http/*" element={<UrlImportPage scheme="http" />} />
+          <Route path="/https/*" element={<UrlImportPage scheme="https" />} />
           <Route path="/accessibility" element={<AccessibilityPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

@@ -963,8 +963,12 @@ export default function RecipeImportPage() {
 
   // When the user uploads a file, its contents are pushed into the URL tab's
   // textarea and the tab switches. Uploaded content changes the key so URLTab
-  // re-syncs its internal state via the initialText prop.
-  const [uploadedContent, setUploadedContent] = useState<string | undefined>(undefined);
+  // re-syncs its internal state via the initialText prop. Also seeded from
+  // `?url=` query param so /https/*'s error-fallback CTA pre-fills manual import.
+  const [uploadedContent, setUploadedContent] = useState<string | undefined>(() => {
+    const u = searchParams.get('url');
+    return u ? u : undefined;
+  });
 
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

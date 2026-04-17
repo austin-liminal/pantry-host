@@ -10,14 +10,18 @@ import '../styles/globals.css';
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
-    // Normalize all "at:" URL variants to /at/ so all forms route to the
-    // same handler: /at://, /at%3A//, /at%3A/ (some edges/hosts rewrite
-    // /at:// to /at%3A/).
+    // Normalize scheme-prefixed URL variants (at:, http:, https:) to their
+    // scheme-named route so route matching works. Some edges/hosts rewrite
+    // "://" to "%3A//" or "%3A%2F%2F"; we handle all three shapes.
     {
       const p = window.location.pathname;
       const rewritten = p
         .replace(/^\/at%3A\/\/?/i, '/at/')
-        .replace(/^\/at:\/\//, '/at/');
+        .replace(/^\/at:\/\//, '/at/')
+        .replace(/^\/https%3A(?:%2F%2F|\/\/?)/i, '/https/')
+        .replace(/^\/https:\/\//i, '/https/')
+        .replace(/^\/http%3A(?:%2F%2F|\/\/?)/i, '/http/')
+        .replace(/^\/http:\/\//i, '/http/');
       if (rewritten !== p) {
         window.history.replaceState({}, '', rewritten + window.location.search + window.location.hash);
       }

@@ -197,7 +197,12 @@ export default function RecipeImportPage({ kitchen }: Props) {
   const recipesBase = kitchen === 'home' ? '/recipes' : `/kitchens/${kitchen}/recipes`;
 
   const [step, setStep] = useState<Step>('input');
-  const [pasteText, setPasteText] = useState('');
+  // Pre-populate from ?url= query param so /https/*'s error-fallback CTA can
+  // deep-link users here with the URL already in the textarea.
+  const [pasteText, setPasteText] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return new URLSearchParams(window.location.search).get('url') ?? '';
+  });
   const [parseError, setParseError] = useState<string | null>(null);
   const [items, setItems] = useState<ImportItem[]>([]);
   const [saveProgress, setSaveProgress] = useState(0);
