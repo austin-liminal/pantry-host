@@ -44,6 +44,7 @@ import {
   getRecipeAPIRecipe,
   getRecipeAPICategories,
   recipeApiToParsed,
+  RecipeAPIError,
   type RecipeAPIListItem,
   type RecipeAPICategoryCount,
 } from '@pantry-host/shared/recipe-api';
@@ -465,6 +466,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
     const ids = Array.from(raSelected);
     let done = 0;
     let failed = 0;
+    let quotaHit: RecipeAPIError | null = null;
     for (const id of ids) {
       try {
         const full = await getRecipeAPIRecipe(id, recipeApiKey);
@@ -485,6 +487,15 @@ export default function RecipeImportPage({ kitchen }: Props) {
       } catch (err) {
         console.error(`Failed to import recipe ${id}:`, err);
         failed++;
+        // Quota hit means every remaining import will hit the same wall.
+        // Break out of the loop so we don't burn 1.2s × N waiting for a
+        // foregone failure, then surface a quota-specific message.
+        if (err instanceof RecipeAPIError && err.code === 'UNIQUE_RECIPE_LIMIT_EXCEEDED') {
+          quotaHit = err;
+          done++;
+          setRaImportProgress({ done, total: ids.length });
+          break;
+        }
       }
       done++;
       setRaImportProgress({ done, total: ids.length });
@@ -492,7 +503,13 @@ export default function RecipeImportPage({ kitchen }: Props) {
     }
     setRaImporting(false);
     setRaImportProgress(null);
-    if (failed > 0 && failed === ids.length) { setRaError('All imports failed. Try again in a minute.'); restoreFocus(prevFocus); }
+    if (quotaHit) {
+      const imported = done - failed;
+      const prefix = imported > 0 ? `Imported ${imported} before hitting the limit. ` : '';
+      setRaError(`${prefix}Monthly quota reached — recipe-api.com's free tier allows 25 unique recipes per billing period. Resets on the 1st, or upgrade at recipe-api.com/pricing.`);
+      restoreFocus(prevFocus);
+    }
+    else if (failed > 0 && failed === ids.length) { setRaError('All imports failed. Try again in a minute.'); restoreFocus(prevFocus); }
     else if (failed > 0) { setRaError(`${done - failed} of ${ids.length} imported. ${failed} failed.`); restoreFocus(prevFocus); }
     else router.push(`${recipesBase}#stage`);
   }

@@ -204,10 +204,55 @@ function authHeaders(apiKey: string): HeadersInit {
   return { 'X-API-Key': apiKey };
 }
 
+/**
+ * Known recipe-api.com error codes we render specially in the UI. Keep this
+ * list narrow — only codes the user can actually act on deserve their own
+ * branch. Anything else falls back to the generic message.
+ */
+export type RecipeAPIErrorCode =
+  | 'UNIQUE_RECIPE_LIMIT_EXCEEDED'
+  | 'RATE_LIMIT_EXCEEDED'
+  | 'UNAUTHORIZED';
+
+/**
+ * Typed error thrown by the recipe-api client when the server returns a
+ * structured `{ error: { code, message } }` body. Callers can `instanceof`
+ * check to render a quota-specific CTA instead of the generic failure text.
+ */
+export class RecipeAPIError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  readonly label: string;
+  readonly apiMessage: string | null;
+
+  constructor(label: string, status: number, code: string | null, apiMessage: string | null) {
+    const suffix = apiMessage ? ` — ${apiMessage}` : '';
+    super(`recipe-api.com ${label} failed: ${status}${code ? ` [${code}]` : ''}${suffix}`);
+    this.name = 'RecipeAPIError';
+    this.status = status;
+    this.code = code;
+    this.label = label;
+    this.apiMessage = apiMessage;
+  }
+}
+
 async function jsonOrThrow<T>(res: Response, label: string): Promise<T> {
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`recipe-api.com ${label} failed: ${res.status}${body ? ` — ${body.slice(0, 120)}` : ''}`);
+    const text = await res.text().catch(() => '');
+    let code: string | null = null;
+    let apiMessage: string | null = null;
+    try {
+      const parsed = text ? JSON.parse(text) : null;
+      if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+        const err = (parsed as { error: { code?: string; message?: string } }).error;
+        code = err?.code ?? null;
+        apiMessage = err?.message ?? null;
+      }
+    } catch {
+      // Not JSON — keep code/apiMessage null; fall back to the raw body in the message.
+      apiMessage = text ? text.slice(0, 120) : null;
+    }
+    throw new RecipeAPIError(label, res.status, code, apiMessage);
   }
   return res.json() as Promise<T>;
 }

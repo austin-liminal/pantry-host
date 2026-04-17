@@ -40,6 +40,7 @@ import { isWikibooksDownloaded, loadWikibooksData, downloadWikibooksDataset } fr
 import {
   searchRecipeAPI,
   getRecipeAPIRecipe,
+  RecipeAPIError,
   getRecipeAPICategories,
   recipeApiToParsed,
   type RecipeAPIListItem,
@@ -1378,6 +1379,7 @@ function RecipeAPITab({ navigate }: { navigate: ReturnType<typeof useNavigate> }
     const ids = Array.from(selected);
     let done = 0;
     let failed = 0;
+    let quotaHit: RecipeAPIError | null = null;
     for (const id of ids) {
       try {
         const full = await getRecipeAPIRecipe(id, apiKey);
@@ -1397,6 +1399,12 @@ function RecipeAPITab({ navigate }: { navigate: ReturnType<typeof useNavigate> }
       } catch (err) {
         console.error(`Failed to import recipe ${id}:`, err);
         failed++;
+        if (err instanceof RecipeAPIError && err.code === 'UNIQUE_RECIPE_LIMIT_EXCEEDED') {
+          quotaHit = err;
+          done++;
+          setImportProgress({ done, total: ids.length });
+          break;
+        }
       }
       done++;
       setImportProgress({ done, total: ids.length });
@@ -1404,7 +1412,13 @@ function RecipeAPITab({ navigate }: { navigate: ReturnType<typeof useNavigate> }
     }
     setImporting(false);
     setImportProgress(null);
-    if (failed > 0 && failed === ids.length) { setError('All imports failed. Try again in a minute.'); restoreFocus(prevFocus); }
+    if (quotaHit) {
+      const imported = done - failed;
+      const prefix = imported > 0 ? `Imported ${imported} before hitting the limit. ` : '';
+      setError(`${prefix}Monthly quota reached — recipe-api.com's free tier allows 25 unique recipes per billing period. Resets on the 1st, or upgrade at recipe-api.com/pricing.`);
+      restoreFocus(prevFocus);
+    }
+    else if (failed > 0 && failed === ids.length) { setError('All imports failed. Try again in a minute.'); restoreFocus(prevFocus); }
     else if (failed > 0) { setError(`${done - failed} of ${ids.length} imported. ${failed} failed.`); restoreFocus(prevFocus); }
     else navigate('/recipes#stage');
   }
