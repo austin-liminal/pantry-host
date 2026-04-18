@@ -23,9 +23,11 @@ RUN cd packages/app && mkdir -p node_modules && \
     ln -sf ../../../node_modules/react node_modules/react && \
     ln -sf ../../../node_modules/react-dom node_modules/react-dom
 
-# Rex uses platform-specific native binaries — npm ci only installs for the
-# lockfile's platform. Force-install the linux/x64 binary and build.
+# Rex + sharp use platform-specific native binaries — npm ci on a non-linux
+# host (or under qemu) often skips the linux/x64 variants. Force-install both
+# before the build so the runtime image has the right native modules.
 RUN npm install @limlabs/rex-linux-x64 \
+    && npm install --os=linux --cpu=x64 sharp \
     && npx @limlabs/rex build --root packages/app
 
 # Stage 2: Runtime
