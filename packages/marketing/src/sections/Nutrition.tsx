@@ -45,25 +45,30 @@ const principles = [
 function MetaInfoMockup() {
   return (
     <div className="rounded-xl border border-[var(--color-border-card)] bg-[var(--color-bg-card)] p-4 text-sm">
+      <p className="font-semibold mb-3">MERLOT BELLAVITANO CHEESE</p>
       <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider text-[var(--color-text-secondary)] mb-3">
         <Barcode size={12} aria-hidden /> Meta info
       </div>
       <dl className="space-y-1.5">
         <div className="flex gap-3">
           <dt className="text-xs uppercase tracking-wider text-[var(--color-text-secondary)] w-20 shrink-0">Barcode</dt>
-          <dd><code className="text-xs">015800062110</code></dd>
+          <dd><code className="text-xs">011863118764</code></dd>
         </div>
         <div className="flex gap-3">
           <dt className="text-xs uppercase tracking-wider text-[var(--color-text-secondary)] w-20 shrink-0">Brand</dt>
-          <dd>C&amp;H</dd>
+          <dd>Sartori</dd>
         </div>
         <div className="flex gap-3">
           <dt className="text-xs uppercase tracking-wider text-[var(--color-text-secondary)] w-20 shrink-0">Scores</dt>
-          <dd>Nutri-Score E &middot; NOVA 2 &middot; Eco-Score C</dd>
+          <dd>Nutri-Score D &middot; NOVA 3 &middot; Eco-Score D</dd>
         </div>
         <div className="flex gap-3">
-          <dt className="text-xs uppercase tracking-wider text-[var(--color-text-secondary)] w-20 shrink-0">Labels</dt>
-          <dd className="text-xs">kosher, no gmos, non gmo project</dd>
+          <dt className="text-xs uppercase tracking-wider text-[var(--color-text-secondary)] w-20 shrink-0">Serving</dt>
+          <dd>1 ONZ (28&thinsp;g)</dd>
+        </div>
+        <div className="flex gap-3">
+          <dt className="text-xs uppercase tracking-wider text-[var(--color-text-secondary)] w-20 shrink-0">Contains</dt>
+          <dd>Milk</dd>
         </div>
       </dl>
       <p className="text-xs uppercase tracking-wider text-[var(--color-text-secondary)] mt-4 mb-2">
@@ -71,12 +76,12 @@ function MetaInfoMockup() {
       </p>
       <dl className="grid grid-cols-3 gap-x-3 gap-y-1.5 text-xs">
         {[
-          ['Calories', '375', 'kcal'],
-          ['Carbs', '100', 'g'],
-          ['Sugar', '100', 'g'],
-          ['Protein', '0', 'g'],
-          ['Fat', '0', 'g'],
-          ['Sodium', '0', 'mg'],
+          ['Calories', '393', 'kcal'],
+          ['Protein', '25', 'g'],
+          ['Fat', '32', 'g'],
+          ['Sat. fat', '18', 'g'],
+          ['Carbs', '0', 'g'],
+          ['Sodium', '607', 'mg'],
         ].map(([label, value, unit]) => (
           <div key={label}>
             <dt className="text-[var(--color-text-secondary)] uppercase tracking-wider">{label}</dt>
