@@ -1,6 +1,9 @@
 # Stage 1: Build
 FROM node:22-trixie-slim AS build
 
+# Target architecture (amd64|arm64) — populated automatically by buildx.
+ARG TARGETARCH
+
 RUN apt-get update && apt-get install -y libssl3t64 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -14,14 +17,6 @@ COPY packages/web/package.json packages/web/
 COPY packages/mcp/package.json packages/mcp/
 RUN npm ci
 
-# Rex uses platform-specific native binaries — npm ci only installs for the
-# lockfile's platform. Force-install the Linux binary for Docker builds.
-RUN cd node_modules/@limlabs && npm pack @limlabs/rex-linux-arm64@0.20.0 && \
-    tar -xzf limlabs-rex-linux-arm64-0.20.0.tgz && \
-    mv package rex-linux-arm64 && \
-    rm limlabs-rex-linux-arm64-0.20.0.tgz && \
-    chmod +x rex-linux-arm64/bin/rex
-
 # Copy source
 COPY packages/app packages/app
 COPY packages/shared packages/shared
@@ -30,6 +25,15 @@ COPY packages/shared packages/shared
 RUN cd packages/app && mkdir -p node_modules && \
     ln -sf ../../../node_modules/react node_modules/react && \
     ln -sf ../../../node_modules/react-dom node_modules/react-dom
+
+# Rex + sharp ship platform-specific native binaries as optional deps.
+# npm ci sometimes skips the linux variant during cross-platform buildx
+# (e.g. building linux/amd64 on an arm64 Mac under qemu) because it
+# inspects the host lockfile / environment rather than the target. Force
+# the correct linux binary for the buildx target arch before building.
+RUN REX_PKG="@limlabs/rex-linux-$(case "$TARGETARCH" in amd64) echo x64 ;; arm64) echo arm64 ;; *) echo "$TARGETARCH" ;; esac)" && \
+    npm install "$REX_PKG" && \
+    npm install --os=linux --cpu="$(case "$TARGETARCH" in amd64) echo x64 ;; arm64) echo arm64 ;; *) echo "$TARGETARCH" ;; esac)" sharp
 
 # Build Rex for production
 RUN npx @limlabs/rex build --root packages/app
