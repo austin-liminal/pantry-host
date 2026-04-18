@@ -14,14 +14,6 @@ COPY packages/web/package.json packages/web/
 COPY packages/mcp/package.json packages/mcp/
 RUN npm ci
 
-# Rex uses platform-specific native binaries — npm ci only installs for the
-# lockfile's platform. Force-install the Linux binary for Docker builds.
-RUN cd node_modules/@limlabs && npm pack @limlabs/rex-linux-arm64@0.20.0 && \
-    tar -xzf limlabs-rex-linux-arm64-0.20.0.tgz && \
-    mv package rex-linux-arm64 && \
-    rm limlabs-rex-linux-arm64-0.20.0.tgz && \
-    chmod +x rex-linux-arm64/bin/rex
-
 # Copy source
 COPY packages/app packages/app
 COPY packages/shared packages/shared
@@ -31,8 +23,10 @@ RUN cd packages/app && mkdir -p node_modules && \
     ln -sf ../../../node_modules/react node_modules/react && \
     ln -sf ../../../node_modules/react-dom node_modules/react-dom
 
-# Build Rex for production
-RUN npx @limlabs/rex build --root packages/app
+# Rex uses platform-specific native binaries — npm ci only installs for the
+# lockfile's platform. Force-install the linux/x64 binary and build.
+RUN npm install @limlabs/rex-linux-x64 \
+    && npx @limlabs/rex build --root packages/app
 
 # Stage 2: Runtime
 FROM node:22-trixie-slim
