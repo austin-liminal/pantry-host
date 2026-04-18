@@ -274,6 +274,12 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // The Cache API only supports GET. Let POST/PUT/DELETE (e.g. /graphql,
+  // /fetch-recipe) fall through to the network — otherwise the generic
+  // same-origin stale-while-revalidate handler at the bottom throws
+  // "Request method 'POST' is unsupported" on cache.put.
+  if (request.method !== 'GET') return;
+
   // Federated recipe sources (Cooklang + recipe-api.com): dedicated TTL cache.
   if (isCachedRecipeSource(url)) {
     event.respondWith(cooklangHandler(request));
@@ -293,7 +299,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Only handle same-origin — GraphQL (port 4001) is cross-origin
+  // Only handle same-origin requests from here on.
   if (url.origin !== self.location.origin) return;
 
   // --- Uploaded images: immortal cache ---
