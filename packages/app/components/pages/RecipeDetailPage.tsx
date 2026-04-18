@@ -16,6 +16,7 @@ import PixabayImage from '@pantry-host/shared/components/PixabayImage';
 import Modal from '@pantry-host/shared/components/Modal';
 import { NutritionSource } from '@pantry-host/shared/components/NutritionSource';
 import { AllergensLine } from '@pantry-host/shared/components/AllergensLine';
+import { getAllergenIcon } from '@pantry-host/shared/components/allergen-icons';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
 import { resolveGroceryStatus, pantryIndex, findPantryItem } from '@pantry-host/shared/grocery-status';
 import { isOwner } from '@/lib/isTrustedNetwork';
@@ -60,6 +61,10 @@ interface Recipe {
   lastMadeAt: string | null;
   queued: boolean;
   ingredients: RecipeIngredient[];
+  /** Recursively-unfurled ingredient list — same shape as `ingredients`,
+   *  but sub-recipes are expanded to their constituents. Used by the
+   *  AllergensLine so warnings bubble up through the recipe chain. */
+  groceryIngredients: Pick<RecipeIngredient, 'ingredientName' | 'quantity' | 'unit' | 'itemSize' | 'itemSizeUnit'>[];
   usedIn: SubRecipe[];
 }
 
@@ -69,6 +74,7 @@ const RECIPE_QUERY = `
       id slug title description instructions servings prepTime cookTime
       tags requiredCookware { id name brand } source sourceUrl photoUrl stepPhotos lastMadeAt queued
       ingredients { ingredientName quantity unit itemSize itemSizeUnit sourceRecipeId }
+      groceryIngredients { ingredientName quantity unit itemSize itemSizeUnit }
       usedIn { id slug title cookTime prepTime servings source tags photoUrl queued }
     }
   }
@@ -77,10 +83,10 @@ const RECIPE_QUERY = `
 const DELETE_RECIPE = `mutation DeleteRecipe($id: String!) { deleteRecipe(id: $id) }`;
 const COMPLETE_RECIPE = `mutation CompleteRecipe($id: String!, $servings: Int) { completeRecipe(id: $id, servings: $servings) { id lastMadeAt } }`;
 const TOGGLE_QUEUED = `mutation ToggleQueued($id: String!) { toggleRecipeQueued(id: $id) { id queued } }`;
-const PANTRY_QUERY = `query Ingredients($kitchenSlug: String) { ingredients(kitchenSlug: $kitchenSlug) { id name quantity unit itemSize itemSizeUnit alwaysOnHand barcode productMeta } }`;
+const PANTRY_QUERY = `query Ingredients($kitchenSlug: String) { ingredients(kitchenSlug: $kitchenSlug) { id name aliases quantity unit itemSize itemSizeUnit alwaysOnHand barcode productMeta } }`;
 const UPDATE_INGREDIENT = `mutation UpdateIngredient($id: String!, $quantity: Float) { updateIngredient(id: $id, quantity: $quantity) { id quantity } }`;
 
-interface PantryItem { id: string; name: string; quantity: number | null; unit: string | null; itemSize: number | null; itemSizeUnit: string | null; alwaysOnHand: boolean; barcode: string | null; productMeta: string | null; }
+interface PantryItem { id: string; name: string; aliases: string[] | null; quantity: number | null; unit: string | null; itemSize: number | null; itemSizeUnit: string | null; alwaysOnHand: boolean; barcode: string | null; productMeta: string | null; }
 
 interface Props { kitchen: string; recipeId: string; }
 
@@ -702,6 +708,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
               )}
               {allergenTags.map((t) => {
                 const substance = t.replace(/^contains-/i, '').replace(/-/g, ' ');
+                const Icon = getAllergenIcon(substance);
                 return (
                   <span
                     key={t}
@@ -709,7 +716,7 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                     style={{ color: 'var(--color-warning)' }}
                     title={`Contains ${substance}`}
                   >
-                    <ExclamationTriangleIcon />
+                    <Icon size={12} aria-hidden weight="bold" />
                     {t}
                   </span>
                 );
@@ -805,6 +812,18 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
             )}
           </header>
 
+          {/* Allergens — unions `contains-*` recipe tags with pantry OFF
+              metadata. Uses `groceryIngredients` so warnings bubble up
+              through sub-recipes (e.g. an "Almond Milk" sub-recipe's
+              almonds surface "Nuts" on the parent recipe). Sits above
+              Ingredients so the warning is seen before any cooking
+              decisions. */}
+          <AllergensLine
+            ingredients={recipe.groceryIngredients}
+            pantry={pantry ?? []}
+            recipeTags={recipe.tags}
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-10">
             <section aria-labelledby="ingredients-heading">
               <h2 id="ingredients-heading" className="text-xl font-bold mb-4">Ingredients</h2>
@@ -864,14 +883,6 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
           </div>
 
           <StepPhotos steps={steps} sourceUrl={recipe.sourceUrl} dbStepPhotos={recipe.stepPhotos} />
-
-          {/* Allergens — unions `contains-*` recipe tags with pantry OFF
-              metadata. Silent when no matches. */}
-          <AllergensLine
-            ingredients={recipe.ingredients}
-            pantry={pantry ?? []}
-            recipeTags={recipe.tags}
-          />
 
           {/* Nutrition panel — recipe-api.com import wins when available,
               otherwise aggregated from pantry OFF metadata where possible.

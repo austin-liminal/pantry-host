@@ -7,10 +7,11 @@ import { hasCooklangSyntax, extractCooklang } from '@pantry-host/shared/cooklang
 import PixabayImage from '@pantry-host/shared/components/PixabayImage';
 import { NutritionSource } from '@pantry-host/shared/components/NutritionSource';
 import { AllergensLine } from '@pantry-host/shared/components/AllergensLine';
+import { getAllergenIcon } from '@pantry-host/shared/components/allergen-icons';
 import { groupIngredients } from '@pantry-host/shared/ingredient-groups';
 import { resolveGroceryStatus, pantryIndex, findPantryItem } from '@pantry-host/shared/grocery-status';
 import { getFileURL } from '@/lib/storage-opfs';
-import { PencilSimple, Trash, Printer, CalendarPlus, Export, Code, ShareNetwork, Rows, Columns, GridNine, ArrowsOut, ArrowsIn, Warning } from '@phosphor-icons/react';
+import { PencilSimple, Trash, Printer, CalendarPlus, Export, Code, ShareNetwork, Rows, Columns, GridNine, ArrowsOut, ArrowsIn } from '@phosphor-icons/react';
 
 /** Resolves opfs:// URLs to blob URLs for display */
 function OpfsImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
@@ -51,6 +52,9 @@ interface Recipe {
   sourceUrl: string | null;
   queued: boolean;
   ingredients: RecipeIngredient[];
+  /** Recursively-unfurled ingredient list — feeds AllergensLine so
+   *  warnings bubble up through sub-recipes. */
+  groceryIngredients: Pick<RecipeIngredient, 'ingredientName' | 'quantity' | 'unit' | 'itemSize' | 'itemSizeUnit'>[];
   usedIn: SubRecipe[];
   createdAt: string;
 }
@@ -71,6 +75,7 @@ const RECIPE_QUERY = `query($id: String!) {
     id slug title description instructions servings prepTime cookTime
     tags requiredCookware { id name brand } photoUrl stepPhotos sourceUrl queued createdAt
     ingredients { ingredientName quantity unit itemSize itemSizeUnit sourceRecipeId }
+    groceryIngredients { ingredientName quantity unit itemSize itemSizeUnit }
     usedIn { id slug title cookTime prepTime servings tags photoUrl }
   }
 }`;
@@ -151,6 +156,7 @@ function StepPhotos({ instructions, sourceUrl, dbStepPhotos }: { instructions: s
 
 interface PantryItemForCheck {
   name: string;
+  aliases: string[] | null;
   quantity: number | null;
   unit: string | null;
   itemSize: number | null;
@@ -192,7 +198,7 @@ export default function RecipeDetailPage() {
   // recipe load so both can resolve in parallel.
   useEffect(() => {
     gql<{ ingredients: PantryItemForCheck[] }>(
-      `{ ingredients { name quantity unit itemSize itemSizeUnit alwaysOnHand barcode productMeta } }`,
+      `{ ingredients { name aliases quantity unit itemSize itemSizeUnit alwaysOnHand barcode productMeta } }`,
     )
       .then((d) => setPantry(d.ingredients ?? []))
       .catch((err) => { console.warn('[pantry fetch]', err); setPantry([]); });
@@ -406,6 +412,7 @@ export default function RecipeDetailPage() {
               warning treatment via the shared --color-warning token. */}
           {recipe.tags.filter((t) => t.toLowerCase().startsWith('contains-')).map((t) => {
             const substance = t.replace(/^contains-/i, '').replace(/-/g, ' ');
+            const Icon = getAllergenIcon(substance);
             return (
               <span
                 key={t}
@@ -413,7 +420,7 @@ export default function RecipeDetailPage() {
                 style={{ color: 'var(--color-warning)' }}
                 title={`Contains ${substance}`}
               >
-                <Warning size={12} aria-hidden weight="bold" />
+                <Icon size={12} aria-hidden weight="bold" />
                 {t}
               </span>
             );
@@ -495,6 +502,15 @@ export default function RecipeDetailPage() {
         </p>
       )}
 
+      {/* Allergens — uses `groceryIngredients` so warnings bubble up
+          through sub-recipes (almonds in an Almond Milk sub-recipe
+          surface "Nuts" on the parent). Silent when no matches. */}
+      <AllergensLine
+        ingredients={recipe.groceryIngredients}
+        pantry={pantry ?? []}
+        recipeTags={recipe.tags}
+      />
+
       {/* Two-column: Ingredients | Instructions */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-10 mt-10">
         <section>
@@ -561,13 +577,6 @@ export default function RecipeDetailPage() {
       </div>
 
       <StepPhotos instructions={recipe.instructions} sourceUrl={recipe.sourceUrl} dbStepPhotos={recipe.stepPhotos} />
-
-      {/* Allergens — `contains-*` recipe tags + pantry OFF metadata. */}
-      <AllergensLine
-        ingredients={recipe.ingredients}
-        pantry={pantry ?? []}
-        recipeTags={recipe.tags}
-      />
 
       {/* Nutrition panel — recipe-api.com when available, otherwise
           aggregated from pantry OFF metadata where possible. */}

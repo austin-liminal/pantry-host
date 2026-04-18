@@ -58,6 +58,10 @@ const IngredientType = builder.objectType('Ingredient', {
     itemSizeUnit: t.string({ nullable: true, resolve: (r) => r.item_size_unit }),
     alwaysOnHand: t.boolean({ resolve: (r) => r.always_on_hand ?? false }),
     tags: t.stringList({ resolve: (r) => r.tags ?? [] }),
+    // Alternative names for matching — recipe ingredient names matching
+    // any alias resolve to this pantry row via pantryIndex's three tiers.
+    // Display surfaces use `name` only.
+    aliases: t.stringList({ resolve: (r) => r.aliases ?? [] }),
     // Opt-in barcode + allowlisted OFF metadata (STORE_BARCODE_META setting).
     // Null on rows scanned before the setting was enabled, or on manually-added rows.
     barcode: t.string({ nullable: true, resolve: (r) => r.barcode }),
@@ -80,6 +84,9 @@ const IngredientInputType = builder.inputType('IngredientInput', {
     itemSizeUnit: t.string(),
     alwaysOnHand: t.boolean(),
     tags: t.stringList(),
+    /** Alternative names for matching. First one is NOT special on the
+     *  input side — that's a UI convention. The full array is stored. */
+    aliases: t.stringList(),
     barcode: t.string(),
     /** Serialized JSON string of ProductMeta; the server JSON.parse-es on write. */
     productMeta: t.string(),
@@ -467,6 +474,7 @@ builder.mutationField('addIngredient', (t) =>
       itemSizeUnit: t.arg.string(),
       alwaysOnHand: t.arg.boolean(),
       tags: t.arg.stringList(),
+      aliases: t.arg.stringList(),
       barcode: t.arg.string(),
       productMeta: t.arg.string(),
       kitchenSlug: t.arg.string(),
@@ -475,7 +483,7 @@ builder.mutationField('addIngredient', (t) =>
       const kitchenId = await resolveKitchenId(args.kitchenSlug);
       const productMetaJson = parseProductMeta(args.productMeta);
       const [row] = await sql`
-        INSERT INTO ingredients (name, category, quantity, unit, item_size, item_size_unit, always_on_hand, tags, barcode, product_meta, kitchen_id)
+        INSERT INTO ingredients (name, category, quantity, unit, item_size, item_size_unit, always_on_hand, tags, aliases, barcode, product_meta, kitchen_id)
         VALUES (
           ${args.name},
           ${args.category ?? null},
@@ -485,6 +493,7 @@ builder.mutationField('addIngredient', (t) =>
           ${args.itemSizeUnit ?? null},
           ${args.alwaysOnHand ?? false},
           ${sql.array(args.tags ?? [])},
+          ${args.aliases ? sql.array(args.aliases) : null},
           ${args.barcode ?? null},
           ${productMetaJson},
           ${kitchenId}
@@ -514,11 +523,12 @@ builder.mutationField('addIngredients', (t) =>
             item_size_unit: i.itemSizeUnit ?? null,
             always_on_hand: i.alwaysOnHand ?? false,
             tags: i.tags ?? [],
+            aliases: i.aliases ?? null,
             barcode: i.barcode ?? null,
             product_meta: parseProductMeta(i.productMeta),
             kitchen_id: kitchenId,
           })),
-          'name', 'category', 'quantity', 'unit', 'item_size', 'item_size_unit', 'always_on_hand', 'tags', 'barcode', 'product_meta', 'kitchen_id',
+          'name', 'category', 'quantity', 'unit', 'item_size', 'item_size_unit', 'always_on_hand', 'tags', 'aliases', 'barcode', 'product_meta', 'kitchen_id',
         )}
         RETURNING *
       `;
@@ -540,6 +550,7 @@ builder.mutationField('updateIngredient', (t) =>
       itemSizeUnit: t.arg.string(),
       alwaysOnHand: t.arg.boolean(),
       tags: t.arg.stringList(),
+      aliases: t.arg.stringList(),
       barcode: t.arg.string(),
       productMeta: t.arg.string(),
     },
@@ -555,6 +566,7 @@ builder.mutationField('updateIngredient', (t) =>
           item_size = COALESCE(${args.itemSize ?? null}, item_size),
           item_size_unit = COALESCE(${args.itemSizeUnit ?? null}, item_size_unit),
           tags = COALESCE(${args.tags ? sql.array(args.tags) : null}, tags),
+          aliases = COALESCE(${args.aliases ? sql.array(args.aliases) : null}, aliases),
           barcode = COALESCE(${args.barcode ?? null}, barcode),
           product_meta = COALESCE(${productMetaJson ?? null}::jsonb, product_meta),
           updated_at = NOW()

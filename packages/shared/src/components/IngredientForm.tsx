@@ -17,6 +17,9 @@ const COUNT_UNITS: readonly string[] = UNIT_GROUPS.find((g) => g.label === 'Coun
 export interface IngredientData {
   id: string;
   name: string;
+  /** Alternative names that match in recipe lookups. Display always
+   *  uses `name`; aliases participate in pantryIndex matching only. */
+  aliases?: string[] | null;
   category: string | null;
   quantity: number | null;
   unit: string | null;
@@ -32,6 +35,7 @@ export interface IngredientData {
 export interface IngredientFormVariables {
   id?: string;
   name: string;
+  aliases: string[];
   category: string | null;
   quantity: number | null;
   unit: string | null;
@@ -57,9 +61,16 @@ function initialQtyMode(ingredient?: IngredientData): QtyMode {
   return 'unset';
 }
 
+/** Build the comma-separated initial value for the Name input from the
+ *  canonical name + any stored aliases. "Dark Roasted Peanut Butter" +
+ *  ["peanut butter"] → "Dark Roasted Peanut Butter, peanut butter". */
+function joinNameAndAliases(name: string, aliases: string[] | null | undefined): string {
+  return [name, ...(aliases ?? [])].filter((s) => s && s.trim()).join(', ');
+}
+
 export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFocus }: Props) {
   const editing = Boolean(ingredient);
-  const [name, setName] = useState(ingredient?.name ?? '');
+  const [name, setName] = useState(joinNameAndAliases(ingredient?.name ?? '', ingredient?.aliases));
   const [category, setCategory] = useState(ingredient?.category ?? '');
   const [qtyMode, setQtyMode] = useState<QtyMode>(initialQtyMode(ingredient));
   const [quantity, setQuantity] = useState<string>(ingredient?.quantity?.toString() ?? '');
@@ -72,7 +83,13 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    // Parse the comma-separated name field: first non-empty entry is the
+    // canonical name; the rest are aliases (deduped, never the canonical).
+    const nameParts = name.split(',').map((s) => s.trim()).filter(Boolean);
+    const canonicalName = nameParts[0] ?? '';
+    if (!canonicalName) return;
+    const aliases = [...new Set(nameParts.slice(1))]
+      .filter((a) => a.toLowerCase() !== canonicalName.toLowerCase());
 
     setSaving(true);
     setError(null);
@@ -90,7 +107,8 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
     try {
       await onSubmit({
         ...(editing && ingredient ? { id: ingredient.id } : {}),
-        name: name.trim(),
+        name: canonicalName,
+        aliases,
         category: category || null,
         quantity: resolvedQty,
         unit: resolvedUnit,
@@ -148,7 +166,12 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
           autoFocus={autoFocus}
           className="field-input w-full"
           aria-required="true"
+          aria-describedby="ing-name-hint"
         />
+        <p id="ing-name-hint" className="text-xs text-[var(--color-text-secondary)] mt-1 pretty">
+          Comma-separated. The first is the display name; later entries
+          also match ingredient names in recipes.
+        </p>
       </div>
 
       <div className="mb-4">
@@ -323,7 +346,7 @@ export default function IngredientForm({ ingredient, onSubmit, onCancel, autoFoc
         )}
         <button
           type="submit"
-          disabled={saving || !name.trim()}
+          disabled={saving || !name.split(',').some((s) => s.trim())}
           aria-busy={saving}
           aria-describedby={error ? 'ing-error' : undefined}
           className="btn-primary flex-1 disabled:opacity-50"

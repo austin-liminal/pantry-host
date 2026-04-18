@@ -16,6 +16,7 @@ import {
   type RecipeIngredientForNutrition,
   type PantryItemForNutrition,
 } from '../nutrition-aggregate';
+import { getAllergenIcon } from './allergen-icons';
 
 interface Props {
   ingredients: RecipeIngredientForNutrition[];
@@ -38,23 +39,27 @@ export function AllergensLine({ ingredients, pantry, recipeTags }: Props) {
   if (allergens.length === 0) return null;
   return (
     <div
-      className="flex flex-wrap items-center gap-2 mt-6"
+      className="flex flex-wrap items-center gap-2 mt-6 mb-2"
       aria-label="Allergens — based on recipe tags and pantry metadata"
     >
-      <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)]">
+        <Warning size={14} aria-hidden weight="bold" style={{ color: 'var(--color-warning)' }} />
         Contains:
       </span>
-      {allergens.map((substance) => (
-        <span
-          key={substance}
-          className="tag inline-flex items-center gap-1"
-          style={{ color: 'var(--color-warning)' }}
-          title={`Contains ${substance}`}
-        >
-          <Warning size={12} aria-hidden weight="bold" />
-          {toTitle(substance)}
-        </span>
-      ))}
+      {allergens.map((substance) => {
+        const Icon = getAllergenIcon(substance);
+        return (
+          <span
+            key={substance}
+            className="tag inline-flex items-center gap-1"
+            style={{ color: 'var(--color-warning)' }}
+            title={`Contains ${substance}`}
+          >
+            <Icon size={12} aria-hidden weight="bold" />
+            {toTitle(substance)}
+          </span>
+        );
+      })}
     </div>
   );
 }

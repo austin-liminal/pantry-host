@@ -51,6 +51,7 @@ import { isOwner } from '@/lib/isTrustedNetwork';
 interface Ingredient {
   id: string;
   name: string;
+  aliases: string[];
   category: string | null;
   quantity: number | null;
   unit: string | null;
@@ -64,7 +65,7 @@ interface Ingredient {
 
 const INGREDIENTS_QUERY = `
   query Ingredients($kitchenSlug: String) {
-    ingredients(kitchenSlug: $kitchenSlug) { id name category quantity unit itemSize itemSizeUnit alwaysOnHand tags barcode productMeta }
+    ingredients(kitchenSlug: $kitchenSlug) { id name aliases category quantity unit itemSize itemSizeUnit alwaysOnHand tags barcode productMeta }
   }
 `;
 

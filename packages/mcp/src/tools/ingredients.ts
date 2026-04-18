@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { gql } from '../graphql-client.js';
 
-const INGREDIENT_FIELDS = `id name category quantity unit itemSize itemSizeUnit alwaysOnHand tags barcode productMeta createdAt`;
+const INGREDIENT_FIELDS = `id name aliases category quantity unit itemSize itemSizeUnit alwaysOnHand tags barcode productMeta createdAt`;
 
 export function registerIngredientTools(server: McpServer) {
   server.tool(
@@ -36,14 +36,15 @@ export function registerIngredientTools(server: McpServer) {
       itemSizeUnit: z.string().optional().describe('Unit of the per-item size (e.g. "fl oz", "oz", "g")'),
       alwaysOnHand: z.boolean().optional().describe('If true, never track quantity'),
       tags: z.array(z.string()).optional().describe('Tags'),
+      aliases: z.array(z.string()).optional().describe('Alternative names for matching. Recipe ingredient names that match any alias resolve to this pantry row. Useful when a canonical pantry name (e.g. "Dark Roasted Peanut Butter") differs from how recipes refer to the ingredient (e.g. "peanut butter").'),
       barcode: z.string().optional().describe('EAN-13 / UPC-A barcode string. Typically written by the scanner; agents can pass one when sourcing data from elsewhere.'),
       productMeta: z.string().optional().describe('JSON-encoded allowlisted Open Food Facts metadata (nutriments per 100g / per serving, allergens_tags, ingredients_text, nutriscore_grade, nova_group, labels_tags, etc). Persisted as JSONB.'),
       kitchenSlug: z.string().optional().describe('Kitchen slug (default: home)'),
     },
     async (args) => {
       const data = await gql<{ addIngredient: unknown }>(
-        `mutation($name: String!, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!], $barcode: String, $productMeta: String, $kitchenSlug: String) {
-          addIngredient(name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags, barcode: $barcode, productMeta: $productMeta, kitchenSlug: $kitchenSlug) { ${INGREDIENT_FIELDS} }
+        `mutation($name: String!, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!], $aliases: [String!], $barcode: String, $productMeta: String, $kitchenSlug: String) {
+          addIngredient(name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags, aliases: $aliases, barcode: $barcode, productMeta: $productMeta, kitchenSlug: $kitchenSlug) { ${INGREDIENT_FIELDS} }
         }`,
         args,
       );
@@ -64,6 +65,7 @@ export function registerIngredientTools(server: McpServer) {
         itemSizeUnit: z.string().optional(),
         alwaysOnHand: z.boolean().optional(),
         tags: z.array(z.string()).optional(),
+        aliases: z.array(z.string()).optional(),
         barcode: z.string().optional(),
         productMeta: z.string().optional(),
       })).describe('Array of ingredients to add'),
@@ -93,13 +95,14 @@ export function registerIngredientTools(server: McpServer) {
       itemSizeUnit: z.string().optional().describe('New per-item size unit'),
       alwaysOnHand: z.boolean().optional().describe('Mark as always on hand'),
       tags: z.array(z.string()).optional().describe('New tags (e.g. harvest location tags like costco, farmers-market)'),
+      aliases: z.array(z.string()).optional().describe('New aliases — alternative names for matching against recipe ingredients. Replaces the existing list.'),
       barcode: z.string().optional().describe('Barcode string (EAN-13/UPC-A).'),
       productMeta: z.string().optional().describe('JSON-encoded allowlisted OFF metadata.'),
     },
     async (args) => {
       const data = await gql<{ updateIngredient: unknown }>(
-        `mutation($id: String!, $name: String, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!], $barcode: String, $productMeta: String) {
-          updateIngredient(id: $id, name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags, barcode: $barcode, productMeta: $productMeta) { ${INGREDIENT_FIELDS} }
+        `mutation($id: String!, $name: String, $category: String, $quantity: Float, $unit: String, $itemSize: Float, $itemSizeUnit: String, $alwaysOnHand: Boolean, $tags: [String!], $aliases: [String!], $barcode: String, $productMeta: String) {
+          updateIngredient(id: $id, name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags, aliases: $aliases, barcode: $barcode, productMeta: $productMeta) { ${INGREDIENT_FIELDS} }
         }`,
         args,
       );

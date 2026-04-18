@@ -28,6 +28,10 @@ export type GroceryStatus = 'have' | 'need_more' | 'check_pantry' | 'buy';
 
 export interface PantryItemForStatus {
   name: string;
+  /** Alternative names that participate in matching. The display name
+   *  is always `name`; any string in `aliases` resolves to this row
+   *  through pantryIndex's three tiers (exact / normalized / suffix). */
+  aliases?: string[] | null;
   quantity?: number | null;
   unit?: string | null;
   itemSize?: number | null;
@@ -113,20 +117,27 @@ export function pantryIndex<T extends PantryItemForStatus>(pantry: T[]): PantryL
   const suffix: { key: string; item: T }[] = [];
   for (const item of pantry) {
     if (!item?.name) continue;
-    exact.set(item.name.toLowerCase(), item);
-    const norm = normalizeIngredientName(item.name);
-    if (!norm) continue;
-    // Earlier entries "win" the normalized slot so exact-intent pantry rows
-    // aren't shadowed by a later, more-specific collision.
-    if (!normalized.has(norm)) normalized.set(norm, item);
-    // Cap suffix match to 2–3 word pantry names. Single-word keys are
-    // excluded because they produce too many false positives with compound
-    // ingredients ("peanut butter" → "butter", "brown sugar" → "sugar",
-    // "almond milk" → "milk"). Users whose recipes say "a pinch of salt"
-    // still match pantry "Salt" because the normalizer strips the
-    // "pinch of" prefix — tier 2 handles that case.
-    const wordCount = norm.split(' ').length;
-    if (wordCount >= 2 && wordCount <= 3) suffix.push({ key: norm, item });
+    // Index the canonical name AND every alias under the same row.
+    // Aliases let "Dark Roasted Peanut Butter" also match "peanut butter"
+    // without the user having to rename the pantry row.
+    const candidates = [item.name, ...(item.aliases ?? [])];
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      exact.set(candidate.toLowerCase(), item);
+      const norm = normalizeIngredientName(candidate);
+      if (!norm) continue;
+      // Earlier entries "win" the normalized slot so exact-intent pantry
+      // rows aren't shadowed by a later, more-specific collision.
+      if (!normalized.has(norm)) normalized.set(norm, item);
+      // Cap suffix match to 2–3 word pantry names. Single-word keys are
+      // excluded because they produce too many false positives with
+      // compound ingredients ("peanut butter" → "butter", "brown sugar"
+      // → "sugar", "almond milk" → "milk"). Users whose recipes say
+      // "a pinch of salt" still match pantry "Salt" because the
+      // normalizer strips the "pinch of" prefix — tier 2 handles that case.
+      const wordCount = norm.split(' ').length;
+      if (wordCount >= 2 && wordCount <= 3) suffix.push({ key: norm, item });
+    }
   }
   // Longest first: "olive oil" beats "oil" when both are in the pantry.
   suffix.sort((a, b) => b.key.length - a.key.length);

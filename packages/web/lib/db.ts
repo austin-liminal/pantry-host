@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS ingredients (
   tags           TEXT[] DEFAULT '{}',
   barcode        VARCHAR(64),
   product_meta   JSONB,
+  aliases        TEXT[],
   kitchen_id     TEXT NOT NULL REFERENCES kitchens(id) ON DELETE CASCADE,
   created_at     TIMESTAMPTZ DEFAULT NOW(),
   updated_at     TIMESTAMPTZ DEFAULT NOW()
@@ -178,6 +179,8 @@ async function getDB(): Promise<PGlite> {
       await instance.query(`ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS barcode      VARCHAR(64)`);
       await instance.query(`ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS product_meta JSONB`);
       await instance.query(`CREATE INDEX IF NOT EXISTS idx_ingredients_barcode ON ingredients(barcode) WHERE barcode IS NOT NULL`);
+      // v0.5.1: Pantry-row aliases for recipe-ingredient matching.
+      await instance.query(`ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS aliases TEXT[]`);
     }
 
     // Only expose db after schema is fully initialized

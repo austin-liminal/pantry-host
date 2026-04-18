@@ -126,3 +126,11 @@ ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS barcode       VARCHAR(64);
 ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS product_meta  JSONB;
 CREATE INDEX IF NOT EXISTS idx_ingredients_barcode
   ON ingredients(barcode) WHERE barcode IS NOT NULL;
+
+-- v0.5.1: Pantry-row aliases — alternative names that participate in
+-- recipe-ingredient matching. Lets a single canonical pantry row
+-- ("Dark Roasted Peanut Butter") catch recipes that say "peanut butter"
+-- or "creamy peanut butter" without relying on the fuzzy suffix tier.
+-- Display surfaces continue to use `name` only; aliases feed the
+-- pantryIndex matcher transparently.
+ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS aliases TEXT[];

@@ -30,6 +30,7 @@ interface QueuedRecipe {
 interface PantryItem {
   id: string;
   name: string;
+  aliases: string[] | null;
   quantity: number | null;
   unit: string | null;
   itemSize?: number | null;
@@ -65,7 +66,7 @@ const QUEUED_RECIPES_QUERY = `
 
 const INGREDIENTS_QUERY = `
   query Ingredients($kitchenSlug: String) {
-    ingredients(kitchenSlug: $kitchenSlug) { id name quantity unit itemSize itemSizeUnit alwaysOnHand tags }
+    ingredients(kitchenSlug: $kitchenSlug) { id name aliases quantity unit itemSize itemSizeUnit alwaysOnHand tags }
   }
 `;
 

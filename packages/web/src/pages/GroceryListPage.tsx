@@ -28,6 +28,7 @@ interface Recipe {
 
 interface PantryItem {
   name: string;
+  aliases?: string[] | null;
   quantity?: number | null;
   unit?: string | null;
   itemSize?: number | null;
@@ -37,7 +38,7 @@ interface PantryItem {
 }
 
 const QUERY = `query($kitchenSlug:String){ recipes(queued: true, kitchenSlug:$kitchenSlug) { id slug title groceryIngredients { ingredientName quantity unit itemSize itemSizeUnit } } }`;
-const PANTRY_QUERY = `query($kitchenSlug:String){ ingredients(kitchenSlug:$kitchenSlug) { name quantity unit itemSize itemSizeUnit tags alwaysOnHand } }`;
+const PANTRY_QUERY = `query($kitchenSlug:String){ ingredients(kitchenSlug:$kitchenSlug) { name aliases quantity unit itemSize itemSizeUnit tags alwaysOnHand } }`;
 const TOGGLE_QUEUED = `mutation($id: String!) { toggleRecipeQueued(id: $id) { id queued } }`;
 
 const STORAGE_KEY = 'groceryChecked';
