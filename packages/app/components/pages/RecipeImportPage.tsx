@@ -753,7 +753,7 @@ export default function RecipeImportPage({ kitchen }: Props) {
               // AT URIs fetched client-side (bsky.social has open CORS)
               data = await fetchBlueskyRecipe(item.url) as unknown as ParsedRecipe;
             } else {
-              const res = await fetch(`http://${window.location.hostname}:4001/fetch-recipe`, {
+              const res = await fetch('/fetch-recipe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: item.url }),

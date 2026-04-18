@@ -5,9 +5,9 @@ import { setApiOnline } from './apiStatus';
 
 function getGraphqlUrl(): string {
   if (typeof window === 'undefined') return 'http://localhost:4001/graphql';
-  const proto = window.location.protocol === 'https:' ? 'https' : 'http';
-  const gqlPort = proto === 'https' ? 4443 : 4001;
-  return `${proto}://${window.location.hostname}:${gqlPort}/graphql`;
+  // Same-origin: relies on the reverse proxy to forward /graphql to the
+  // GraphQL server (port 4001). Avoids needing a separate public port.
+  return '/graphql';
 }
 
 /** Timeout in ms for GraphQL fetches. The server is on localhost/LAN so it

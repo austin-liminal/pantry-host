@@ -53,7 +53,7 @@ export default function UrlImportCommon({ scheme }: { scheme: 'http' | 'https' }
   }, [scheme]);
 
   const fetcher = useCallback(async (url: string) => {
-    const res = await fetch(`http://${window.location.hostname}:4001/fetch-recipe`, {
+    const res = await fetch('/fetch-recipe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),

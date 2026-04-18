@@ -34,9 +34,8 @@ export function setApiOnline(online: boolean): void {
 
 function getGqlUrl(): string {
   if (typeof window === 'undefined') return 'http://localhost:4001/graphql';
-  const proto = window.location.protocol === 'https:' ? 'https' : 'http';
-  const gqlPort = proto === 'https' ? 4443 : 4001;
-  return `${proto}://${window.location.hostname}:${gqlPort}/graphql`;
+  // Same-origin — reverse proxy forwards /graphql to the GraphQL server.
+  return '/graphql';
 }
 
 async function checkApi(): Promise<void> {

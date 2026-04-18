@@ -224,9 +224,8 @@ export default function RecipeForm({ initial, existingRecipes = [], cookwareItem
     setImporting(true);
     setImportError(null);
     try {
-      const proto = window.location.protocol === 'https:' ? 'https' : 'http';
-      const port = proto === 'https' ? 4443 : 4001;
-      const res = await fetch(`${proto}://${window.location.hostname}:${port}/fetch-recipe`, {
+      // Same-origin — reverse proxy forwards /fetch-recipe to port 4001.
+      const res = await fetch('/fetch-recipe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: importUrl.trim() }),
