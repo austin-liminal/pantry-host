@@ -500,7 +500,9 @@ export default function RecipeDetailPage() {
                               aria-label={ing.ingredientName}
                               className="mt-1 w-5 h-5 border-2 border-[var(--color-border-card)] accent-[var(--color-accent)] shrink-0"
                             />
-                            <span className={checked ? 'line-through text-[var(--color-text-secondary)]' : ''}>
+                            {/* No line-through when checked — keep ingredient text legible
+                                regardless of on-hand status. */}
+                            <span className={checked ? 'text-[var(--color-text-secondary)]' : ''}>
                               {scaleQty(ing.quantity) != null && <span className="font-semibold tabular-nums">{scaleQty(ing.quantity)}{' '}</span>}
                               {ing.itemSize != null ? (
                                 <span className="tabular-nums">{ing.itemSize}{ing.itemSizeUnit ?? ''} </span>

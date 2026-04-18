@@ -805,7 +805,10 @@ export default function RecipeDetailPage({ kitchen, recipeId }: Props) {
                           <li key={ing.index}>
                             <label className="flex items-start gap-3 cursor-pointer group">
                               <input type="checkbox" checked={checked} onChange={() => toggleIngredient(ing.index)} aria-label={ing.ingredientName} className="mt-1 w-5 h-5 border-2 border-[var(--color-border-card)] accent-accent shrink-0" />
-                              <span className={checked ? 'line-through text-[var(--color-text-secondary)]' : ''}>
+                              {/* No line-through when checked — keep ingredient text legible
+                                  while cooking whether or not it's been collected. The checkbox
+                                  state alone communicates "have it / done with this step." */}
+                              <span className={checked ? 'text-[var(--color-text-secondary)]' : ''}>
                                 {scaledQty != null && <span className="font-semibold tabular-nums">{scaledQty}{' '}</span>}
                                 {hasItemSize && (
                                   <span className="tabular-nums">{ing.itemSize}{ing.itemSizeUnit ?? ''} </span>
