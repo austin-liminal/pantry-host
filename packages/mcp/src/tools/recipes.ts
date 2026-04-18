@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { gql } from '../graphql-client.js';
+import { computeRecipeAllergens } from './allergens.js';
 
 const RECIPE_SUMMARY = `id slug title description tags requiredCookware { name } servings prepTime cookTime source sourceUrl photoUrl queued lastMadeAt`;
 
@@ -15,29 +16,51 @@ const RECIPE_FULL = `${RECIPE_SUMMARY} instructions ingredients { ingredientName
 export function registerRecipeTools(server: McpServer) {
   server.tool(
     'search_recipes',
-    'Search recipes. Filter by title, tags, required cookware, or queued status.',
+    'Search recipes. Filter by title, tags, required cookware, queued status, or allergens to exclude. The allergen filter mirrors the recipe-detail AllergensLine — it considers both `contains-*` recipe tags and pantry-side OFF metadata, recursing through sub-recipes.',
     {
       title: z.string().optional().describe('Search by recipe title (partial match, case-insensitive)'),
       tags: z.array(z.string()).optional().describe('Filter by recipe tags (OR match). Examples: "dinner", "vegan", "bluesky" (AT Protocol imports)'),
       cookware: z.array(z.string()).optional().describe('Filter by required cookware (OR match)'),
       queued: z.boolean().optional().describe('Filter by queued status'),
+      excludeAllergens: z.array(z.string()).optional().describe('Drop recipes whose allergen rollup intersects any of these substances. Substances are normalized lowercase ("peanuts", "tree nuts", "milk") — "Peanut" / "PEANUTS" also match. Useful for diet-aware planning ("nut-free dinners from what\'s on hand").'),
       kitchenSlug: z.string().optional().describe('Kitchen slug (default: home)'),
     },
     async (args) => {
-      const cookwareIds = args.cookware?.length ? await resolveCookwareIds(args.cookware) : undefined;
-      const data = await gql<{ recipes: unknown[] }>(
+      const { excludeAllergens, ...searchArgs } = args;
+      const cookwareIds = searchArgs.cookware?.length ? await resolveCookwareIds(searchArgs.cookware) : undefined;
+      const data = await gql<{ recipes: { id: string; slug: string }[] }>(
         `query($title: String, $tags: [String!], $cookware: [String!], $queued: Boolean, $kitchenSlug: String) {
           recipes(title: $title, tags: $tags, cookware: $cookware, queued: $queued, kitchenSlug: $kitchenSlug) { ${RECIPE_SUMMARY} }
         }`,
-        { ...args, cookware: cookwareIds },
+        { ...searchArgs, cookware: cookwareIds },
       );
-      return { content: [{ type: 'text' as const, text: JSON.stringify(data.recipes, null, 2) }] };
+
+      let recipes = data.recipes;
+      // Allergen exclusion is a post-filter: aggregateAllergens needs the
+      // full recipe + pantry context, which is too heavy to do server-side
+      // in the recipes() resolver. Typical kitchens have ≤100 recipes;
+      // running the helper per row is fast enough.
+      if (excludeAllergens?.length) {
+        const exclude = new Set(
+          excludeAllergens.map((s) => s.trim().toLowerCase()),
+        );
+        const checks = await Promise.all(
+          recipes.map(async (r) => {
+            const { allergens } = await computeRecipeAllergens(r.id, args.kitchenSlug);
+            const hit = allergens.some((a) => exclude.has(a.toLowerCase()));
+            return hit ? null : r;
+          }),
+        );
+        recipes = checks.filter((r): r is { id: string; slug: string } => r !== null);
+      }
+
+      return { content: [{ type: 'text' as const, text: JSON.stringify(recipes, null, 2) }] };
     },
   );
 
   server.tool(
     'get_recipe',
-    'Get a recipe by ID or slug, including full instructions and ingredients.',
+    'Get a recipe by ID or slug, including full instructions, direct `ingredients`, and `groceryIngredients` (the recursively-unfurled flat list — sub-recipes expanded to their constituents). Use `groceryIngredients` for nutrition / allergen introspection so warnings bubble up through the recipe chain. Tag any allergens explicitly with `contains-*` (e.g. `contains-tree-nuts`) for the strongest signal — those render with amber warning chips on the recipe detail page.',
     {
       id: z.string().describe('Recipe ID (UUID) or slug'),
     },
@@ -62,7 +85,7 @@ export function registerRecipeTools(server: McpServer) {
 
   server.tool(
     'create_recipe',
-    'Create a new recipe with ingredients. Accepts at:// AT Protocol URIs in sourceUrl; tag with "bluesky" for federated imports.',
+    'Create a new recipe with ingredients. Accepts at:// AT Protocol URIs in sourceUrl; tag with "bluesky" for federated imports. Tag with `contains-*` (e.g. `contains-peanuts`, `contains-tree-nuts`, `contains-milk`) when the recipe contains a known allergen — the FDA Top 9 are recognized and render as amber warning chips on the recipe detail page.',
     {
       title: z.string().describe('Recipe title'),
       instructions: z.string().describe('Cooking instructions (full text)'),
@@ -99,7 +122,7 @@ export function registerRecipeTools(server: McpServer) {
 
   server.tool(
     'update_recipe',
-    'Update an existing recipe. Only provide fields you want to change.',
+    'Update an existing recipe. Only provide fields you want to change. Use `contains-*` tags to assert allergens (FDA Top 9) — they render as amber warning chips and surface in the AllergensLine union with pantry-side metadata.',
     {
       id: z.string().describe('Recipe ID'),
       title: z.string().optional(),

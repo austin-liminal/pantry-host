@@ -5,6 +5,8 @@ import { registerCookwareTools } from './tools/cookware.js';
 import { registerMenuTools } from './tools/menus.js';
 import { registerKitchenTools } from './tools/kitchens.js';
 import { registerGenerateTools } from './tools/generate.js';
+import { registerAllergenTools } from './tools/allergens.js';
+import { registerNutritionTools } from './tools/nutrition.js';
 import { registerResources } from './resources/pantry.js';
 
 export function createServer(): McpServer {
@@ -19,6 +21,8 @@ export function createServer(): McpServer {
   registerMenuTools(server);
   registerKitchenTools(server);
   registerGenerateTools(server);
+  registerAllergenTools(server);
+  registerNutritionTools(server);
   registerResources(server);
 
   return server;

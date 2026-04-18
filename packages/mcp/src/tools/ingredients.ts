@@ -7,7 +7,7 @@ const INGREDIENT_FIELDS = `id name aliases category quantity unit itemSize itemS
 export function registerIngredientTools(server: McpServer) {
   server.tool(
     'search_pantry',
-    'Search pantry ingredients. Optionally filter by name, tags, or kitchen.',
+    'Search pantry ingredients. Returns rows including `aliases` (alternative names that participate in recipe matching), `barcode`, and `productMeta` (a JSON-encoded blob of allowlisted Open Food Facts data — nutrients per 100g, allergens_tags, Nutri-Score, NOVA group, etc.). The barcode + productMeta fields are populated only for rows scanned with STORE_BARCODE_META on (off by default).',
     {
       name: z.string().optional().describe('Search by ingredient name (partial match, case-insensitive)'),
       tags: z.array(z.string()).optional().describe('Filter by ingredient tags (AND match)'),
@@ -84,7 +84,7 @@ export function registerIngredientTools(server: McpServer) {
 
   server.tool(
     'update_ingredient',
-    'Update an existing pantry ingredient. To mark as out of stock, set quantity to 0 — this preserves tags (like harvest locations) and other metadata. Prefer this over remove_ingredient when the user runs out of something.',
+    "Update an existing pantry ingredient. To mark as out of stock, set quantity to 0 — this preserves tags (like harvest locations) and other metadata. Prefer this over remove_ingredient when the user runs out of something. Omitted args are preserved (COALESCE semantics) — passing `aliases` REPLACES the array; use `add_pantry_alias` if you want to append without losing existing entries.",
     {
       id: z.string().describe('Ingredient ID'),
       name: z.string().optional().describe('New name'),
@@ -105,6 +105,36 @@ export function registerIngredientTools(server: McpServer) {
           updateIngredient(id: $id, name: $name, category: $category, quantity: $quantity, unit: $unit, itemSize: $itemSize, itemSizeUnit: $itemSizeUnit, alwaysOnHand: $alwaysOnHand, tags: $tags, aliases: $aliases, barcode: $barcode, productMeta: $productMeta) { ${INGREDIENT_FIELDS} }
         }`,
         args,
+      );
+      return { content: [{ type: 'text' as const, text: JSON.stringify(data.updateIngredient, null, 2) }] };
+    },
+  );
+
+  server.tool(
+    'add_pantry_alias',
+    "Append one or more aliases to an existing pantry row without overwriting the canonical name. Use this when you notice a recipe ingredient name doesn't resolve to a pantry row that should match — adding the recipe's wording as an alias bridges the two without rebuilding the row. Aliases are deduped against the existing list and against the canonical name. Display surfaces always use `name`; aliases participate in matching only.",
+    {
+      id: z.string().describe('Pantry row ID'),
+      aliases: z.array(z.string()).min(1).describe('Aliases to append (deduped against existing). E.g. ["peanut butter", "creamy peanut butter"] for a row named "Dark Roasted Peanut Butter".'),
+    },
+    async ({ id, aliases }) => {
+      // Two-step: fetch existing aliases, merge, write back. updateIngredient
+      // replaces the array, so we have to read first to preserve.
+      const fetched = await gql<{ ingredients: { id: string; name: string; aliases: string[] }[] }>(
+        `{ ingredients { id name aliases } }`,
+      );
+      const row = fetched.ingredients.find((i) => i.id === id);
+      if (!row) {
+        return { content: [{ type: 'text' as const, text: `Pantry row not found: ${id}` }] };
+      }
+      const existing = row.aliases ?? [];
+      const merged = [...new Set([...existing, ...aliases])]
+        .filter((a) => a.toLowerCase() !== row.name.toLowerCase());
+      const data = await gql<{ updateIngredient: { id: string; name: string; aliases: string[] } }>(
+        `mutation($id: String!, $aliases: [String!]) {
+          updateIngredient(id: $id, aliases: $aliases) { id name aliases }
+        }`,
+        { id, aliases: merged },
       );
       return { content: [{ type: 'text' as const, text: JSON.stringify(data.updateIngredient, null, 2) }] };
     },

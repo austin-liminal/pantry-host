@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
+    "@pantry-host/shared": "*",
     "zod": "^3.24.4"
   },
   "devDependencies": {
