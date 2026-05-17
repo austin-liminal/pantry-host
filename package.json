@@ -14,6 +14,7 @@
     "dev:mcp": "npm run dev -w packages/mcp",
     "dev:graphql-rs": "cd packages/server && cargo run",
     "build:graphql-rs": "cd packages/server && cargo build --release",
+    "build:pi": "packages/server/scripts/build-pi.sh",
     "test:smoke": "npx tsx witness/run-smoke.ts",
     "test:integration": "node tests/integration/run.ts",
     "screencasts": "npx tsx witness/screencasts/generate-all.ts"

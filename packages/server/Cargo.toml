@@ -37,10 +37,5 @@ regex = "1"
 # image-webp crate (enabled by the `webp` feature), so no native libs are needed.
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
 
-[profile.release]
-# Optimize for size — this binary ships to Pi 3-class devices.
-opt-level = "z"
-lto = "fat"
-codegen-units = 1
-strip = "symbols"
-panic = "abort"
+# [profile.release] lives at the workspace root (../../Cargo.toml). Cargo
+# ignores per-package profile blocks in a workspace.

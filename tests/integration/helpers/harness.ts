@@ -5,7 +5,12 @@ export interface HarnessHandle {
   url: string;
   dbPath: string;
   mockUrl: string;
-  serverPid: number;
+  serverPid?: number;
+  // Set when run.ts is in docker mode (INTEGRATION_SERVER_IMAGE). resetDb()
+  // shells out to `docker exec <containerId>` instead of opening the
+  // bind-mounted SQLite file from the host — opening it across Docker
+  // Desktop's bind-mount doesn't coordinate WAL locks reliably.
+  containerId?: string;
 }
 
 const FILE = join(import.meta.dirname, '..', '__harness__.json');

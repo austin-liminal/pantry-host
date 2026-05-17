@@ -4,6 +4,9 @@ node_modules
 .env
 .env.local
 .env*.local
+.env.build
+/target
+packages/server/dist/
 *.pem
 .claude/settings.local.json
 .claude/worktrees/

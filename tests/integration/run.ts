@@ -19,13 +19,22 @@ const HERE = import.meta.dirname;
 const REPO_ROOT = join(HERE, '..', '..');
 const APP_DIR = join(REPO_ROOT, 'packages', 'app');
 const SERVER_DIR = join(REPO_ROOT, 'packages', 'server');
-const SERVER_BIN = join(SERVER_DIR, 'target', 'debug', 'pantry-server');
+// Workspace target dir lives at the repo root, not under packages/server.
+const SERVER_BIN = join(REPO_ROOT, 'target', 'debug', 'pantry-server');
 const HARNESS_FILE = join(HERE, '__harness__.json');
+
+// Docker mode: set INTEGRATION_SERVER_IMAGE=<tag> to run the suite against a
+// pre-built container image instead of the native binary. INTEGRATION_SERVER_PLATFORM
+// optionally pins the docker platform (e.g. linux/arm/v7) so foreign-arch
+// images run under QEMU. Used by packages/server/scripts/build-pi.sh.
+const SERVER_IMAGE = process.env.INTEGRATION_SERVER_IMAGE ?? '';
+const SERVER_PLATFORM = process.env.INTEGRATION_SERVER_PLATFORM ?? '';
+const DOCKER_MODE = SERVER_IMAGE.length > 0;
 
 function buildRustServer(): void {
   console.log('[harness] Building Rust server (cargo build)…');
-  const r = spawnSync('cargo', ['build'], {
-    cwd: SERVER_DIR,
+  const r = spawnSync('cargo', ['build', '-p', 'pantry-server'], {
+    cwd: REPO_ROOT,
     stdio: 'inherit',
   });
   if (r.status !== 0) {
@@ -80,11 +89,16 @@ async function waitForServer(url: string, deadlineMs = 10_000): Promise<void> {
 interface Handle {
   dbDir: string;
   mock: MockServer;
-  child: ChildProcess;
+  child?: ChildProcess;       // native mode
+  containerId?: string;       // docker mode
 }
 
 async function setup(): Promise<Handle> {
-  buildRustServer();
+  if (!DOCKER_MODE) {
+    buildRustServer();
+  } else {
+    console.log(`[harness] Docker mode: image=${SERVER_IMAGE} platform=${SERVER_PLATFORM || '(default)'}`);
+  }
 
   const dbDir = mkdtempSync(join(tmpdir(), 'pantry-host-integration-'));
   const dbPath = join(dbDir, 'pantry.db');
@@ -96,44 +110,36 @@ async function setup(): Promise<Handle> {
 
   const port = await getFreePort();
   const url = `http://127.0.0.1:${port}`;
-  // The Rust server writes uploads relative to its cwd (default
-  // `../app/public/uploads`), so run it from packages/server to match.
   const uploadsDir = join(APP_DIR, 'public', 'uploads');
-  console.log(`[harness] Spawning Rust GraphQL server on :${port}…`);
-  const child = spawn(SERVER_BIN, [], {
-    cwd: SERVER_DIR,
-    env: {
-      ...process.env,
-      SQLITE_DB_PATH: dbPath,
-      GRAPHQL_PORT: String(port),
-      ANTHROPIC_BASE_URL: mock.url,
-      AI_API_KEY: 'test-key-anthropic-mock',
-      ENABLE_IMAGE_PROCESSING: 'false',
-      UPLOADS_DIR: uploadsDir,
-      RUST_LOG: process.env.RUST_LOG ?? 'warn',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  const prefix = (chunk: Buffer) => {
-    for (const line of chunk.toString().split('\n')) {
-      if (line.trim()) process.stderr.write(`[server] ${line}\n`);
-    }
-  };
-  child.stdout?.on('data', prefix);
-  child.stderr?.on('data', prefix);
-  child.on('exit', (code, signal) => {
-    // 143 = SIGTERM (expected on teardown).
-    if (code != null && code !== 0 && code !== 143) {
-      console.error(`[harness] Server exited unexpectedly (code=${code}, signal=${signal})`);
-    }
-  });
+
+  const handle: Handle = { dbDir, mock };
+
+  // In docker mode the mock URL embedded in test request bodies has to be
+  // reachable *from inside the container* — 127.0.0.1 there is the container's
+  // own loopback. Tests that embed mockUrl in /fetch-recipe payloads need this
+  // rewritten to host.docker.internal so the container's reqwest client can
+  // resolve it. Host-side fetches against the server still go to the mapped
+  // 127.0.0.1:${port}, which is `url`.
+  const mockPort = new URL(mock.url).port;
+  const serverFacingMockUrl = DOCKER_MODE
+    ? `http://host.docker.internal:${mockPort}`
+    : mock.url;
 
   try {
-    await waitForServer(url);
+    if (DOCKER_MODE) {
+      handle.containerId = await spawnContainer({
+        port,
+        dbDir,
+        uploadsDir,
+        mockUrl: serverFacingMockUrl,
+      });
+    } else {
+      handle.child = spawnNativeServer({ port, dbPath, uploadsDir, mockUrl: mock.url });
+    }
+    // Foreign-arch containers under QEMU need a longer ready window; native is fast.
+    await waitForServer(url, DOCKER_MODE ? 60_000 : 10_000);
   } catch (err) {
-    child.kill('SIGTERM');
-    await mock.stop().catch(() => {});
-    rmSync(dbDir, { recursive: true, force: true });
+    await teardown(handle).catch(() => {});
     throw err;
   }
   console.log('[harness] Server ready.\n');
@@ -144,18 +150,107 @@ async function setup(): Promise<Handle> {
       {
         url,
         dbPath,
-        mockUrl: mock.url,
-        serverPid: child.pid,
+        mockUrl: serverFacingMockUrl,
+        serverPid: handle.child?.pid,
+        containerId: handle.containerId,
       },
       null,
       2,
     ),
   );
 
-  return { dbDir, mock, child };
+  return handle;
+}
+
+function spawnNativeServer(opts: {
+  port: number;
+  dbPath: string;
+  uploadsDir: string;
+  mockUrl: string;
+}): ChildProcess {
+  console.log(`[harness] Spawning Rust GraphQL server on :${opts.port}…`);
+  // The Rust server writes uploads relative to its cwd (default
+  // `../app/public/uploads`), so run it from packages/server to match.
+  const child = spawn(SERVER_BIN, [], {
+    cwd: SERVER_DIR,
+    env: {
+      ...process.env,
+      SQLITE_DB_PATH: opts.dbPath,
+      GRAPHQL_PORT: String(opts.port),
+      ANTHROPIC_BASE_URL: opts.mockUrl,
+      AI_API_KEY: 'test-key-anthropic-mock',
+      ENABLE_IMAGE_PROCESSING: 'false',
+      UPLOADS_DIR: opts.uploadsDir,
+      RUST_LOG: process.env.RUST_LOG ?? 'warn',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  pipeChildLogs(child);
+  child.on('exit', (code, signal) => {
+    if (code != null && code !== 0 && code !== 143) {
+      console.error(`[harness] Server exited unexpectedly (code=${code}, signal=${signal})`);
+    }
+  });
+  return child;
+}
+
+async function spawnContainer(opts: {
+  port: number;
+  dbDir: string;
+  uploadsDir: string;
+  mockUrl: string;
+}): Promise<string> {
+  // `--add-host host.docker.internal:host-gateway` makes the host reachable
+  // from inside the container on both Docker Desktop (where the name
+  // pre-exists) and Linux native Docker (where it doesn't).
+  const args: string[] = ['run', '-d', '--rm'];
+  if (SERVER_PLATFORM) args.push('--platform', SERVER_PLATFORM);
+  args.push(
+    '--add-host', 'host.docker.internal:host-gateway',
+    '-p', `127.0.0.1:${opts.port}:4001`,
+    '-v', `${opts.dbDir}:/data`,
+    '-v', `${opts.uploadsDir}:/uploads`,
+    '-e', 'SQLITE_DB_PATH=/data/pantry.db',
+    '-e', 'GRAPHQL_PORT=4001',
+    '-e', 'UPLOADS_DIR=/uploads',
+    '-e', `ANTHROPIC_BASE_URL=${opts.mockUrl}`,
+    '-e', 'AI_API_KEY=test-key-anthropic-mock',
+    '-e', 'ENABLE_IMAGE_PROCESSING=false',
+    '-e', `RUST_LOG=${process.env.RUST_LOG ?? 'warn'}`,
+    SERVER_IMAGE,
+  );
+
+  console.log(`[harness] docker ${args.join(' ')}`);
+  const r = spawnSync('docker', args, { encoding: 'utf8' });
+  if (r.status !== 0) {
+    throw new Error(`docker run failed (${r.status}): ${r.stderr || r.stdout}`);
+  }
+  const containerId = r.stdout.trim();
+  console.log(`[harness] Container started: ${containerId.slice(0, 12)}`);
+
+  // Stream container logs to stderr with a [server] prefix so failures are debuggable.
+  const logTail = spawn('docker', ['logs', '-f', containerId], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  pipeChildLogs(logTail);
+
+  return containerId;
+}
+
+function pipeChildLogs(child: ChildProcess): void {
+  const prefix = (chunk: Buffer) => {
+    for (const line of chunk.toString().split('\n')) {
+      if (line.trim()) process.stderr.write(`[server] ${line}\n`);
+    }
+  };
+  child.stdout?.on('data', prefix);
+  child.stderr?.on('data', prefix);
 }
 
 async function teardown(h: Handle): Promise<void> {
+  if (h.containerId) {
+    spawnSync('docker', ['kill', h.containerId], { stdio: 'ignore' });
+  }
   if (h.child && !h.child.killed) {
     h.child.kill('SIGTERM');
     await sleep(300);
