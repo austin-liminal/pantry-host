@@ -1,14 +1,44 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use async_graphql::{ComplexObject, Context, InputObject, Object, SimpleObject};
 use rusqlite::{params, types::Value, Connection, ToSql};
 
+use crate::config::ServerConfig;
 use crate::db::{self, new_id, now_iso, Pool};
 use crate::graphql::cookware::Cookware;
 use crate::graphql::sql_helpers::{
     auto_link_sub_recipe_ingredients, json_str_list, resolve_kitchen_id, unique_slug,
 };
 use crate::models::{parse_json_strings, CookwareRow, RecipeIngredientRow, RecipeRow};
+
+/// Schedule the post-insert/update `{slug}.jpg` copy on a background blocking
+/// thread. The helper itself sleeps in a retry loop because variant
+/// generation is async — `{uuid}-400.jpg` may not exist yet when the recipe
+/// row is written. Mirrors `copyFriendlyPhoto(...).catch(() => {})` in the
+/// TS `insertRecipe()` / `updateRecipe`.
+fn schedule_friendly_photo_copy(
+    photo_url: Option<&str>,
+    slug: Option<&str>,
+    uploads_dir: PathBuf,
+) {
+    let Some(photo) = photo_url else { return };
+    if !photo.starts_with("/uploads/") {
+        return;
+    }
+    let Some(slug) = slug else { return };
+    if slug.is_empty() {
+        return;
+    }
+    let photo = photo.to_string();
+    let slug = slug.to_string();
+    tokio::spawn(async move {
+        let _ = tokio::task::spawn_blocking(move || {
+            crate::image::copy_friendly_photo(&photo, &slug, &uploads_dir);
+        })
+        .await;
+    });
+}
 
 #[derive(SimpleObject, Clone)]
 pub struct RecipeIngredient {
@@ -503,7 +533,14 @@ impl RecipeMutation {
         kitchen_slug: Option<String>,
     ) -> async_graphql::Result<Recipe> {
         let pool = ctx.data::<Pool>()?;
-        db::with_conn(pool, move |conn| {
+        let uploads_dir = ctx.data::<ServerConfig>()?.uploads_dir.clone();
+
+        enum CreateOutcome {
+            Idempotent(RecipeRow),
+            Inserted(RecipeRow),
+        }
+
+        let outcome = db::with_conn(pool, move |conn| {
             let kitchen_id = resolve_kitchen_id(conn, kitchen_slug.as_deref())?;
 
             // 60s idempotency guard against double-submits, matching the TS
@@ -522,7 +559,7 @@ impl RecipeMutation {
                 )
             };
             if let Ok(r) = recent {
-                return Ok(Recipe::from(r));
+                return Ok(CreateOutcome::Idempotent(r));
             }
 
             let source_str = if source_url.is_some() { "url-import" } else { "manual" };
@@ -543,9 +580,18 @@ impl RecipeMutation {
                 &kitchen_id,
                 ingredients,
             )?;
-            Ok(Recipe::from(row))
+            Ok(CreateOutcome::Inserted(row))
         })
-        .await
+        .await?;
+
+        let row = match outcome {
+            CreateOutcome::Idempotent(r) => r,
+            CreateOutcome::Inserted(r) => {
+                schedule_friendly_photo_copy(r.photo_url.as_deref(), r.slug.as_deref(), uploads_dir);
+                r
+            }
+        };
+        Ok(Recipe::from(row))
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -567,7 +613,8 @@ impl RecipeMutation {
         ingredients: Option<Vec<RecipeIngredientInput>>,
     ) -> async_graphql::Result<Recipe> {
         let pool = ctx.data::<Pool>()?;
-        db::with_conn(pool, move |conn| {
+        let uploads_dir = ctx.data::<ServerConfig>()?.uploads_dir.clone();
+        let row = db::with_conn(pool, move |conn| {
             let new_slug: Option<String> = if let Some(t) = title.as_ref() {
                 Some(unique_slug(conn, "recipes", t, Some(&id))?)
             } else {
@@ -665,10 +712,11 @@ impl RecipeMutation {
             }
 
             let mut stmt = conn.prepare("SELECT * FROM recipes WHERE id = ?1")?;
-            let row = stmt.query_row(params![id], RecipeRow::from_row)?;
-            Ok(Recipe::from(row))
+            stmt.query_row(params![id], RecipeRow::from_row)
         })
-        .await
+        .await?;
+        schedule_friendly_photo_copy(row.photo_url.as_deref(), row.slug.as_deref(), uploads_dir);
+        Ok(Recipe::from(row))
     }
 
     async fn delete_recipe(
