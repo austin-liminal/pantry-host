@@ -5,7 +5,6 @@ use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     extract::State,
     http::Method,
-    response::{IntoResponse, Json},
     routing::post,
     Router,
 };
@@ -136,12 +135,4 @@ async fn shutdown_signal() {
         _ = terminate => {},
     }
     tracing::info!("shutting down");
-}
-
-#[allow(dead_code)]
-async fn not_implemented(msg: &'static str) -> impl IntoResponse {
-    (
-        axum::http::StatusCode::NOT_IMPLEMENTED,
-        Json(serde_json::json!({ "error": msg })),
-    )
 }

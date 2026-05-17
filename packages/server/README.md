@@ -1,20 +1,21 @@
-# @pantry-host/server — Rust GraphQL backend (phase 2)
+# @pantry-host/server — Rust GraphQL backend
 
 IoT-targeted Rust rewrite of `packages/app/graphql-server.ts`. Drop-in
 replacement for the GraphQL endpoint that the React app, web PWA, and MCP
-server talk to.
+server talk to — *plus* the three side endpoints that live on the same
+port:
 
-**Phase 2 ports only the core GraphQL CRUD surface.** Three endpoints from
-the Node server stay unported for now and return HTTP 501 / a recognizable
-error:
-
-- `POST /upload` — multipart image upload + `sharp` variant generation
-- `POST /fetch-recipe` — JSON-LD scraping of recipe URLs
-- `generateRecipes` GraphQL mutation — Anthropic SDK call
-
-If you need any of those features, run the Node `graphql-server.ts` instead
-(or run them on a sidecar port). They are scheduled for follow-up phase 2.x
-sub-PRs.
+- `POST /upload` — multipart image upload + UUID rename + background
+  variant pipeline (3 widths × {WebP, JPEG q80, grayscale JPEG q80},
+  16:9 center-crop, GIFs preserved as-is). Variant generation runs on
+  a tokio blocking thread behind a semaphore so two concurrent uploads
+  can't OOM a 1 GB Pi 3. Configure with `UPLOADS_DIR` and
+  `IMAGE_CONCURRENCY` (default 1).
+- `POST /fetch-recipe` — three-tier scraper: JSON-LD → schema.org
+  microdata → heuristic HTML. Includes cookware substring detection
+  against the cookware table.
+- `generateRecipes` GraphQL mutation — direct HTTP call to the Anthropic
+  Messages API (no SDK). Requires `AI_API_KEY` or `ANTHROPIC_API_KEY`.
 
 ## Stack
 
@@ -53,6 +54,10 @@ Or use the `graphql-server-rs` launch config in `.claude/launch.json`.
 | `SQLITE_DB_PATH` | `./pantry.db` | Same file the Node server uses |
 | `GRAPHQL_PORT` | `4001` | Same port — frontend `lib/gql.ts` works unchanged |
 | `RUST_LOG` | `info` | `tracing-subscriber` filter (e.g. `debug`, `pantry_server=debug`) |
+| `UPLOADS_DIR` | `../app/public/uploads` | Where `/upload` writes originals + variants |
+| `IMAGE_PROCESSING` / `ENABLE_IMAGE_PROCESSING` | `true` | Set to `false`/`0` to skip variant generation (saves disk on Pi) |
+| `IMAGE_CONCURRENCY` | `1` | Concurrent variant pipelines. Bump on amd64 hosts with more RAM |
+| `AI_API_KEY` (or `ANTHROPIC_API_KEY`) | unset | Required for the `generateRecipes` mutation; otherwise it errors with a clear message |
 
 ## Schema source of truth
 
@@ -74,10 +79,19 @@ option stays on the table; revisit if profiling shows it matters.
 
 ```
 src/
-├── main.rs               # axum server, route setup, graceful shutdown
+├── main.rs               # axum server, AppState, graceful shutdown
+├── config.rs             # ServerConfig (uploads dir, AI key, image semaphore)
 ├── db.rs                 # rusqlite pool, schema apply, ID + timestamp helpers
 ├── error.rs              # AppError stub for future contextual errors
 ├── models.rs             # rusqlite Row → struct conversions per table
+├── image.rs              # sync variant pipeline + friendly-slug copy
+├── scrape.rs             # JSON-LD + microdata + heuristic extractors
+├── ingredient_parse.rs   # qty + unit parser (mirrors parseIngredientLine)
+├── iso_duration.rs       # PT30M → 30 minutes
+├── anthropic.rs          # Messages API client + prompt builder
+├── routes/
+│   ├── upload.rs         # POST /upload — multipart + variant kickoff
+│   └── fetch_recipe.rs   # POST /fetch-recipe — fetch + extract + cookware
 └── graphql/
     ├── mod.rs            # MergedObject roots
     ├── sql_helpers.rs    # kitchen lookup, slug uniqueness, sub-recipe linking

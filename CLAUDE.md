@@ -18,7 +18,7 @@ pantry-host/
 │   ├── marketing/    # Static landing page (Vite, Cloudflare Pages)
 │   ├── web/          # Browser-native PWA (@sqlite.org/sqlite-wasm + OPFS, Vite)
 │   ├── mcp/          # MCP server (Model Context Protocol for AI integrations)
-│   └── server/       # Rust GraphQL backend (phase-2 IoT rewrite, axum + async-graphql + rusqlite)
+│   └── server/       # Rust GraphQL backend (IoT-targeted, axum + async-graphql + rusqlite)
 ├── package.json      # npm workspaces root
 ├── .env.local        # App env vars (SQLITE_DB_PATH, AI_PROVIDER, AI_API_KEY)
 ├── .claude/          # Launch configs, settings
@@ -262,7 +262,7 @@ packages/mcp/
 - `zod` — Input schema validation (required by MCP SDK)
 - Requires the GraphQL server to be running on port 4001
 
-## packages/server — Rust GraphQL backend (phase 2)
+## packages/server — Rust GraphQL backend
 
 IoT-targeted Rust rewrite of `packages/app/graphql-server.ts`. Drop-in replacement for the GraphQL endpoint that the React app, web PWA, and MCP server talk to. ~3 MB stripped release binary, built for Pi 3-class devices.
 
@@ -270,29 +270,37 @@ IoT-targeted Rust rewrite of `packages/app/graphql-server.ts`. Drop-in replaceme
 - **axum 0.8** + **async-graphql 7** — HTTP + GraphQL execution
 - **rusqlite 0.31 + r2d2** — bundled SQLite C library, small connection pool
 - **tokio** — async runtime; resolvers offload DB calls via `spawn_blocking`
+- **reqwest (rustls)** — shared HTTP client for `/fetch-recipe` + Anthropic
+- **image** (pure-Rust, with WebP via `image-webp`) — variant pipeline
 
-### Scope (phase 2)
+### Scope
 
-Ports the full GraphQL CRUD surface — every query and every non-AI mutation that `packages/app/lib/schema/index.ts` defines:
+At feature parity with `packages/app/graphql-server.ts`:
 - Queries: `kitchens`, `kitchen`, `ingredients`, `recipes`, `recipe`, `cookware`, `cookwareItem`, `menus`, `menu`
-- Mutations: ingredient/cookware/kitchen/menu CRUD, `createRecipe`, `updateRecipe`, `deleteRecipe`, `completeRecipe`, `toggleRecipeQueued`, `toggleRecipeInMenu`, `addIngredients` (bulk)
+- Mutations: ingredient/cookware/kitchen/menu CRUD, `createRecipe`, `updateRecipe`, `deleteRecipe`, `completeRecipe`, `toggleRecipeQueued`, `toggleRecipeInMenu`, `addIngredients` (bulk), `generateRecipes` (via Anthropic Messages API — requires `AI_API_KEY`)
+- `POST /upload` — multipart upload, UUID rename, background variant pipeline (3 widths × {WebP, JPEG q80, grayscale JPEG q80}, 16:9 center-crop, GIFs preserved). Concurrent uploads serialized by a tokio Semaphore (`IMAGE_CONCURRENCY=1` default for Pi 3 RAM safety).
+- `POST /fetch-recipe` — JSON-LD → schema.org microdata → heuristic HTML, plus cookware substring detection against the cookware table.
 
-Three Node-server endpoints stay unported and return HTTP 501 / a recognizable GraphQL error:
-- `POST /upload` — multipart image upload + sharp variants
-- `POST /fetch-recipe` — JSON-LD recipe scraping
-- `generateRecipes` GraphQL mutation — Anthropic SDK call
-
-Use `npm run dev:graphql` (Node server) when those features are needed.
+Friendly `{slug}.jpg` copy after `createRecipe`/`updateRecipe` for ICS calendar exports — same retry-loop semantics as the TS version.
 
 ### File structure
 ```
 packages/server/
 ├── Cargo.toml                # opt-level=z, LTO, panic=abort for minimum binary size
 ├── src/
-│   ├── main.rs               # axum server, CORS, graceful shutdown, 501 stubs
+│   ├── main.rs               # axum server, AppState, CORS, graceful shutdown
+│   ├── config.rs             # ServerConfig (uploads dir, AI key, image semaphore)
 │   ├── db.rs                 # rusqlite pool, schema apply, ID + timestamp helpers
 │   ├── error.rs              # AppError stub for contextual errors (reserved)
 │   ├── models.rs             # rusqlite Row → struct conversions per table
+│   ├── image.rs              # variant pipeline + friendly-slug copy
+│   ├── scrape.rs             # JSON-LD + microdata + heuristic recipe extractors
+│   ├── ingredient_parse.rs   # qty + unit line parser (parseIngredientLine port)
+│   ├── iso_duration.rs       # PT30M → 30 minutes
+│   ├── anthropic.rs          # Messages API client for generateRecipes
+│   ├── routes/
+│   │   ├── upload.rs         # POST /upload — multipart + variant kickoff
+│   │   └── fetch_recipe.rs   # POST /fetch-recipe — fetch + extract + cookware
 │   └── graphql/
 │       ├── mod.rs            # MergedObject Query/Mutation roots
 │       ├── sql_helpers.rs    # kitchen lookup, unique_slug, sub-recipe linking
