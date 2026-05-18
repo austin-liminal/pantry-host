@@ -20,6 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$SERVER_DIR/../.." && pwd)"
 APP_DIR="$REPO_ROOT/packages/app"
+INSTALLER_UI_DIR="$REPO_ROOT/packages/installer-ui"
 
 DO_BUILD=0
 for arg in "$@"; do
@@ -36,6 +37,8 @@ done
 if (( DO_BUILD )); then
   echo "==> rex build (packages/app)"
   ( cd "$APP_DIR" && npm run build )
+  echo "==> vite build (packages/installer-ui)"
+  ( cd "$INSTALLER_UI_DIR" && npm run build )
 fi
 
 REX_CLIENT="$APP_DIR/.rex/build/client"

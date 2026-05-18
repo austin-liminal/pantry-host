@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
-    extract::{Path as AxumPath, State},
+    extract::{Path as AxumPath, Request, State},
     http::{header, HeaderValue, Method, StatusCode},
-    response::{IntoResponse, Response},
+    middleware::{self, Next},
+    response::{IntoResponse, Redirect, Response},
     routing::{get, post},
     Router,
 };
@@ -19,6 +20,7 @@ mod frontend;
 mod graphql;
 mod image;
 mod ingredient_parse;
+mod installer;
 mod iso_duration;
 mod models;
 mod routes;
@@ -73,12 +75,12 @@ async fn main() -> anyhow::Result<()> {
         .build()?;
 
     let schema = build_schema(pool.clone(), http.clone(), config.clone());
-    let state = AppState {
+    let state = Arc::new(AppState {
         schema,
         pool,
         http,
         config,
-    };
+    });
 
     // The Node graphql-server.ts accepts POST on the root path for GraphQL and
     // serves multiple other endpoints on the same port. Mirror that surface so
@@ -109,6 +111,15 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/upload", post(routes::upload::handle))
         .route("/api/fetch-recipe", post(routes::fetch_recipe::handle))
         .route("/api/graphql", post(graphql_handler))
+        // First-boot installer: status + complete endpoints, plus the
+        // embedded Vite SPA at /setup (history fallback) with hashed
+        // assets at /_setup/static/. See `route_by_setup` below for the
+        // pre-setup → /setup redirect logic.
+        .route("/api/setup-status", get(routes::setup::setup_status))
+        .route("/api/setup-complete", post(routes::setup::setup_complete))
+        .route("/setup", get(installer::serve_index))
+        .route("/setup/{*path}", get(installer::serve_index))
+        .route("/_setup/static/{*path}", get(installer::serve_asset))
         // Frontend assets: chunked JS/CSS at /_rex/static/<file>, uploaded
         // images served from disk, and a catch-all GET that returns either
         // an embedded public asset (sw.js, favicon, manifest.json…) or the
@@ -116,8 +127,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/_rex/static/{*path}", get(frontend::serve_client))
         .route("/uploads/{*path}", get(serve_upload))
         .fallback(frontend::serve_spa)
+        .layer(middleware::from_fn_with_state(state.clone(), route_by_setup))
         .layer(cors)
-        .with_state(Arc::new(state));
+        .with_state(state);
 
     // Bind IPv6 unspecified so we accept both v4 and v6 (IPV6_V6ONLY is off
     // by default on Linux). Without this, mDNS clients that resolve our
@@ -131,6 +143,40 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     Ok(())
+}
+
+/// Pre-setup gate: navigation requests to non-installer paths are bounced to
+/// `/setup`; post-setup, requests to `/setup` are bounced back to `/`. Asset
+/// + API + GraphQL paths always pass through so the installer SPA itself
+/// (and curl-driven sanity checks) work.
+async fn route_by_setup(
+    State(state): State<Arc<AppState>>,
+    req: Request,
+    next: Next,
+) -> Response {
+    // Only care about GET/HEAD navigation. POST/PUT/DELETE etc. always pass
+    // through — those are API/GraphQL writes that need to work in either mode.
+    if !matches!(*req.method(), Method::GET | Method::HEAD) {
+        return next.run(req).await;
+    }
+    let path = req.uri().path();
+    let is_passthrough = path.starts_with("/api/")
+        || path.starts_with("/_rex/")
+        || path.starts_with("/_setup/")
+        || path.starts_with("/uploads/")
+        || path == "/graphql";
+    if is_passthrough {
+        return next.run(req).await;
+    }
+
+    let setup_done = routes::setup::is_setup_complete(&state);
+    let on_setup = path == "/setup" || path.starts_with("/setup/");
+
+    match (setup_done, on_setup) {
+        (false, false) => Redirect::temporary("/setup").into_response(),
+        (true, true) => Redirect::temporary("/").into_response(),
+        _ => next.run(req).await,
+    }
 }
 
 async fn graphql_handler(

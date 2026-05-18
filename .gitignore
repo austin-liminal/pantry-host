@@ -15,6 +15,8 @@ packages/server/static/client/*
 !packages/server/static/client/.gitkeep
 packages/server/static/public/*
 !packages/server/static/public/.gitkeep
+packages/server/static/installer/*
+!packages/server/static/installer/.gitkeep
 packages/server/static/manifest.json
 *.pem
 .claude/settings.local.json

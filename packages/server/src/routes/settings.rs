@@ -110,7 +110,7 @@ fn is_owner(headers: &HeaderMap) -> bool {
 
 // ── Overrides file I/O ──
 
-fn read_overrides(state: &AppState) -> BTreeMap<String, String> {
+pub(crate) fn read_overrides(state: &AppState) -> BTreeMap<String, String> {
     let path = &state.config.overrides_path;
     let Ok(bytes) = std::fs::read(path) else {
         return BTreeMap::new();
@@ -130,7 +130,7 @@ fn read_overrides(state: &AppState) -> BTreeMap<String, String> {
     out
 }
 
-fn write_overrides(state: &AppState, map: &BTreeMap<String, String>) -> std::io::Result<()> {
+pub(crate) fn write_overrides(state: &AppState, map: &BTreeMap<String, String>) -> std::io::Result<()> {
     let path = &state.config.overrides_path;
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {

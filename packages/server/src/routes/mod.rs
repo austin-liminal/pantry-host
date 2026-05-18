@@ -6,5 +6,6 @@ pub mod lookup_barcode;
 pub mod plu;
 pub mod recipe_ics;
 pub mod settings;
+pub mod setup;
 pub mod upload;
 pub mod wikibooks;
