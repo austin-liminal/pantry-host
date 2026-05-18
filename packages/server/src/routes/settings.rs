@@ -243,10 +243,10 @@ fn parse_write_body(content_type: &str, body: &str) -> Option<BTreeMap<String, O
     if ct.contains("application/json") {
         let parsed: Value = serde_json::from_str(body).ok()?;
         let values = parsed.get("values")?.as_object()?;
+        // Preserve unknown keys in JSON mode so the caller can return 400
+        // — matches the Node `settings-write.ts` behavior: form-encoded
+        // submissions silently filter unknown fields, JSON rejects them.
         for (k, v) in values {
-            if !is_allowed(k) {
-                continue;
-            }
             let entry = match v {
                 Value::Null => None,
                 Value::String(s) if s.is_empty() => None,

@@ -30,3 +30,4 @@ CLAUDE.local.md
 witness/output/*
 !witness/output/.gitkeep
 tests/integration/__harness__.json
+witness-reports/

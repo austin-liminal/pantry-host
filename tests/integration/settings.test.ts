@@ -38,9 +38,10 @@ describe('GET /api/settings-read', () => {
       ['PIXABAY_API_KEY', 'RECIPE_API_KEY'],
       'both secrets should be flagged as masked',
     );
-    // Mask pattern: first 8 chars + 8 bullets + last 5 chars.
-    assert.match(body.values.RECIPE_API_KEY ?? '', /^rapi_tes•+mask$/);
-    assert.match(body.values.PIXABAY_API_KEY ?? '', /^pixabay_•+nough$/);
+    // Mask pattern: first 8 chars + 8 bullets + last 5 chars. The trailing
+    // 5 chars include the underscore boundary in our test values.
+    assert.match(body.values.RECIPE_API_KEY ?? '', /^rapi_tes•{8}_mask$/);
+    assert.match(body.values.PIXABAY_API_KEY ?? '', /^pixabay_•{8}nough$/);
     // Unset settings come back as null, not undefined.
     assert.equal(body.values.HARVEST_LOCATIONS, null);
     assert.equal(body.values.SHOW_COCKTAILDB, null);
