@@ -13,6 +13,7 @@ use axum::{
 use tower_http::cors::{Any, CorsLayer};
 
 mod anthropic;
+mod auth;
 mod config;
 mod db;
 mod error;

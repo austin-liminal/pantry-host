@@ -29,6 +29,7 @@ use axum::{
 use serde::Deserialize;
 use serde_json::json;
 
+use crate::auth::is_owner;
 use crate::routes::settings::{read_overrides, write_overrides};
 use crate::AppState;
 
@@ -39,30 +40,6 @@ pub(crate) fn is_setup_complete(state: &AppState) -> bool {
         .get(SETUP_COMPLETE_KEY)
         .map(|v| v == "true")
         .unwrap_or(false)
-}
-
-fn is_owner(headers: &HeaderMap) -> bool {
-    // Same predicate as routes::settings::is_owner. Duplicated to keep that
-    // module's auth check private; if a third caller appears, lift this into
-    // a shared helper.
-    let host = headers
-        .get("host")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    let hostname = host
-        .split_once(':')
-        .map(|(h, _)| h)
-        .unwrap_or(&host)
-        .trim_start_matches('[')
-        .trim_end_matches(']');
-    let is_loopback = hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1";
-    let is_https = headers
-        .get("x-forwarded-proto")
-        .and_then(|v| v.to_str().ok())
-        .map(|p| p.eq_ignore_ascii_case("https"))
-        .unwrap_or(false);
-    is_loopback || is_https
 }
 
 pub async fn setup_status(State(state): State<Arc<AppState>>) -> Response {

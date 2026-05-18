@@ -83,30 +83,9 @@ fn mask_secret(value: &str) -> String {
     format!("{}{}{}", head, "•".repeat(8), tail)
 }
 
-// ── Auth (loopback host OR forwarded HTTPS = owner) ──
-
-fn is_owner(headers: &HeaderMap) -> bool {
-    let host = headers
-        .get("host")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_ascii_lowercase();
-    // Strip any :port suffix and surrounding brackets for IPv6.
-    let hostname = host
-        .split_once(':')
-        .map(|(h, _)| h)
-        .unwrap_or(&host)
-        .trim_start_matches('[')
-        .trim_end_matches(']');
-    let is_loopback =
-        hostname == "localhost" || hostname == "127.0.0.1" || hostname == "::1";
-    let is_https = headers
-        .get("x-forwarded-proto")
-        .and_then(|v| v.to_str().ok())
-        .map(|p| p.eq_ignore_ascii_case("https"))
-        .unwrap_or(false);
-    is_loopback || is_https
-}
+// Auth predicate lives in `crate::auth` so settings, setup, and (PR 2+)
+// the integration routes all agree on who counts as an owner.
+use crate::auth::is_owner;
 
 // ── Overrides file I/O ──
 
