@@ -7,5 +7,6 @@ pub mod plu;
 pub mod recipe_ics;
 pub mod settings;
 pub mod setup;
+pub mod tailscale;
 pub mod upload;
 pub mod wikibooks;

@@ -23,8 +23,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return r.status === 204 ? (undefined as T) : (r.json() as Promise<T>);
 }
 
+export type TailscaleState =
+  | { state: 'unavailable'; reason: string }
+  | { state: 'not_connected' }
+  | { state: 'awaiting_auth'; auth_url: string }
+  | { state: 'connected_no_serve'; tailnet: string }
+  | { state: 'configured'; url: string; tailnet: string };
+
 export const api = {
   getSetupStatus: () => request<SetupStatus>('/api/setup-status'),
   finishSetup: () => request<void>('/api/setup-complete', { method: 'POST', body: '{}' }),
   resetSetup: () => request<void>('/api/setup-complete', { method: 'POST', body: JSON.stringify({ reset: true }) }),
+  getTailscaleStatus: () => request<TailscaleState>('/api/tailscale/status'),
+  connectTailscale: () => request<TailscaleState>('/api/tailscale/connect', { method: 'POST', body: '{}' }),
+  enableTailscaleServe: () => request<TailscaleState>('/api/tailscale/enable-serve', { method: 'POST', body: '{}' }),
 };

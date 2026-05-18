@@ -31,6 +31,7 @@ use serde_json::json;
 
 use crate::auth::is_owner;
 use crate::routes::settings::{read_overrides, write_overrides};
+use crate::tailscale::{read_status, TailscaleState};
 use crate::AppState;
 
 const SETUP_COMPLETE_KEY: &str = "SETUP_COMPLETE";
@@ -44,18 +45,49 @@ pub(crate) fn is_setup_complete(state: &AppState) -> bool {
 
 pub async fn setup_status(State(state): State<Arc<AppState>>) -> Response {
     let complete = is_setup_complete(&state);
+    let tailscale = tailscale_for_summary(&state).await;
     (
         StatusCode::OK,
         [("cache-control", "private, no-store")],
         Json(json!({
             "complete": complete,
             "integrations": {
-                "tailscale": { "state": "not_configured" },
+                "tailscale": tailscale,
                 "bluesky":   { "state": "not_configured" },
             },
         })),
     )
         .into_response()
+}
+
+/// Project the full TailscaleState onto the smaller summary shape the
+/// installer's Summary page renders. We collapse the connect-in-progress
+/// flavors back to "not_configured" so a half-finished login doesn't
+/// look complete on Summary; the Tailscale step itself uses the richer
+/// /api/tailscale/status when it needs the auth URL.
+async fn tailscale_for_summary(state: &Arc<AppState>) -> serde_json::Value {
+    let info = state.tailscale.clone();
+    let connect = std::sync::Arc::clone(&state.tailscale_connect);
+    let port = state.graphql_port;
+    let s = tokio::task::spawn_blocking(move || read_status(info.as_ref(), &connect, port))
+        .await
+        .unwrap_or(TailscaleState::NotConnected);
+    match s {
+        TailscaleState::Unavailable { reason } => {
+            json!({ "state": "unavailable", "reason": reason })
+        }
+        TailscaleState::NotConnected | TailscaleState::AwaitingAuth { .. } => {
+            json!({ "state": "not_configured" })
+        }
+        TailscaleState::ConnectedNoServe { tailnet } => {
+            // Signed in but no HTTPS yet — surface that so Summary can
+            // nudge the user back into the Tailscale step.
+            json!({ "state": "connecting", "label": tailnet })
+        }
+        TailscaleState::Configured { url, .. } => {
+            json!({ "state": "connected", "label": url })
+        }
+    }
 }
 
 #[derive(Deserialize, Default)]

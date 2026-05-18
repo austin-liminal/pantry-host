@@ -26,10 +26,14 @@ mod iso_duration;
 mod models;
 mod routes;
 mod scrape;
+mod tailscale;
+
+use std::sync::Mutex;
 
 use crate::config::ServerConfig;
 use crate::db::Pool;
 use crate::graphql::{build_schema, AppSchema};
+use crate::tailscale::{ConnectState, ConnectStateHandle, TailscaleInfo};
 
 /// Shared state for axum routes. The GraphQL schema already has the pool +
 /// http client + config in its `.data()` slot; the same handles live here so
@@ -40,6 +44,16 @@ pub struct AppState {
     pub pool: Pool,
     pub http: reqwest::Client,
     pub config: ServerConfig,
+    /// Result of the boot-time `tailscale --version` probe. `None` if the
+    /// binary isn't on PATH; the installer surfaces that as the
+    /// "unavailable" state and the Tailscale wizard step short-circuits.
+    pub tailscale: Option<TailscaleInfo>,
+    /// In-flight `tailscale up` state shared between the connect kicker
+    /// and the status reader. Always present; just empty between flows.
+    pub tailscale_connect: ConnectStateHandle,
+    /// Local GraphQL port — needed by the tailscale serve check to see
+    /// whether an existing serve rule already proxies to us.
+    pub graphql_port: u16,
 }
 
 #[tokio::main]
@@ -76,11 +90,27 @@ async fn main() -> anyhow::Result<()> {
         .build()?;
 
     let schema = build_schema(pool.clone(), http.clone(), config.clone());
+
+    let tailscale_info = TailscaleInfo::probe();
+    match &tailscale_info {
+        Some(info) => tracing::info!(
+            "Tailscale detected: {} (version {})",
+            info.path.display(),
+            info.version
+        ),
+        None => tracing::info!(
+            "Tailscale not detected on PATH; installer will mark integration unavailable"
+        ),
+    }
+
     let state = Arc::new(AppState {
         schema,
         pool,
         http,
         config,
+        tailscale: tailscale_info,
+        tailscale_connect: Arc::new(Mutex::new(ConnectState::default())),
+        graphql_port: port,
     });
 
     // The Node graphql-server.ts accepts POST on the root path for GraphQL and
@@ -118,6 +148,12 @@ async fn main() -> anyhow::Result<()> {
         // pre-setup → /setup redirect logic.
         .route("/api/setup-status", get(routes::setup::setup_status))
         .route("/api/setup-complete", post(routes::setup::setup_complete))
+        .route("/api/tailscale/status", get(routes::tailscale::status))
+        .route("/api/tailscale/connect", post(routes::tailscale::connect))
+        .route(
+            "/api/tailscale/enable-serve",
+            post(routes::tailscale::enable_serve_route),
+        )
         .route("/setup", get(installer::serve_index))
         .route("/setup/{*path}", get(installer::serve_index))
         .route("/_setup/static/{*path}", get(installer::serve_asset))

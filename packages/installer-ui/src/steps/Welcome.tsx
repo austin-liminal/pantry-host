@@ -6,9 +6,9 @@ export default function Welcome() {
   return (
     <WizardShell
       stepIndex={1}
-      totalSteps={2}
+      totalSteps={3}
       title="Welcome to your pantry."
-      primary={{ label: 'Get started', onClick: () => navigate('/summary') }}
+      primary={{ label: 'Get started', onClick: () => navigate('/tailscale') }}
     >
       <p className="text-lg text-[var(--color-text-secondary)] mb-6">
         Let's get a few things set up — it'll take about two minutes.
@@ -17,9 +17,10 @@ export default function Welcome() {
         <li className="flex items-start gap-3">
           <span className="mt-1 inline-block h-2 w-2 rounded-full bg-[var(--color-accent)]" aria-hidden="true" />
           <span>
-            <span className="font-semibold">Mobile camera scanning.</span>{' '}
+            <span className="font-semibold">Remote access.</span>{' '}
             <span className="text-[var(--color-text-secondary)]">
-              Scan grocery barcodes from your phone over a private connection.
+              Reach your pantry securely from anywhere — your phone, your laptop, away from home.
+              Required for mobile camera scanning.
             </span>
           </span>
         </li>
