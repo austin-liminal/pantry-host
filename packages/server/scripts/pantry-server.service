@@ -18,6 +18,17 @@ ExecStart=/home/pi/server/pantry-server
 Restart=on-failure
 RestartSec=3s
 
+# Boot scheduling: on the single-core Zero W the WiFi radio is driver-ready at
+# ~0.8s but doesn't associate until NetworkManager drives it at ~18s. Boot
+# profiling showed pantry-server starting at ~16s and saturating the one core
+# (SQLite open + Tailscale detection) during exactly that association window,
+# pushing time-to-reachable out by several seconds. The server is the listener,
+# never the gate — nothing can reach it until WiFi is up regardless — so we let
+# the network win the core: deprioritize CPU and SD I/O during contention. Once
+# boot settles and nothing else competes, Nice/idle-IO cost nothing.
+Nice=10
+IOSchedulingClass=idle
+
 Environment=RUST_LOG=info
 Environment=SQLITE_DB_PATH=/home/pi/server/pantry.db
 Environment=GRAPHQL_PORT=4001

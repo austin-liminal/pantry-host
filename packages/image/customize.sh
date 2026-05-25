@@ -316,41 +316,105 @@ if [ -n "$KEYBOARD_LAYOUT" ] && [ -f "$MOUNT_ROOT/etc/default/keyboard" ]; then
     "$MOUNT_ROOT/etc/default/keyboard"
 fi
 
-# WiFi: a NetworkManager connection profile, byte-aligned with the keyfile Pi
-# OS Imager writes (imager_custom's set_wlan) — uuid, hidden flag, [proxy]
-# section, security appended only when a PSK is set. NM scans
-# /etc/NetworkManager/system-connections/ at startup and connects autoconnect
-# profiles (the default when unspecified). The file MUST be 0600 + root-owned
-# or NM refuses to load it (its credentials-leak guard).
+# WiFi — DEVELOPER / POWER-USER path (credentials baked in at build time).
+#
+# Two mutually-exclusive WiFi worlds share this image, selected by whether
+# $WIFI_SSID is set at build time:
+#   * SSID set  → we already know the network to join, so we DON'T need
+#     NetworkManager's scan/autoconnect/portal machinery. NM is the boot-time
+#     long pole on the single-core Zero W: it starts ~12s in and doesn't drive
+#     wlan0 until ~18s, gating time-to-reachable at ~22s — even though the
+#     built-in brcmfmac radio is up at ~0.8s. So here we mask NM and wire a
+#     lightweight stack that associates the instant the interface exists:
+#       - wpa_supplicant@wlan0: the interface-specific template is Requires=+
+#         After= the wlan0 .device, so it associates as soon as udev adds wlan0
+#         (~1-2s) instead of waiting on NM's late, heavy startup.
+#       - dhclient@wlan0: leases an address and writes /etc/resolv.conf itself
+#         via /sbin/dhclient-script (systemd-resolved isn't installed on Lite;
+#         isc-dhcp-client is, and with no resolvconf it writes resolv.conf
+#         directly). No systemd-networkd needed.
+#   * SSID unset → the shipping image for friends & family: NM stays enabled so
+#     the captive-portal first-boot flow (JP's workstream) can gather creds in
+#     AP mode. Boot-to-reachable speed is moot there — there's no network to
+#     join until the user picks one through the portal. See the
+#     NetworkManager.state block below, guarded on the same flag.
 if [ -n "$WIFI_SSID" ]; then
-  log "baking WiFi profile for SSID '$WIFI_SSID'"
-  install -d -m 700 "$MOUNT_ROOT/etc/NetworkManager/system-connections"
-  WIFI_UUID="$(cat /proc/sys/kernel/random/uuid)"
-  CONNFILE="$MOUNT_ROOT/etc/NetworkManager/system-connections/preconfigured.nmconnection"
-  cat > "$CONNFILE" <<NMCONN
-[connection]
-id=preconfigured
-uuid=$WIFI_UUID
-type=wifi
-[wifi]
-mode=infrastructure
-ssid=$WIFI_SSID
-hidden=false
-[ipv4]
-method=auto
-[ipv6]
-addr-gen-mode=default
-method=auto
-[proxy]
-NMCONN
-  if [ -n "$WIFI_PSK" ]; then
-    cat >> "$CONNFILE" <<NMSEC
-[wifi-security]
-key-mgmt=wpa-psk
-psk=$WIFI_PSK
-NMSEC
-  fi
-  chmod 600 "$CONNFILE"
+  log "baking fast WiFi path (wpa_supplicant@wlan0 + dhclient, NM masked) for SSID '$WIFI_SSID'"
+
+  # wpa_supplicant config the @wlan0 template reads. 0600 root — holds the PSK.
+  install -d -m 755 "$MOUNT_ROOT/etc/wpa_supplicant"
+  WPACONF="$MOUNT_ROOT/etc/wpa_supplicant/wpa_supplicant-wlan0.conf"
+  {
+    echo "ctrl_interface=DIR=/run/wpa_supplicant GROUP=netdev"
+    echo "country=$WIFI_COUNTRY"
+    echo "update_config=1"
+    echo "network={"
+    echo "	ssid=\"$WIFI_SSID\""
+    if [ -n "$WIFI_PSK" ]; then
+      echo "	psk=\"$WIFI_PSK\""
+    else
+      echo "	key_mgmt=NONE"
+    fi
+    echo "}"
+  } > "$WPACONF"
+  chmod 600 "$WPACONF"
+
+  # One foreground dhclient per interface. Type=exec so systemd tracks it
+  # directly; -d keeps it in the foreground for lease renewals. It's ordered
+  # After= wpa_supplicant@wlan0 and retries DISCOVER until association completes,
+  # then writes the lease + resolv.conf. DefaultDependencies=no (with the
+  # shutdown ordering re-added by hand) keeps it off the basic.target gate so it
+  # runs in the early-boot window alongside the supplicant; After=local-fs.target
+  # so /var (lease db) and /etc (resolv.conf) are writable first.
+  cat > "$MOUNT_ROOT/etc/systemd/system/dhclient@.service" <<'DHUNIT'
+[Unit]
+Description=DHCP client on %I (Pantry fast WiFi path)
+DefaultDependencies=no
+Requires=sys-subsystem-net-devices-%i.device
+After=local-fs.target sys-subsystem-net-devices-%i.device wpa_supplicant@%i.service
+Wants=wpa_supplicant@%i.service network.target
+Before=network.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=exec
+ExecStart=/sbin/dhclient -4 -d %I
+Restart=on-failure
+RestartSec=2s
+
+[Install]
+WantedBy=multi-user.target
+DHUNIT
+
+  # Enable both units offline via their wants-symlinks (no running systemd in
+  # the chroot to `systemctl enable`). wpa_supplicant@.service's [Install] is
+  # WantedBy=multi-user.target; replicate that for the wlan0 instance + dhclient.
+  install -d "$MOUNT_ROOT/etc/systemd/system/multi-user.target.wants"
+  ln -sf /lib/systemd/system/wpa_supplicant@.service \
+    "$MOUNT_ROOT/etc/systemd/system/multi-user.target.wants/wpa_supplicant@wlan0.service"
+  ln -sf /etc/systemd/system/dhclient@.service \
+    "$MOUNT_ROOT/etc/systemd/system/multi-user.target.wants/dhclient@wlan0.service"
+
+  # Early-start drop-in for the distro's wpa_supplicant@.service template: drop
+  # the implicit After=sysinit.target/basic.target so the supplicant fires the
+  # moment the wlan0 .device appears (~9.7s, storage/udev-bound on this single
+  # core) instead of waiting for basic.target (~11s) + multi-user scheduling.
+  # Measured on a Zero W: association ~12.9s and DHCP lease ~14.5s, vs ~17.9s
+  # without it (and ~22s on the stock NetworkManager path). We re-add the
+  # shutdown ordering that DefaultDependencies=no would otherwise strip.
+  install -d "$MOUNT_ROOT/etc/systemd/system/wpa_supplicant@wlan0.service.d"
+  cat > "$MOUNT_ROOT/etc/systemd/system/wpa_supplicant@wlan0.service.d/early.conf" <<'EOF'
+[Unit]
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target network-pre.target
+EOF
+
+  # Mask the daemons we're replacing: NetworkManager (the long pole) and the
+  # generic dbus-activated wpa_supplicant.service — we drive the @wlan0 instance
+  # directly, and two supplicants fighting over wlan0 would be a mess.
+  ln -sf /dev/null "$MOUNT_ROOT/etc/systemd/system/NetworkManager.service"
+  ln -sf /dev/null "$MOUNT_ROOT/etc/systemd/system/wpa_supplicant.service"
 fi
 
 # WiFi regulatory domain. firstrun.sh used to run `raspi-config nonint
@@ -513,6 +577,15 @@ BLACKLIST
 #        512 MB Zero W. The server mitigates with IMAGE_CONCURRENCY=1, and
 #        ENABLE_IMAGE_PROCESSING can be set false on a Pi. Unmask this if you
 #        hit OOM-kills under the image variant pipeline.
+#      - nfs-client.target / rpc-statd-notify: the NFS client stack, enabled by
+#        default on Pi OS. We mount nothing over NFS (rpcbind already disabled),
+#        so it only adds rpc-statd-notify + run-rpc_pipefs.mount to the
+#        pre-network boot path on the single core. Masking the target detaches
+#        them; unmask if you ever mount an NFS share.
+#      - sys-kernel-debug.mount: debugfs. ~0.5s on the slow SD during sysinit,
+#        before NetworkManager can start. Nothing in the appliance reads it
+#        (tracing is compiled out of the custom kernel). Unmask if you need
+#        kernel debug interfaces for diagnosis.
 #    Deliberately NOT masked: resize2fs_once (load-bearing: grows the rootfs
 #    onto the user's card on first boot — SHRINK_ROOTFS is currently a no-op,
 #    but this is stock Pi OS's own resize and must stay), avahi-daemon (resolves
@@ -530,6 +603,9 @@ for unit in \
   keyboard-setup.service \
   udisks2.service \
   dphys-swapfile.service \
+  nfs-client.target \
+  rpc-statd-notify.service \
+  sys-kernel-debug.mount \
   e2scrub_reap.service \
   e2scrub_all.timer \
   apt-daily.timer \
@@ -539,23 +615,28 @@ for unit in \
   ln -sf /dev/null "$MOUNT_ROOT/etc/systemd/system/$unit"
 done
 
-# Enable WiFi in NetworkManager. Stock Pi OS Lite ships
-# /var/lib/NetworkManager/NetworkManager.state with WirelessEnabled=false —
-# the radio is software-disabled at the NM level until something flips it on.
-# Normally `raspi-config nonint do_wifi_country` does that (via `nmcli radio
-# wifi on`, or — when NM isn't running, e.g. offline like here — by editing
-# this flag directly). NM owns the rfkill soft-block and re-asserts it from
-# WirelessEnabled at every startup, so this flag is the whole fix: NM unblocks
-# the radio itself once WiFi is enabled. (An external `rfkill unblock` is
-# pointless — NM clobbers it back to blocked while WirelessEnabled=false.)
-NM_STATE="$MOUNT_ROOT/var/lib/NetworkManager/NetworkManager.state"
-if [ -f "$NM_STATE" ]; then
-  log "enabling WiFi in NetworkManager (WirelessEnabled=true)"
-  sed -i 's/^WirelessEnabled=.*/WirelessEnabled=true/' "$NM_STATE"
-else
-  log "creating NetworkManager.state with WiFi enabled"
-  install -d -m 755 "$MOUNT_ROOT/var/lib/NetworkManager"
-  printf '[main]\nWirelessEnabled=true\n' > "$NM_STATE"
+# Enable WiFi in NetworkManager — only on the no-creds (captive-portal) path.
+# When $WIFI_SSID is baked in, NM is masked above and this is moot.
+#
+# Stock Pi OS Lite ships /var/lib/NetworkManager/NetworkManager.state with
+# WirelessEnabled=false — the radio is software-disabled at the NM level until
+# something flips it on. Normally `raspi-config nonint do_wifi_country` does
+# that (via `nmcli radio wifi on`, or — when NM isn't running, e.g. offline like
+# here — by editing this flag directly). NM owns the rfkill soft-block and
+# re-asserts it from WirelessEnabled at every startup, so this flag is the whole
+# fix: NM unblocks the radio itself once WiFi is enabled. (An external `rfkill
+# unblock` is pointless — NM clobbers it back to blocked while
+# WirelessEnabled=false.)
+if [ -z "$WIFI_SSID" ]; then
+  NM_STATE="$MOUNT_ROOT/var/lib/NetworkManager/NetworkManager.state"
+  if [ -f "$NM_STATE" ]; then
+    log "enabling WiFi in NetworkManager (WirelessEnabled=true)"
+    sed -i 's/^WirelessEnabled=.*/WirelessEnabled=true/' "$NM_STATE"
+  else
+    log "creating NetworkManager.state with WiFi enabled"
+    install -d -m 755 "$MOUNT_ROOT/var/lib/NetworkManager"
+    printf '[main]\nWirelessEnabled=true\n' > "$NM_STATE"
+  fi
 fi
 
 # Enable SSH unconditionally — the user may not have set keys, but we still
