@@ -60,6 +60,45 @@ impl TailscaleInfo {
     }
 }
 
+/// Run `sudo -n systemctl <args>`, swallowing the result. Best-effort by
+/// design: on the Pi image the service user (`pi`) has passwordless sudo, so
+/// these succeed; in dev there's no systemd (macOS) or no NOPASSWD rule
+/// (`-n` then fails fast instead of prompting), and we simply carry on. All
+/// fds are detached so a blocking notify-type start can't deadlock on stdio.
+fn systemctl(args: &[&str]) {
+    let res = Command::new("sudo")
+        .arg("-n")
+        .arg("systemctl")
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+    match res {
+        Ok(s) if s.success() => tracing::info!("systemctl {} ok", args.join(" ")),
+        Ok(s) => tracing::debug!("systemctl {} exited: {s}", args.join(" ")),
+        Err(e) => tracing::debug!("systemctl {} not run: {e}", args.join(" ")),
+    }
+}
+
+/// Ensure tailscaled is running before we talk to its socket. The Pi image
+/// ships tailscaled *disabled at boot* (it adds ~8s to a Zero W boot and is
+/// dead weight until the device is linked — see packages/image/customize.sh),
+/// so the first `tailscale up` would otherwise fail with "tailscaled doesn't
+/// appear to be running". A notify-type `start` blocks until the daemon is
+/// ready, which is exactly what we want before `up`. No-op if already active.
+fn ensure_daemon_running() {
+    systemctl(&["start", "tailscaled.service"]);
+}
+
+/// Persist tailscaled across reboots once a node is actually linked, so a
+/// configured device restores its tunnel on every later boot. Called only
+/// after `tailscale up` succeeds — abandoning setup leaves the daemon
+/// un-enabled, keeping subsequent boots fast.
+fn persist_daemon_enabled() {
+    systemctl(&["enable", "tailscaled.service"]);
+}
+
 fn which_tailscale() -> Option<PathBuf> {
     // `which` shells out to PATH; portable enough for macOS + Linux which
     // is everything we care about (Pi + dev). Could grow into a manual
@@ -282,6 +321,11 @@ pub fn start_connect(info: &TailscaleInfo, connect: &ConnectStateHandle, hostnam
     let connect = Arc::clone(connect);
 
     std::thread::spawn(move || {
+        // The Pi image defers tailscaled off the boot path, so it may not be
+        // running yet on the very first link. Start it (blocks until ready)
+        // before we hand it work.
+        ensure_daemon_running();
+
         // `--operator` lets the named local user run `tailscale` CLI commands
         // (status, logout, set, etc.) without sudo. We default to the systemd
         // unit's User= (`pi` on the Pi image) but honor TAILSCALE_OPERATOR so
@@ -351,6 +395,9 @@ pub fn start_connect(info: &TailscaleInfo, connect: &ConnectStateHandle, hostnam
         match exit {
             Ok(s) if s.success() => {
                 guard.last_message = Some("Tailscale connected.".to_string());
+                // Node is linked — make tailscaled survive reboots so the
+                // tunnel comes back automatically from here on.
+                persist_daemon_enabled();
             }
             Ok(s) => {
                 guard.last_message = Some(format!(

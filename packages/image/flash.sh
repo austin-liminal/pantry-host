@@ -5,6 +5,7 @@
 #   ./flash.sh path/to/image.img.xz  # flash a specific image
 #   ./flash.sh --all                 # also list internal/fixed disks (DANGER)
 #   ./flash.sh --no-verify           # skip the .sha256 check before writing
+#   ./flash.sh --no-expand           # don't grow the rootfs partition to fill the card
 #   ./flash.sh --yes                 # don't ask for typed confirmation (DANGER)
 #
 # Companion to build.sh. It lists each candidate disk with its size and free
@@ -12,6 +13,18 @@
 # one you pick, and dd's the image onto it (raw device on macOS for speed).
 #
 # Handles both .img and .img.xz inputs; .xz is decompressed on the fly.
+#
+# Flash by hand instead (if you'd rather not use this script) — be CERTAIN of
+# the device, dd will overwrite whatever you point it at:
+#   macOS:  diskutil list                        # find the card, e.g. disk6
+#           diskutil unmountDisk /dev/disk6
+#           xzcat IMAGE.img.xz | sudo dd of=/dev/rdisk6 bs=4M conv=fsync   # rdisk = raw, ~20x faster
+#           sync && diskutil eject /dev/disk6
+#   Linux:  lsblk                                 # find the card, e.g. /dev/sdX
+#           sudo umount /dev/sdX*                 # if anything auto-mounted
+#           xzcat IMAGE.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync && sync
+# (Flashing by hand skips the rootfs-partition grow this script does; the
+# device's resize2fs_once still fills the card on first boot.)
 
 set -euo pipefail
 
@@ -31,11 +44,13 @@ OS="$(uname -s)"
 SHOW_ALL=0
 VERIFY=1
 ASSUME_YES=0
+EXPAND=1
 IMAGE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --all)        SHOW_ALL=1 ;;
     --no-verify)  VERIFY=0 ;;
+    --no-expand)  EXPAND=0 ;;
     --yes|-y)     ASSUME_YES=1 ;;
     -h|--help)
       sed -n '2,/^$/p' "$0" | sed 's|^# \{0,1\}||'
@@ -57,6 +72,89 @@ human() {
     i = 1; while (b >= 1000 && i < 6) { b /= 1000; i++ }
     printf (i == 1 ? "%d %s\n" : "%.1f %s\n"), b, u[i]
   }'
+}
+
+# Grow the rootfs partition to fill the card --------------------------------
+# The image is built tiny (~2 GB rootfs) so it downloads small and fits the
+# smallest supported card — the build can't know the target card's size. Stock
+# Pi OS handles the gap in two halves: grow the *partition* to fill the disk,
+# then a self-deleting `resize2fs_once` grows the *filesystem* to fill the
+# partition on first boot. Our image keeps the second half (resize2fs_once
+# ships baked in and runs on first boot) but, having stripped the firstboot
+# init for boot speed, lost the first half — so a flashed card was stuck at
+# 2 GB on any card. We restore the partition grow HERE, at flash time, where —
+# unlike at build time — the card's real size is known. macOS has no ext4
+# tooling, but growing an MBR partition is pure partition-table metadata (a
+# 4-byte sector-count field), so a dependency-free byte patch works on both
+# platforms; the on-device resize2fs_once then fills the new space on first
+# boot. On Linux we also grow the filesystem right here when resize2fs exists,
+# so there's nothing left for the Pi to do.
+#
+# Best-effort: any uncertainty warns and skips rather than risking the
+# partition table — the card still boots (at 2 GB), recoverable later with a
+# manual `sudo resize2fs /dev/mmcblk0p2`. A successful dd is never undone here.
+expand_rootfs() {
+  local whole="$1" os="$2"
+  local total mbr part
+
+  command -v perl >/dev/null 2>&1 || { warn "perl not found — skipping rootfs expand"; return 0; }
+
+  # Whole-disk size in 512-byte LBA units (MBR entries are always 512-based,
+  # regardless of the device's physical block size).
+  if [ "$os" = "Darwin" ]; then
+    diskutil unmountDisk "$whole" >/dev/null 2>&1 || true   # FAT boot vol auto-mounts post-dd
+    local info bytes; info="$(mktemp)"
+    diskutil info -plist "$whole" > "$info" 2>/dev/null || { rm -f "$info"; warn "diskutil info failed — skipping expand"; return 0; }
+    bytes="$(plutil -extract TotalSize raw -o - "$info" 2>/dev/null)"; rm -f "$info"
+    [[ "$bytes" =~ ^[0-9]+$ ]] || { warn "could not read card size — skipping expand"; return 0; }
+    total=$(( bytes / 512 ))
+  else
+    for p in "${whole}"*; do [ -b "$p" ] && [ "$p" != "$whole" ] && sudo umount "$p" 2>/dev/null || true; done
+    total="$(sudo blockdev --getsz "$whole" 2>/dev/null)" || { warn "blockdev failed — skipping expand"; return 0; }
+    [[ "$total" =~ ^[0-9]+$ ]] || { warn "could not read card size — skipping expand"; return 0; }
+  fi
+
+  # Read the MBR, patch partition #2's size field in a temp file, write it back.
+  mbr="$(mktemp)"
+  sudo dd if="$whole" of="$mbr" bs=512 count=1 2>/dev/null || { warn "could not read MBR — skipping expand"; rm -f "$mbr"; return 0; }
+  if ! perl -e '
+        my ($f,$total) = ($ARGV[0], $ARGV[1]+0);
+        open(my $fh,"+<:raw",$f) or die "open: $!\n";
+        my $m; read($fh,$m,512)==512 or die "short read\n";
+        die "not an MBR (bad 0x55AA signature)\n" unless substr($m,510,2) eq "\x55\xaa";
+        my $b = 462;                                        # partition entry #2
+        my $type = unpack("C", substr($m,$b+4,1));
+        die sprintf("partition 2 type 0x%02x is not Linux (0x83)\n",$type) unless $type==0x83;
+        my $start = unpack("V", substr($m,$b+8,4));
+        my $cur   = unpack("V", substr($m,$b+12,4));
+        my $new   = $total - $start;
+        die "already fills the card\n" unless $new > $cur;
+        substr($m,$b+12,4) = pack("V",$new);
+        seek($fh,0,0); print {$fh} $m; close($fh);
+        printf STDERR "rootfs partition: %d -> %d sectors (%.1f GB)\n",$cur,$new,$new*512/1e9;
+      ' "$mbr" "$total"; then
+    log "rootfs already fills the card (or unexpected layout) — nothing to grow"
+    rm -f "$mbr"; return 0
+  fi
+  sudo dd if="$mbr" of="$whole" bs=512 count=1 conv=notrunc 2>/dev/null || { warn "MBR write-back failed — skipping expand"; rm -f "$mbr"; return 0; }
+  rm -f "$mbr"; sync
+  log "grew rootfs partition to fill the card"
+
+  if [ "$os" = "Linux" ]; then
+    # Re-read the table so the kernel sees the bigger partition, then grow the
+    # ext4 filesystem into it. (macOS: the Pi does this on first boot.)
+    sudo partprobe "$whole" 2>/dev/null || sudo blockdev --rereadpt "$whole" 2>/dev/null || true
+    case "$whole" in *[0-9]) part="${whole}p2" ;; *) part="${whole}2" ;; esac
+    if command -v resize2fs >/dev/null 2>&1 && [ -b "$part" ]; then
+      sudo e2fsck -fy "$part" >/dev/null 2>&1 || true
+      sudo resize2fs "$part" >/dev/null 2>&1 && log "grew filesystem to fill the card" \
+        || warn "resize2fs failed — the Pi will finish on first boot"
+    else
+      log "resize2fs unavailable — the Pi grows the filesystem on first boot"
+    fi
+  else
+    log "the Pi grows the filesystem to match on first boot (resize2fs_once)"
+  fi
 }
 
 # Resolve the image ---------------------------------------------------------
@@ -249,6 +347,14 @@ fi
 
 log "flushing buffers"
 sync
+
+# Grow the rootfs partition to fill the card (best-effort) -------------------
+if (( EXPAND )); then
+  log "expanding rootfs partition to fill $WHOLE"
+  expand_rootfs "$WHOLE" "$OS"
+else
+  log "--no-expand: leaving rootfs at the image's ~2 GB (Pi won't reclaim the rest)"
+fi
 
 # Eject ---------------------------------------------------------------------
 

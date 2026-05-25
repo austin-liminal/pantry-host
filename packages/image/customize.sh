@@ -14,6 +14,10 @@
 #   SERVER_DIR         — path to packages/server/ (for the systemd unit)
 #   WIFI_SSID, WIFI_PSK, WIFI_COUNTRY, HOSTNAME, USERNAME, USER_PASSWORD,
 #   SSH_AUTHORIZED_KEYS, TIMEZONE, KEYBOARD_LAYOUT
+# Optional env:
+#   KERNEL_DIR         — staged custom-kernel dir (kernel-pantry.img + kmod/ +
+#                        kernelrelease). When unset (build.sh --no-kernel), the
+#                        image ships the stock Pi OS kernel unchanged.
 #
 # Cleanup is signal-safe: a trap unmounts and detaches the loop device on
 # any exit so a partially-failed run leaves the host in a clean state.
@@ -93,6 +97,36 @@ mkdir -p "$MOUNT_ROOT/boot/firmware"
 log "mounting boot at /boot/firmware"
 mount -o "loop,offset=$BOOT_START,sizelimit=$BOOT_SIZE" "$IMAGE_PATH" "$MOUNT_ROOT/boot/firmware"
 
+# Custom kernel (optional) --------------------------------------------------
+# build.sh's kernel stage stages a stripped ARMv6 kernel under $KERNEL_DIR
+# (kernel-pantry.img + a kmod/lib/modules/<rel> tree + a kernelrelease file).
+# Copy it in as a SEPARATELY-named kernel-pantry.img with its own module dir;
+# the stock kernel.img and its modules stay untouched as a rollback fallback
+# (config.txt selects which one boots, set further below). depmod + apt-mark
+# hold run later in the chroot block. Skipped entirely when KERNEL_DIR is unset
+# (build.sh --no-kernel) — the image then ships the stock kernel.
+KERNEL_RELEASE=""
+if [ -n "${KERNEL_DIR:-}" ] && [ -f "$KERNEL_DIR/kernel-pantry.img" ]; then
+  KERNEL_RELEASE="$(tr -d '[:space:]' < "$KERNEL_DIR/kernelrelease" 2>/dev/null || true)"
+  # Fall back to the single dir name modules_install produced.
+  if [ -z "$KERNEL_RELEASE" ] && [ -d "$KERNEL_DIR/kmod/lib/modules" ]; then
+    KERNEL_RELEASE="$(ls "$KERNEL_DIR/kmod/lib/modules" | head -n1)"
+  fi
+  [ -n "$KERNEL_RELEASE" ] || die "KERNEL_DIR set but no kernelrelease / module tree found"
+  [ -d "$KERNEL_DIR/kmod/lib/modules/$KERNEL_RELEASE" ] || \
+    die "module tree missing: $KERNEL_DIR/kmod/lib/modules/$KERNEL_RELEASE"
+  log "installing custom kernel ($KERNEL_RELEASE) as kernel-pantry.img"
+  install -m 0644 "$KERNEL_DIR/kernel-pantry.img" "$MOUNT_ROOT/boot/firmware/kernel-pantry.img"
+  log "installing kernel modules to /lib/modules/$KERNEL_RELEASE"
+  mkdir -p "$MOUNT_ROOT/lib/modules"
+  cp -a "$KERNEL_DIR/kmod/lib/modules/$KERNEL_RELEASE" "$MOUNT_ROOT/lib/modules/"
+  # DTBs/overlays are deliberately NOT injected: the stock /boot/firmware DTBs +
+  # overlays are built from the same rpi-6.12.y tree and describe hardware, not
+  # kernel config, so they serve both kernels and keep the stock-kernel
+  # fallback's device tree intact. (Inject $KERNEL_DIR/dtbs only if a live test
+  # shows the custom kernel needs its own.)
+fi
+
 # Drop the pantry-server binary into place ----------------------------------
 # The systemd unit (packages/server/scripts/pantry-server.service) expects
 # the binary at /home/pi/server/pantry-server with WorkingDirectory there
@@ -149,9 +183,21 @@ cp "$TAILSCALE_DEB_PATH" "$MOUNT_ROOT/tmp/tailscale.deb"
 # install runs against the in-rootfs binary set via qemu emulation.
 chroot "$MOUNT_ROOT" /bin/bash -c "DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/tailscale.deb || (apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -fy && dpkg -i /tmp/tailscale.deb)"
 rm -f "$MOUNT_ROOT/tmp/tailscale.deb"
-chroot "$MOUNT_ROOT" /bin/bash -c "systemctl enable tailscaled.service" || \
-  ln -sf /lib/systemd/system/tailscaled.service \
-    "$MOUNT_ROOT/etc/systemd/system/multi-user.target.wants/tailscaled.service"
+# Tailscale is installed but deliberately NOT started at boot. tailscaled's
+# bring-up (~8s on a Zero W, even unconfigured — it stands up the tun device,
+# wgengine, netstack) is pure waste until the user actually links the device,
+# and it sits on the multi-user.target critical chain: it delays boot
+# completion and steals the single ARMv6 core in the exact window the user
+# first loads the SPA. So we defer it. The in-app installer's Tailscale step
+# starts it on demand — pantry-server runs `sudo systemctl start tailscaled`
+# before `tailscale up`, then `sudo systemctl enable tailscaled` once auth
+# succeeds, so a configured node restores its tunnel on every later boot but a
+# fresh image never pays the cost. pi's NOPASSWD sudo (configured below)
+# authorizes both, and tailscaled's control socket is world-rw (0666) so the
+# unprivileged `tailscale up --operator=pi` talks to it without sudo.
+# Strip whatever enablement the deb's postinst created.
+chroot "$MOUNT_ROOT" /bin/bash -c "systemctl disable tailscaled.service" 2>/dev/null || true
+rm -f "$MOUNT_ROOT/etc/systemd/system/multi-user.target.wants/tailscaled.service"
 
 # User account (prebaked) ----------------------------------------------------
 # Bookworm Lite ships a UID-1000 `pi` user but parks it in a "needs first-boot
@@ -185,6 +231,26 @@ chroot "$MOUNT_ROOT" /usr/bin/env \
     fi
   '
 
+# Custom kernel: refresh depmod + pin the kernel/firmware packages -----------
+# Runs in the chroot window (proc/sys/dev still mounted). modules_install
+# already depmod'd at build time, so this is belt-and-suspenders to match the
+# on-image tree. apt-mark hold stops a later `apt upgrade` from replacing the
+# stock kernel.img fallback or regenerating an initramfs under us. Package names
+# vary across Pi OS releases, so detect rather than hardcode.
+if [ -n "$KERNEL_RELEASE" ]; then
+  log "depmod $KERNEL_RELEASE + holding kernel/firmware packages"
+  chroot "$MOUNT_ROOT" /bin/bash -c "depmod $KERNEL_RELEASE" 2>/dev/null || \
+    warn "depmod returned non-zero (modules were depmod'd at build time; continuing)"
+  HOLD_PKGS="$(chroot "$MOUNT_ROOT" /bin/bash -c "dpkg-query -W -f='\${Package}\n' 2>/dev/null | grep -E '^(raspberrypi-kernel|linux-image-rpi|raspberrypi-bootloader|raspi-firmware)' || true")"
+  if [ -n "$HOLD_PKGS" ]; then
+    # shellcheck disable=SC2086
+    chroot "$MOUNT_ROOT" /bin/bash -c "apt-mark hold $(echo $HOLD_PKGS | tr '\n' ' ')" 2>/dev/null || \
+      warn "apt-mark hold failed for: $HOLD_PKGS"
+  else
+    warn "no kernel/firmware package matched for apt-mark hold"
+  fi
+fi
+
 # Trim apt state the tailscale install touched. The dpkg -i fallback path
 # runs `apt-get update`, repopulating /var/lib/apt/lists with tens of MB of
 # package indexes that have no business shipping in the image; the install
@@ -200,58 +266,22 @@ umount "$MOUNT_ROOT/sys"
 umount "$MOUNT_ROOT/proc"
 rm -f "$MOUNT_ROOT/usr/bin/qemu-arm-static"
 
-# First-boot user wizard + log console --------------------------------------
-# Two display-facing fixes so a freshly-flashed card boots straight into the
-# server with no interactive setup:
+# First-boot user wizard -----------------------------------------------------
+# Disable userconfig.service. On a stock Bookworm image this oneshot runs the
+# "enter a new username / set a password" dialog on the console at first boot —
+# even though a `pi` user already exists. The account is prebaked above, so we
+# drop its enablement symlink and mask the unit.
 #
-#  1. Disable userconfig.service. On a stock Bookworm image this oneshot runs
-#     the "enter a new username / set a password" dialog on the console at
-#     first boot — even though a `pi` user already exists. The account is
-#     prebaked above, so we drop its enablement symlink and mask the unit.
+# (This section used to also install pantry-console.service — a `journalctl
+# --follow` of the server log piped onto tty1 — and mask getty@tty1/autovt@tty1.
+# That was dropped in the boot-time pass: a continuous follow steals the single
+# ARMv6 core, and the box is headless. tty1 now keeps the stock getty login —
+# a usable debug console if a monitor is ever plugged in, at no boot cost.)
 #
-#  2. Replace the tty1 login prompt with a live server-log view. getty@tty1
-#     (and autovt@tty1) are masked, and pantry-console.service tails the
-#     pantry-server journal onto /dev/tty1 — a monitor plugged into the Pi
-#     shows the server logs, never a `login:` prompt. (Alt+F2…F6 still give a
-#     normal login on the other VTs for hands-on debugging.)
-#
-# These touch only the mounted rootfs and run before the shrink below, so the
-# new files end up inside the trimmed filesystem.
+# This touches only the mounted rootfs and runs before the shrink below.
 log "disabling first-boot user wizard (userconfig.service)"
 rm -f "$MOUNT_ROOT/etc/systemd/system/multi-user.target.wants/userconfig.service"
 ln -sf /dev/null "$MOUNT_ROOT/etc/systemd/system/userconfig.service"
-
-log "installing pantry-console.service (server logs on tty1)"
-# Mask the primary-VT login so nothing claims tty1 out from under us.
-ln -sf /dev/null "$MOUNT_ROOT/etc/systemd/system/getty@tty1.service"
-ln -sf /dev/null "$MOUNT_ROOT/etc/systemd/system/autovt@tty1.service"
-cat > "$MOUNT_ROOT/etc/systemd/system/pantry-console.service" <<'CONSOLE'
-[Unit]
-Description=Pantry Host server logs on the primary display (tty1)
-After=pantry-server.service systemd-user-sessions.service
-Wants=pantry-server.service
-Conflicts=getty@tty1.service
-
-[Service]
-Type=simple
-# Show recent history then follow. -o cat drops the syslog prefixes so the
-# screen reads like the server's own stdout. Restart keeps the view alive if
-# journald or the tty hiccups.
-ExecStart=/usr/bin/journalctl --boot --follow --lines=200 --output=cat --unit=pantry-server
-StandardInput=tty
-StandardOutput=tty
-StandardError=tty
-TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
-Restart=always
-RestartSec=2
-
-[Install]
-WantedBy=multi-user.target
-CONSOLE
-ln -sf /etc/systemd/system/pantry-console.service \
-  "$MOUNT_ROOT/etc/systemd/system/multi-user.target.wants/pantry-console.service"
 
 # Offline system config (hostname / timezone / keyboard / WiFi) -------------
 # Everything here used to run on the device via firstrun.sh, gated behind a
@@ -339,6 +369,175 @@ if [ -f "$CMDLINE" ] && [ -n "$WIFI_COUNTRY" ]; then
 elif [ ! -f "$CMDLINE" ]; then
   warn "$CMDLINE not found — WiFi regulatory domain not set"
 fi
+
+# Boot-time optimization -----------------------------------------------------
+# This single-core ARMv6 board can't hit single-digit seconds (WiFi assoc +
+# ARMv6 kernel/systemd alone exceed that), but it ships with a self-inflicted
+# extra reboot and a desktop-tuned service set. The three wins below get the
+# steady-state boot toward the ~20s floor, all baked offline here.
+
+# 1. Drop the first-boot reboot. Stock Pi OS boots ONCE through
+#    init=/usr/lib/raspberrypi-sys-mods/firstboot, whose only jobs on our image
+#    are an SSH-keygen and a partuuid randomize — followed by an unconditional
+#    `reboot -f`, i.e. a whole extra cold-boot cycle. The keygen is already
+#    covered by regenerate_ssh_host_keys.service (enabled, Before=ssh.service,
+#    self-disabling — we patched it to ed25519-only above), and a per-device
+#    partuuid is irrelevant for a single-board appliance. So strip the firstboot
+#    init (and any Imager systemd.run leftovers) and let the card boot straight
+#    into systemd. The Bookworm firstboot genuinely does no resize (keygen +
+#    partuuid + custom.toml only), so stripping it loses no resize step — BUT
+#    note the rootfs grow is a SEPARATE two-part mechanism that survives this:
+#    the stock image ships /etc/init.d/resize2fs_once (a self-deleting SysV
+#    service that grows the *filesystem* on first boot — confirmed running on
+#    device), which only needs the *partition* already enlarged to fill the
+#    card. Nothing here enlarges that partition (raspi-config's do_expand_rootfs
+#    never runs on this image), and the build can't — it doesn't know the card
+#    size. flash.sh does it instead, at flash time, where the card size IS
+#    known; resize2fs_once then fills the new space on first boot.
+if [ -f "$CMDLINE" ]; then
+  log "removing first-boot reboot (init=firstboot) from cmdline.txt"
+  sed -i \
+    -e 's| init=/usr/lib/raspberrypi-sys-mods/firstboot||' \
+    -e 's| systemd\.run=[^ ]*||g' \
+    -e 's| systemd\.run_success_action=reboot||g' \
+    -e 's| systemd\.unit=kernel-command-line\.target||g' \
+    "$CMDLINE"
+fi
+
+# 2. Trim config.txt to a headless-server profile. Stock config.txt is tuned
+#    for a desktop: it loads the full KMS graphics stack, enables audio, and
+#    probes for cameras / DSI displays — none of which a kitchen server uses,
+#    and each costs init time (and RAM) on a 512 MB Zero W. An overlay can't be
+#    un-loaded by a later line, so the heavy ones are commented out in place;
+#    the auto-probes are flipped off and our settings appended under [all]. The
+#    legacy framebuffer console still backs the stock getty login on tty1
+#    without vc4-kms-v3d.
+CONFIG="$MOUNT_ROOT/boot/firmware/config.txt"
+if [ -f "$CONFIG" ]; then
+  log "trimming config.txt for headless fast boot"
+  sed -i \
+    -e 's/^dtoverlay=vc4-kms-v3d/#&/' \
+    -e 's/^max_framebuffers=2/#&/' \
+    -e 's/^dtparam=audio=on/#&/' \
+    -e 's/^camera_auto_detect=1/camera_auto_detect=0/' \
+    -e 's/^display_auto_detect=1/display_auto_detect=0/' \
+    -e 's/^auto_initramfs=/#&/' \
+    "$CONFIG"
+  if ! grep -q "Pantry Host fast-boot" "$CONFIG"; then
+    cat >> "$CONFIG" <<'CFG'
+
+# --- Pantry Host fast-boot (headless appliance) ---
+# No display/audio/camera/bluetooth on a kitchen server; skip the splash and
+# the fixed boot delay, and disable the on-chip Bluetooth (frees the PL011
+# UART and skips hciuart). Comment dtoverlay=disable-bt if you later need BT.
+disable_splash=1
+boot_delay=0
+dtoverlay=disable-bt
+# Skip the ~10 MB initramfs decompress on every boot. The root drivers
+# (ext4/mmc/sdhost) are built into both the stock and the custom kernel, so the
+# initramfs has nothing to do. Validated stable on-device.
+auto_initramfs=0
+CFG
+  fi
+  # Boot the custom kernel when one was injected, leaving the stock kernel.img
+  # untouched as the rollback fallback (revert by removing this line or
+  # restoring config.txt.bak). Appended outside the static block so --no-kernel
+  # images never point at a kernel that isn't there.
+  if [ -n "$KERNEL_RELEASE" ] && ! grep -q '^kernel=kernel-pantry.img' "$CONFIG"; then
+    log "selecting custom kernel in config.txt (kernel=kernel-pantry.img)"
+    printf '\n# Pantry Host custom kernel (stock kernel.img kept as fallback)\nkernel=kernel-pantry.img\n' >> "$CONFIG"
+  fi
+fi
+
+# Blacklist headless-irrelevant modules so udev coldplug never autoloads them
+# on the stock kernel (the custom kernel compiles them out entirely; the file
+# is harmless there). Audio, camera/V4L2, and the DRM/vc4 graphics stack have
+# no use on a headless server and each costs coldplug time + RAM on the 512 MB
+# Zero W.
+log "blacklisting audio/camera/v4l2/drm modules"
+cat > "$MOUNT_ROOT/etc/modprobe.d/pantry-headless.conf" <<'BLACKLIST'
+# Pantry Host — headless appliance: don't autoload display/audio/camera stacks.
+blacklist snd_bcm2835
+blacklist snd_soc_core
+blacklist bcm2835_codec
+blacklist bcm2835_isp
+blacklist bcm2835_v4l2
+blacklist v4l2_common
+blacklist videobuf2_common
+blacklist vc4
+blacklist v3d
+blacklist drm_kms_helper
+blacklist drm
+BLACKLIST
+
+# 3. Mask services stock Pi OS Lite enables but a headless pantry server never
+#    uses. Masking (symlink → /dev/null) is the offline-safe `systemctl mask`:
+#    a masked unit can't start even if something Wants it.
+#      - NetworkManager-wait-online: the boot barrier we just decoupled
+#        pantry-server from; masking keeps anything else from serializing boot
+#        behind a DHCP lease.
+#      - bluetooth/hciuart: paired with dtoverlay=disable-bt above.
+#      - ModemManager/triggerhappy/rpi-eeprom-update/e2scrub: no modem, no GPIO
+#        hotkeys, no EEPROM bootloader on a Zero W, no LVM to scrub.
+#      - timers: not boot-critical, but masking them spares the slow SD a
+#        post-boot I/O storm (apt indexing, man-db, db backup).
+#      - console-setup: THE first-boot win. On a single ARMv6 core, the very
+#        first boot is CPU-contention-bound, not work-bound: nearly every unit's
+#        systemd-analyze "blame" is inflated because it's queued behind the one
+#        genuine CPU hog — console-setup compiling the console font + keymap
+#        (~70s wall on first boot; sub-second once its /etc/console-setup cache
+#        exists). On-device this dwarfs everything and starves avahi/NM/logind/
+#        sshswitch of the core, so masking it doesn't just save its own time, it
+#        lets the units that DO matter run ~20s sooner. The payoff is purely a
+#        first-boot one: a flashed card a user powers on once paid ~70s here.
+#        We can afford to drop it because tty1 only shows the stock getty login
+#        (used only if a monitor is ever plugged into this headless box) — the
+#        kernel's built-in 8x16 font renders that fine. (To keep a custom console
+#        font instead, run `setupcon --save-only` in the chroot above to pre-bake
+#        the cache rather than masking — but on a headless box there's nothing to
+#        gain.)
+#      - keyboard-setup: compiles the console keymap during sysinit, and unlike
+#        console-setup it sits ON the sysinit critical path (~3s here, measured
+#        on-device), so it delays NetworkManager/WiFi bring-up — i.e. it pushes
+#        out time-to-web, not just total boot. A headless appliance has no
+#        attached keyboard. XKBLAYOUT is still written to /etc/default/keyboard
+#        above, so it applies verbatim if a maintainer ever unmasks this for an
+#        Alt+F2 debug VT.
+#      - udisks2: removable-media automount daemon; nothing plugs disks into a
+#        kitchen server, and it's a heavy first-boot CPU competitor (~38s wall).
+#      - dphys-swapfile: removed from boot in the boot-time profiling pass that
+#        built the custom kernel, to free CPU/IO on the single core. Its
+#        steady-state cost is only the swapon (the swapfile already exists after
+#        first boot), so the boot win is marginal — we fold it in as part of
+#        that pass. TRADEOFF: no swap means a large image upload could OOM on a
+#        512 MB Zero W. The server mitigates with IMAGE_CONCURRENCY=1, and
+#        ENABLE_IMAGE_PROCESSING can be set false on a Pi. Unmask this if you
+#        hit OOM-kills under the image variant pipeline.
+#    Deliberately NOT masked: resize2fs_once (load-bearing: grows the rootfs
+#    onto the user's card on first boot — SHRINK_ROOTFS is currently a no-op,
+#    but this is stock Pi OS's own resize and must stay), avahi-daemon (resolves
+#    pantry.local — the whole point), and wpa_supplicant (NetworkManager drives
+#    WiFi through it via D-Bus; masking it kills WiFi).
+log "masking unused services for faster boot"
+for unit in \
+  NetworkManager-wait-online.service \
+  ModemManager.service \
+  triggerhappy.service \
+  rpi-eeprom-update.service \
+  bluetooth.service \
+  hciuart.service \
+  console-setup.service \
+  keyboard-setup.service \
+  udisks2.service \
+  dphys-swapfile.service \
+  e2scrub_reap.service \
+  e2scrub_all.timer \
+  apt-daily.timer \
+  apt-daily-upgrade.timer \
+  man-db.timer \
+  dpkg-db-backup.timer; do
+  ln -sf /dev/null "$MOUNT_ROOT/etc/systemd/system/$unit"
+done
 
 # Enable WiFi in NetworkManager. Stock Pi OS Lite ships
 # /var/lib/NetworkManager/NetworkManager.state with WirelessEnabled=false —

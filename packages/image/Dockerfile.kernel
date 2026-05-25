@@ -1,0 +1,31 @@
+# Kernel cross-compile container. Builds the stripped ARMv6 Pantry Host kernel
+# from the raspberrypi/linux fork. Kept separate from Dockerfile.builder so the
+# privileged image customizer stays lean and this build runs unprivileged.
+#
+# The stock Debian gcc-arm-linux-gnueabihf toolchain is fine for an ARMv6
+# *kernel*: the v6 -march comes from the kernel config, not the toolchain
+# default (unlike the Rust userspace, which needs the balenalib armv6 image).
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc-arm-linux-gnueabihf \
+    bc \
+    bison \
+    flex \
+    libssl-dev \
+    libelf-dev \
+    kmod \
+    cpio \
+    lz4 \
+    gawk \
+    git \
+    ccache \
+    ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY kernel/build-kernel.sh /usr/local/bin/build-kernel.sh
+COPY kernel/pantry-armv6.config /usr/local/share/pantry-armv6.config
+RUN chmod +x /usr/local/bin/build-kernel.sh
+
+ENTRYPOINT ["/usr/local/bin/build-kernel.sh"]

@@ -1,8 +1,13 @@
 [Unit]
 Description=Pantry Host server (axum + GraphQL + Rex SPA)
 Documentation=https://github.com/austin-liminal/pantry-host
-After=network-online.target
-Wants=network-online.target
+# pantry-server binds 0.0.0.0 and does not need connectivity to start, so we
+# depend only on network.target (interfaces configured) — NOT
+# network-online.target (a DHCP lease acquired). Waiting on the latter pulls in
+# NetworkManager-wait-online and serializes the whole boot behind it: 10-30s on
+# WiFi, for no benefit. The listener is ready the instant the radio associates;
+# clients can't reach it until then either way.
+After=network.target
 
 [Service]
 Type=simple

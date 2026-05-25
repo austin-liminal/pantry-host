@@ -54,25 +54,38 @@ The first run will:
    existing `packages/server/scripts/build-pi.sh armv6` pipeline. This is
    slow the first time (~5 minutes on an M-series Mac), nearly instant
    thereafter.
-2. Download Raspberry Pi OS Lite (32-bit, armhf, Bookworm) into
+2. Cross-compile a stripped ARMv6 **custom kernel** from `raspberrypi/linux`
+   in its own container (`Dockerfile.kernel`). The source tree + ccache are
+   cached in `work/cache/`, so the first build is slow (clone + full compile)
+   and later builds are incremental. See **Custom kernel** below.
+3. Download Raspberry Pi OS Lite (32-bit, armhf, Bookworm) into
    `work/cache/`. Cached across runs.
-3. Download the latest stable Tailscale `armhf` `.deb` from
+4. Download the latest stable Tailscale `armhf` `.deb` from
    `pkgs.tailscale.com`. Cached across runs.
-4. Spin up a privileged Linux container, loop-mount the Pi OS image,
-   inject `pantry-server` + Tailscale (via `chroot` + `qemu-user-static`),
-   and bake in all system config (hostname, WiFi, timezone, keyboard, user
-   account) offline, then unmount.
-5. Compress and checksum the result into
+5. Spin up a privileged Linux container, loop-mount the Pi OS image,
+   inject `pantry-server` + Tailscale (via `chroot` + `qemu-user-static`) +
+   the custom kernel, and bake in all system config (hostname, WiFi, timezone,
+   keyboard, user account) offline, then unmount.
+6. Compress and checksum the result into
    `dist/pantry-host-pi-zero-w-YYYYMMDD-HHMMSS.img.xz`.
 
-Re-runs reuse the cached Pi OS image and `pantry-server` binary unless you
-pass `--skip-binary` / `--skip-pi-os` to flip the caches off explicitly.
+Re-runs reuse the cached Pi OS image automatically — it's only downloaded when
+missing; pass `--force-pi-os` to re-fetch a fresh copy. The `pantry-server`
+binary is rebuilt each run unless you pass `--skip-binary` to reuse
+`packages/server/dist/pi/pantry-server-armv6`. The custom kernel rebuilds
+incrementally each run; pass `--skip-kernel` to reuse the cached artifacts,
+`--force-kernel` to fetch + rebuild from scratch, or `--no-kernel` to ship the
+stock Pi OS kernel instead.
 
 ### Flags
 
 ```
 --skip-binary    Reuse packages/server/dist/pi/pantry-server-armv6 if present.
---skip-pi-os     Reuse the cached Pi OS image instead of re-downloading.
+--skip-pi-os     Require the cached Pi OS image; never download.
+--force-pi-os    Re-download the Pi OS image even if a cached copy exists.
+--no-kernel      Ship the stock Pi OS kernel (skip the custom kernel + inject).
+--skip-kernel    Require the cached custom kernel; never (re)build it.
+--force-kernel   Git-fetch the ref and fully rebuild the custom kernel.
 --no-compress    Leave the raw .img next to .img.xz (faster dd, larger file).
 --no-shrink      Skip the rootfs shrink; ship the full ~2.4 GB image.
 ```
@@ -131,22 +144,31 @@ into the normal multi-user target:
    (`/etc/NetworkManager/system-connections/preconfigured.nmconnection`).
    The regulatory domain is set via the `cfg80211.ieee80211_regdom` kernel
    param appended to `cmdline.txt`.
-2. `pantry-server.service` and `tailscaled.service` start — both enabled
-   offline via their `multi-user.target.wants` symlinks. `pantry-server`
+2. `pantry-server.service` starts — enabled offline via its
+   `multi-user.target.wants` symlink. `pantry-server`
    listens on port `80` (standard HTTP) and serves both the GraphQL API and
    the embedded Rex SPA; the systemd drop-in
    (`pantry-server.service.d/pi-image.conf`) grants `CAP_NET_BIND_SERVICE`
-   so it binds port 80 without running as root.
+   so it binds port 80 without running as root. `tailscaled` does **not**
+   start at boot — it's deferred until the installer's Tailscale step needs
+   it (see **Boot-time tuning** below).
 3. SSH comes up (the `/boot/firmware/ssh` marker plus an explicit
    `ssh.service` wants-symlink). Only a single **ed25519** host key is
    generated: `customize.sh` rewrites Pi OS's shared
-   `regenerate_ssh_host_keys` script (used by both the initramfs `firstboot`
-   and the regen service) to emit ed25519 only, dropping the RSA-3072 keygen
-   that otherwise spends ~30s behind the blue "Generating SSH keys" screen.
+   `regenerate_ssh_host_keys` script to emit ed25519 only, dropping the
+   RSA-3072 keygen that otherwise burns ~30s. It runs inline via
+   `regenerate_ssh_host_keys.service` (ordered `Before=ssh.service`), which
+   self-disables after the first boot.
 
-It usually takes ~30–45 seconds from power-on to the device appearing on
-the network — roughly one boot cycle faster than the old
-configure-then-reboot flow. Then:
+`customize.sh` also strips Pi OS's
+`init=/usr/lib/raspberrypi-sys-mods/firstboot` from `cmdline.txt` — stock
+`firstboot` ends in an unconditional `reboot -f`, so the card was silently
+paying a full extra cold-boot cycle. Without it the Pi boots straight into
+multi-user. Combined with the headless `config.txt` trim and decoupling
+`pantry-server` from `network-online.target` (see **Boot-time tuning** below),
+power-on to `http://pantry.local` is **~20–30s**. That's the practical floor
+for this board: WiFi association plus the ARMv6 kernel/systemd bring-up
+dominate and aren't software-tunable much below ~20s. Then:
 
 ```bash
 # Find the Pi
@@ -158,9 +180,14 @@ open http://pantry.local
 ```
 
 The first time you load the SPA, the in-app installer flow steps through
-Tailscale auth and any other one-time configuration. The server invokes
-`tailscale up --operator=$USERNAME`, so once that completes the user can
-run `tailscale status`, `tailscale logout`, etc. without `sudo`.
+Tailscale auth and any other one-time configuration. Because `tailscaled` is
+deferred off boot, the server first runs `sudo systemctl start tailscaled`
+(pi's NOPASSWD sudo authorizes it), then invokes
+`tailscale up --operator=$USERNAME` — the control socket is world-rw, so the
+unprivileged `up` drives the just-started daemon directly. Once auth succeeds
+the server runs `sudo systemctl enable tailscaled` so the tunnel restores on
+every later boot, and the user can run `tailscale status`, `tailscale logout`,
+etc. without `sudo`.
 
 ## What's baked into the image
 
@@ -176,9 +203,145 @@ run `tailscale status`, `tailscale logout`, etc. without `sudo`.
 /etc/NetworkManager/system-connections/preconfigured.nmconnection  (WiFi)
 /etc/localtime, /etc/timezone, /etc/default/keyboard  (locale)
 /boot/firmware/cmdline.txt                    (+ cfg80211.ieee80211_regdom=<country>)
+/boot/firmware/kernel-pantry.img              (stripped ARMv6 custom kernel; stock kernel.img kept)
+/lib/modules/<release>-pantry-v6/             (custom-kernel modules)
+/boot/firmware/config.txt                     (kernel=kernel-pantry.img, auto_initramfs=0, headless)
+/etc/modprobe.d/pantry-headless.conf          (blacklist audio/camera/v4l2/drm)
 ```
 
-Everything else is stock Raspberry Pi OS Lite (Bookworm, 32-bit armhf).
+Everything else is stock Raspberry Pi OS Lite (Bookworm, 32-bit armhf). The
+custom kernel is built from `raspberrypi/linux` and skipped with `--no-kernel`
+(see **Custom kernel** below).
+
+## Boot-time tuning
+
+`customize.sh` bakes several boot speedups offline (all reversible by editing
+the script). They take a stock ~30–45s first boot down to a sub-30s single
+boot, the custom kernel being the biggest lever:
+
+- **Stripped custom kernel.** WiFi (`brcmfmac` + SDIO) and the root storage
+  drivers (`mmc`/`sdhost`/`ext4`) are compiled *into* the kernel (`=y`) instead
+  of loaded as modules by udev. On the single ARMv6 core, stock `brcmfmac`
+  isn't `modprobe`d until ~25s into boot; built-in it initializes during kernel
+  boot (~3–4s), so WiFi associates ~20s sooner — and WiFi association is the
+  reachability gate. The kernel is also stripped of everything a headless box
+  never uses (DRM/vc4, sound, camera/V4L2, USB gadget, tracing) and LZ4-packed
+  for a faster decompress. See **Custom kernel** below; `--no-kernel` ships
+  stock instead.
+- **No initramfs.** `auto_initramfs=0` in `config.txt` skips the ~10 MB
+  initramfs decompress on every boot. The root drivers are built into both the
+  stock and the custom kernel, so the initramfs has nothing to do. (Validated
+  stable on-device over many hours.)
+- **No first-boot reboot.** Stock Pi OS boots through
+  `init=/usr/lib/raspberrypi-sys-mods/firstboot`, which regenerates SSH keys,
+  randomizes the partuuid, then `reboot -f`s — a whole extra cold-boot cycle.
+  The keygen is already handled by `regenerate_ssh_host_keys.service` and a
+  per-device partuuid is moot for a single-board appliance, so the firstboot
+  init is stripped from `cmdline.txt`. No rootfs resize is lost — this Bookworm
+  `firstboot` doesn't resize, and the image ships at its built size rather than
+  expanding to fill the card.
+- **`pantry-server` no longer waits for the network.** Its unit depends on
+  `network.target`, not `network-online.target`, and
+  `NetworkManager-wait-online.service` is masked — so boot isn't serialized
+  behind a DHCP lease (10–30s on WiFi). The server binds `0.0.0.0:80` the
+  moment it starts; clients reach it as soon as WiFi associates.
+- **Headless `config.txt`.** The KMS graphics stack (`vc4-kms-v3d`,
+  `max_framebuffers=2`), audio, and the camera/display auto-probes are
+  disabled; `disable_splash=1`, `boot_delay=0`, and `dtoverlay=disable-bt` are
+  added. The legacy framebuffer still backs the stock `getty` login on tty1.
+  Audio/camera/V4L2/DRM modules are also blacklisted via
+  `/etc/modprobe.d/pantry-headless.conf` (a no-op on the custom kernel, which
+  compiles them out, but it keeps the stock kernel from coldplugging them).
+- **Masked services.** `ModemManager`, `triggerhappy`, `rpi-eeprom-update`,
+  `bluetooth`/`hciuart`, `e2scrub`, the apt / man-db / dpkg-backup timers,
+  `console-setup` + `keyboard-setup` (no display/keyboard — `console-setup` is
+  the dominant *first*-boot win at ~70s of one-time font/keymap compile;
+  `keyboard-setup` is ~3s but sits on the sysinit critical path, so masking it
+  pulls in WiFi/time-to-web), `udisks2` (removable-media automount; a heavy
+  first-boot CPU competitor), and `dphys-swapfile` are masked. **Kept on
+  purpose:** `avahi-daemon` (it answers `pantry.local`). Note: there's **no
+  swap** — `dphys-swapfile` was dropped in the boot-time pass. A large image
+  upload could OOM on 512 MB; the server mitigates with `IMAGE_CONCURRENCY=1`
+  and `ENABLE_IMAGE_PROCESSING=false`. Unmask `dphys-swapfile` if you hit
+  OOM-kills. (A previous build also tailed the server log onto tty1 via
+  `pantry-console.service`; that was removed — a continuous `journalctl
+  --follow` steals the one core, and the box is headless.)
+- **Tailscale deferred off boot.** `tailscaled` (~8s on a Zero W, and on the
+  `multi-user.target` critical chain) is installed but *not* enabled at boot —
+  it's pure overhead until the device is linked. The installer's Tailscale step
+  starts it on demand and enables it for future boots only after a successful
+  link (see **First boot** above). On a measured Zero W this drops total boot
+  from ~35s to ~30s with **no** change to time-to-web (tailscaled activated
+  ~8s *after* the SPA was already reachable).
+
+Single-digit boot isn't reachable on a Zero W over WiFi — that needs a faster
+board (Zero 2 W) or wired Ethernet (Pi 3/4). Profile any further tuning
+on-device with `systemd-analyze blame` and `systemd-analyze critical-chain`.
+
+## Custom kernel
+
+The image boots a stripped ARMv6 kernel built from the
+[`raspberrypi/linux`](https://github.com/raspberrypi/linux) fork (so the
+RPi-specific `sdhost`/`brcmfmac`/device-tree support is retained) rather than
+Pi OS's stock kernel. The point is **time-to-WiFi**: building `brcmfmac` and the
+root storage drivers in (`=y`) initializes them during kernel boot instead of
+via a ~25s-late udev `modprobe`, pulling WiFi association ~20s earlier on the
+single core. Everything a headless server never touches is stripped (DRM/vc4,
+sound, camera/V4L2, USB gadget, RAID/MD, tracing, KASLR), and the image is
+LZ4-packed for a faster decompress. Netfilter/`tun`/conntrack (Tailscale),
+IPv6, FUSE, and **rfkill** are deliberately kept — rfkill in particular is
+load-bearing for the NetworkManager WiFi-unblock path.
+
+### How it's built
+
+```
+packages/image/kernel/
+├── pantry-armv6.config   # Kconfig fragment (built-in vs strip list)
+├── build-kernel.sh       # clone/config/build/stage, runs in the container
+└── deploy-live.sh        # push a built kernel to a live Pi for testing
+packages/image/Dockerfile.kernel   # cross-compile toolchain (separate from the customizer)
+```
+
+`build.sh`'s kernel stage builds `Dockerfile.kernel`, then runs
+`build-kernel.sh` inside it: it shallow-clones `raspberrypi/linux` into
+`work/cache/linux`, merges `pantry-armv6.config` over `bcm2835_defconfig`,
+`make olddefconfig`, and builds `zImage` + dtbs + modules. The source tree and
+a ccache live in `work/cache/`, so the first build is slow (clone + full
+compile) and later builds are incremental. Artifacts stage to
+`work/cache/kernel-out/` (`kernel-pantry.img`, a `kmod/` module tree, and a
+`kernelrelease` file). `customize.sh` then copies the kernel in as
+`kernel-pantry.img`, drops the modules under `/lib/modules/<release>`, runs
+`depmod`, sets `kernel=kernel-pantry.img` in `config.txt`, and `apt-mark hold`s
+the kernel/firmware packages. **The stock `kernel.img` is left in place as a
+fallback.**
+
+### Testing on a live Pi (rollback-safe)
+
+Before baking a new kernel into the image, validate it on a running device:
+
+```bash
+cd packages/image
+./build.sh --skip-binary --skip-pi-os    # build just the kernel into work/cache/kernel-out/
+./kernel/deploy-live.sh pi@pantry.local  # copy kernel + modules, set config.txt (backs up to .bak)
+ssh pi@pantry.local 'sudo reboot'
+# wait a couple of minutes (a new kernel's first boot is slower than later ones)
+./verify.sh pantry.local                 # measure time-to-HTTP; confirm < 30s
+```
+
+If the board doesn't come back, SD-mount the card on another machine and
+restore `config.txt.bak` (it points back at the stock `kernel.img`) — no
+re-flash needed.
+
+### Maintenance
+
+The product ships as a built image, so a "kernel update" is just a rebuild from
+RPi's stable branch at image-rebuild time — there's no on-device kernel package
+to track. `apt-mark hold` keeps `apt upgrade` from clobbering the setup. Match
+`KERNEL_REF` (default `rpi-6.12.y`, set in `build-kernel.sh`) to the device's
+running `uname -r` major.minor when bumping. If `bcm2835_defconfig` ever stops
+satisfying a needed `=y` driver, rebase the fragment on `bcmrpi_defconfig`
+(RPi's downstream ARMv6 config) — `build-kernel.sh` warns at configure time if
+a load-bearing symbol didn't land as built-in.
 
 ## Troubleshooting
 
